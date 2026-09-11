@@ -20,4 +20,4 @@ GATE OR3        1603.8 Y=A+B+C;            PIN * NONINV  1 999 1 0.2 1 0.2
 GATE OR4        1924.6 Y=A+B+C+D;          PIN * NONINV  1 999 1 0.2 1 0.2
 GATE XOR2       1603.8 Y=(A*!B)+(!A*B);    PIN * UNKNOWN 1 999 1 0.2 1 0.2
 GATE XNOR2      1603.8 Y=(A*B)+(!A*!B);    PIN * UNKNOWN 1 999 1 0.2 1 0.2
-GATE MUX2       1924.6 Y=(A*S)+(B*!S);     PIN * UNKNOWN 1 999 1 0.2 1 0.2
+GATE MUX2       1924.6 Y=(A*!S)+(B*S);     PIN * UNKNOWN 1 999 1 0.2 1 0.2

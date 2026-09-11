@@ -40,9 +40,24 @@ def sel(cell, key):
     return [p for p in cell.polygons if (p.layer, p.datatype) == ld]
 
 
+GROW = 0.01        # µm。辺で接するだけの図形を確実に繋ぐための膨張量
+
+
 def merge(polys):
-    """重なり／接触するポリゴンを連結成分ごとにまとめる"""
-    return gdstk.boolean(polys, [], "or", precision=EPS) if polys else []
+    """重なり／接触するポリゴンを連結成分ごとにまとめる。
+
+    **辺で接するだけの図形は boolean 'or' では繋がらないことがある。**
+    XOR2 では電源スタブ 2 本が同じ形でレールに接しているのに、片方だけ
+    別ネットに割れて PMOS プルアップの vdd が外れ、出力がフルレールに
+    振れない「バグ」に見えていた（実際はレイアウトは正しく、こちらの
+    抽出が割っていた）。KLayout の LVS は接触＝導通として扱うので、
+    それに合わせて **{GROW} µm だけ膨らませてから結合する**。
+    最小間隔は M1 で 1.4 µm あるので、この膨張で別ネットが繋がることはない。
+    """
+    if not polys:
+        return []
+    grown = gdstk.offset(polys, GROW, join="miter", precision=EPS, use_union=True)
+    return grown if grown else gdstk.boolean(polys, [], "or", precision=EPS)
 
 
 def hits(shape, targets):
@@ -64,12 +79,17 @@ def extract(cell):
     nact = gdstk.boolean(sel(cell, "NIMP"), nwell, "not", precision=EPS)
 
     # ゲート = poly ∩ active、拡散島 = active ∖ poly
-    devs = []          # (type, gate_poly, W)
+    devs = []          # (type, gate_poly, W, L)
     diff = {}          # ('P'|'N', idx) -> polygon
     for tag, act in (("P", pact), ("N", nact)):
         for g in gdstk.boolean(sel(cell, "POLY"), act, "and", precision=EPS):
             pts = g.points
-            devs.append((tag, g, round(float(pts[:, 1].max() - pts[:, 1].min()), 2)))
+            # W = チャネル幅（縦）/ L = チャネル長（横 = poly の走る向きの厚み）。
+            # **L を 1.0u 決め打ちにしないこと。** DEL1 は遅延段の 4 個だけ L=2.0u、
+            # FILL2/FILL3 のデキャップは L=3.2/8.6u で、決め打ちだと遅延も容量も狂う。
+            devs.append((tag, g,
+                         round(float(pts[:, 1].max() - pts[:, 1].min()), 2),
+                         round(float(pts[:, 0].max() - pts[:, 0].min()), 2)))
         for i, d in enumerate(merge(gdstk.boolean(act, sel(cell, "POLY"), "not", precision=EPS))):
             diff[(tag, i)] = d
 
@@ -91,16 +111,29 @@ def extract(cell):
 
     # ラベル → ネット名
     names = {}
+    stray = []
     for lab in cell.labels:
         pt = gdstk.rectangle((lab.origin[0] - .2, lab.origin[1] - .2),
                              (lab.origin[0] + .2, lab.origin[1] + .2))
-        for kind, arr in (("m2", m2), ("m1", m1), ("poly", poly)):
+        # **ラベルの層とその下の配線層を一致させる**。DRC/LVS デッキ（00_Layers.drc）も
+        #   M1_LBL = labels(48,0) / M2_LBL = labels(49,0)
+        # と層ごとに対応させている。層をまたいで拾うと、M2 のつもりで置いたラベルが
+        # 真下の M1 電源レールに付いて電源ネットが信号名に化ける（REGBUF で実際に起きた）。
+        order = (("m1", m1), ("poly", poly)) if lab.layer == 48 else (("m2", m2),)
+        for kind, arr in order:
             for i in hits(pt, arr):
                 names.setdefault(uf.find((kind, i)), lab.text)
                 break
             else:
                 continue
             break
+        else:
+            stray.append((lab.text, lab.layer, tuple(round(float(v), 2) for v in lab.origin)))
+    if stray:
+        print("* 迷子ラベル（その層の配線が真下に無い。LVS では何にも付かない）:")
+        for t, ly, o in stray:
+            want = "M1(13,0)" if ly == 48 else "M2(20,0)"
+            print(f"*   {t!r} layer {ly} @ {o} … 直下に {want} が無い")
 
     # 無名ネットには決定的な番号を振る（実行ごとに変わらないように）
     anon = {}
@@ -115,20 +148,16 @@ def extract(cell):
 
     # 各ゲートの端子
     out = []
-    for tag, g, w in devs:
+    for tag, g, w, l in devs:
         gate = next((netname(("poly", i)) for i in hits(g, poly)), "?")
-        sd = []
-        for k, d in diff.items():
-            if k[0] != tag: continue
-            if gdstk.boolean([g.copy().scale(1.02, 1.0, g.bounding_box()[0])], [d], "and", precision=EPS):
-                sd.append(netname(k))
-        # 接触判定は膨張で拾う（ゲート左右の拡散）
-        if len(sd) < 2:
-            bb = g.bounding_box()
-            grow = gdstk.rectangle((bb[0][0] - 0.6, bb[0][1]), (bb[1][0] + 0.6, bb[1][1]))
-            sd = [netname(k) for k, d in diff.items()
-                  if k[0] == tag and gdstk.boolean([grow], [d], "and", precision=EPS)]
-        out.append((tag, gate, sorted(set(sd)), w))
+        # ゲートと拡散は**辺で接している**（重なりゼロ）ので 'and' では拾えない。
+        # ゲート図形そのものを少しだけ膨らませて交差を取る。
+        # bbox を膨らませる方式だと L 字のゲート（FILL2/FILL3 のデキャップ）で
+        # 片側の拡散を取りこぼす。
+        gg = gdstk.offset([g], 0.1, join="miter", precision=EPS, use_union=True)
+        sd = [netname(k) for k, d in diff.items()
+              if k[0] == tag and gdstk.boolean(gg, [d], "and", precision=EPS)]
+        out.append((tag, gate, sorted(set(sd)), w, l))
     return out, names, uf
 
 
@@ -152,11 +181,17 @@ def spice(cell, devs, name):
     pins = cell_pins(cell)
     lines = [f".subckt {name} {' '.join(pins)} vdd gnd",
              "* auto-extracted by scripts/gds_extract.py -- NOT an LVS-grade netlist"]
-    for i, (tag, gate, sd, w) in enumerate(devs):
-        s, d = (sd + ["?", "?"])[:2]
+    for i, (tag, gate, sd, w, l) in enumerate(devs):
+        # ソースとドレインが同じネットに落ちるのは異常ではない。
+        # FILL2/FILL3 のデキャップは拡散の両側とも同じレールに繋ぐ MOS 容量なので、
+        # 区別できるネットは 1 本しかない。'?' を出さずにそのネットを両端に使う。
+        if len(sd) == 1:
+            s = d = sd[0]
+        else:
+            s, d = (sd + ["?", "?"])[:2]
         mtype = "pmos" if tag == "P" else "nmos"
         bulk = "vdd" if tag == "P" else "gnd"
-        lines.append(f"M{i} {d} {gate} {s} {bulk} {mtype} W={w}u L=1.0u")
+        lines.append(f"M{i} {d} {gate} {s} {bulk} {mtype} W={w}u L={l}u")
     lines.append(".ends")
     return "\n".join(lines) + "\n"
 
@@ -199,10 +234,11 @@ if __name__ == "__main__":
 
     print(f"=== {a.cell}: {len(devs)} transistors ===")
     by = defaultdict(list)
-    for tag, gate, sd, w in devs:
-        by[gate].append((tag, sd, w))
-    for tag, gate, sd, w in devs:
-        print(f"  {tag}MOS W={w:5.1f}  gate={gate:<6} s/d={','.join(sd)}")
+    for tag, gate, sd, w, l in devs:
+        by[gate].append((tag, sd, w, l))
+    for tag, gate, sd, w, l in devs:
+        mark = "  <- L が最小長でない" if abs(l - 1.0) > 1e-6 else ""
+        print(f"  {tag}MOS W={w:5.1f} L={l:4.1f}  gate={gate:<6} s/d={','.join(sd)}{mark}")
     print("\nnamed nets:", sorted(set(names.values())))
     txt = spice(c, devs, a.cell)
     if a.out:

@@ -146,7 +146,10 @@ FUNC = [
     ("OR4",     "Y=A+B+C+D;",       "NONINV"),
     ("XOR2",    "Y=(A*!B)+(!A*B);", "UNKNOWN"),
     ("XNOR2",   "Y=(A*B)+(!A*!B);", "UNKNOWN"),
-    ("MUX2",    "Y=(A*S)+(B*!S);",  "UNKNOWN"),
+    # **S=0 で A、S=1 で B**。ngspice の真理値表チェックで確認（回路は AOI で
+    #   n2 = !((A & !S) | (B & S))、Y = !n2）。以前は A/B が逆に書いてあり、
+    # genlib マッピングに切り替えた瞬間に MUX の入力が入れ替わるところだった。
+    ("MUX2",    "Y=(A*!S)+(B*S);",  "UNKNOWN"),
 ]
 
 
