@@ -80,8 +80,25 @@ python3 scripts/mklef.py lef/TR-1um_STDCELL.gds -o lef
 | `DEC16` | BLOCK | 878.400 × 86.400 | 0 |
 | `TLAT128` | BLOCK | 313.200 × 878.400 | 0 |
 | `MUX2` | CORE | 32.400 × 59.400 | 4（SITE 付き） |
-| `FILL1`/`FILL2`/`FILL3` | CORE SPACER | 5.4 / 10.8 / 16.2 × 59.400 | — |
+| `FILL1` | CORE SPACER | 5.400 × 59.400 | — （純フィラー、0 Tr） |
+| `FILL2`/`FILL3` | CORE SPACER | 10.8 / 16.2 × 59.400 | — （**デキャップ**、下記） |
 | `TAP2`/`TAP3` | CORE WELLTAP | 10.8 / 16.2 × 59.400 | — |
+
+### `FILL2` / `FILL3` は空セルではなくデキャップ
+
+名前はフィラーだが中身は **MOS 容量**。NMOS / PMOS とも L を伸ばした 1 個の
+ゲートで、ゲートを反対側のレールに、拡散（両側）と基板を同じ側のレールに落としてある
+（NMOS: ゲート→vdd / 拡散→gnd、PMOS: ゲート→gnd / 拡散→vdd。どちらも強反転で容量最大）。
+
+| セル | W × L (P / N) | ゲート面積 | 容量 @ Cox 1.77 fF/µm² | セル面積比 |
+|---|---|---:|---:|---:|
+| `FILL2` (10.8 µm 幅) | 15.8×3.2 / 13.1×3.2 | 92.5 µm² | **164 fF** | 14% |
+| `FILL3` (16.2 µm 幅) | 15.8×8.6 / 13.1×8.6 | 248.5 µm² | **440 fF** | 26% |
+| `FILL1` (5.4 µm 幅) | — | 0 | 0（純フィラー） | — |
+
+**行の隙間を `FILL2`/`FILL3` で埋めれば、それがそのまま電源デキャップになる。**
+`FILL1` だけは幅 5.4 に容量が入らないので素の埋め物。
+`cellinfo.py` がこの表を毎回出す。
 
 `BLOCKS`（`CLASS BLOCK` 扱い）: `TLAT` `TAP2S` `REGBUF` `DEC0` `DEC2` `DEC16` `ADDBUF`
 `TLAT4`〜`TLAT128` `REGBUF4` `REGBUF8` `REG4x16` `REG8x16`。アレイ内部で abut して使う
@@ -120,7 +137,8 @@ python3 scripts/mklef.py lef/TR-1um_STDCELL.gds -o lef
 - [x] `MUX2` の寸法、`DFF` の `CK` ピン位置
 - [x] `FILL1` / `INV_X2` / `BUF_X2` を追加、genlib にも反映
 - [ ] `TIEHI` / `TIELO` — 合成で定数を引くのに要る
-- [ ] アンテナダイオード、`ENDCAP` / `DECAP`
+- [x] `DECAP` — `FILL2` / `FILL3` が実体。フィラーと兼用
+- [ ] アンテナダイオード、`ENDCAP`
 - [ ] `TLAT` の `WR/WRB/RD/RDB` を (48,1) → (49,1) へ（現在は貫通 M1 として拾っている）
 - [ ] `DEC0` / `ADDBUF` の信号ラベル（(49,1) の形状はあるがテキストが無い）
 - [ ] Liberty (`.lib`) — タイミングは SPICE 特性化が要るので後回し

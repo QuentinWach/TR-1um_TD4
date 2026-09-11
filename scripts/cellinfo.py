@@ -25,6 +25,7 @@ except ImportError:
     sys.exit("pip install gdstk --break-system-packages")
 
 ROW_H, POLY_PITCH, W_BASE = 59.4, 5.4, 5.4   # 2026-09-11 に行高を 64.8 -> 59.4 に変更
+COX = 1.77                                   # fF/µm²（Tox 19.5nm, eps_ox 3.9 -> 1.77e-3 F/m²）
 L_BOUND, L_NWELL, L_POLY, L_PIN, L_LBL = (235, 0), (140, 0), (8, 1), (49, 1), (48, 1)
 L_PIMP, L_NIMP = (3, 1), (3, 2)
 
@@ -34,13 +35,16 @@ def sel(cell, ld):
 
 
 def devices(cell):
-    """poly ∩ (implant ∩/∖ nwell) で実ゲートを取り出す。戻り値 {'P':[W..],'N':[W..]}"""
+    """poly ∩ (implant ∩/∖ nwell) で実ゲートを取り出す。
+    戻り値 {'P':[W..],'N':[W..], 'GA': ゲート総面積[µm²]}"""
     poly, nwell = sel(cell, L_POLY), sel(cell, L_NWELL)
-    out = {}
+    out, ga = {}, 0.0
     for tag, ld, op in (("P", L_PIMP, "and"), ("N", L_NIMP, "not")):
         act = gdstk.boolean(sel(cell, ld), nwell, op, precision=1e-3)
         gates = gdstk.boolean(poly, act, "and", precision=1e-3)
         out[tag] = [round(float(g.points[:, 1].max() - g.points[:, 1].min()), 2) for g in gates]
+        ga += sum(abs(float(g.area())) for g in gates)
+    out["GA"] = round(ga, 1)
     return out
 
 
@@ -80,7 +84,7 @@ def scan(path):
         # 階層セルは図形が配下にあるので、Tr 数は展開してから数える
         d = devices(flat) if array else devices(cell)
         rows.append(dict(
-            name=cell.name, w=w, h=h, area=round(w * h, 1), array=array,
+            name=cell.name, w=w, h=h, area=round(w * h, 1), array=array, gate_area=d["GA"],
             nP=len(d["P"]), nN=len(d["N"]), tr=len(d["P"]) + len(d["N"]),
             WP=sorted(set(d["P"])), WN=sorted(set(d["N"])),
             pins=[l.text for l in cell.labels if l.layer == L_PIN[0]],
@@ -90,24 +94,34 @@ def scan(path):
     return rows
 
 
+# --- 意図的に規約から外れているセル（毎回出ると本当の逸脱が埋もれる）---
+#     自前の prBoundary を持つので array 判定には乗らないが、行には置かないもの
+MACRO_BY_COORD = {"DEC0"}          # デコーダ 1 行ぶん。高さ 86.4 で座標指定して並べる
+# 信号ピンを持たないのが正しいセル（電源だけで完結する）
+NO_SIGNAL_PIN = {"FILL1", "FILL2", "FILL3", "TAP2", "TAP2S", "TAP3"}
+# ワードラインを横 abut で通すため、信号を (48,1) に置いているセル
+ABUT_WORDLINE = {"TLAT", "DEC0"}
+
+
 def check(rows):
     """設計規約からの逸脱を洗い出す（行に置く標準セルだけが対象）"""
     bad = []
     for r in rows:
-        if r["array"]:
+        n = r["name"]
+        if r["array"] or n in MACRO_BY_COORD:
             continue                       # アレイ／マクロは座標指定で置くので対象外
         k = (r["w"] - W_BASE) / POLY_PITCH
         if abs(k - round(k)) > 1e-6:
-            bad.append(f"{r['name']}: 幅 {r['w']} µm がポリピッチ格子外 "
+            bad.append(f"{n}: 幅 {r['w']} µm がポリピッチ格子外 "
                        f"(10.8 + {k:.3f}×5.4 / 最寄り {W_BASE + round(k)*POLY_PITCH:.1f})")
         if abs(r["h"] - ROW_H) > 1e-6:
-            bad.append(f"{r['name']}: 行高 {r['h']} µm (規定 {ROW_H})")
-        if r["tr"] and r["pinshapes"] == 0:
-            bad.append(f"{r['name']}: (49,1) のピン形状が無い（ラベルのみ）")
-        sig = [n for n in r["netlabels"] if n not in ("vdd", "gnd")]
-        outside = [n for n in sig if n.isupper() and n not in ("CKP", "CKB", "QM", "QS")]
-        if outside:
-            bad.append(f"{r['name']}: {','.join(outside)} が (48,1) にある"
+            bad.append(f"{n}: 行高 {r['h']} µm (規定 {ROW_H})")
+        if r["tr"] and r["pinshapes"] == 0 and n not in NO_SIGNAL_PIN:
+            bad.append(f"{n}: (49,1) のピン形状が無い（ラベルのみ）")
+        sig = [s for s in r["netlabels"] if s not in ("vdd", "gnd")]
+        outside = [s for s in sig if s.isupper() and s not in ("CKP", "CKB", "QM", "QS")]
+        if outside and n not in ABUT_WORDLINE:
+            bad.append(f"{n}: {','.join(outside)} が (48,1) にある"
                        f"（外部ピンなら他セル同様 (49,1) へ）")
     return bad
 
@@ -174,6 +188,17 @@ if __name__ == "__main__":
             wn = "/".join(f"{v:g}" for v in r["WN"]) or "-"
             print(f"{r['name']:<12}{r['w']:>8.1f}{r['h']:>7.1f}{r['area']:>10.1f}{r['tr']:>6}  "
                   f"{wp:<14}{wn:<7} {','.join(dict.fromkeys(r['pins']))}")
+        print()
+
+    # --- デキャップ: 信号ピンを持たないのにゲートがあるセル ---
+    caps = [r for r in rows if r["name"] in NO_SIGNAL_PIN and r["gate_area"] > 0]
+    if caps:
+        print(f"--- デキャップ（Cox = {COX:.2f} fF/µm², Tox 19.5nm）---")
+        for r in caps:
+            c = r["gate_area"] * COX          # fF
+            print(f"{r['name']:<12}ゲート面積 {r['gate_area']:7.1f} µm²  = {c:6.1f} fF"
+                  f"   （セル面積比 {r['gate_area']/r['area']:.0%}"
+                  f" / {c/r['area']*1000:.0f} fF per 1000µm²）")
         print()
 
     if args.check:
