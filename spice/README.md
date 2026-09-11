@@ -100,6 +100,51 @@ IRSIM は 1.5〜2 倍ほど楽観的。IRSIM は**論理と接続の検証**に�
 
 ---
 
+## REG8x16（8bit × 16word = 128bit、TD4 命令メモリ 1 個ぶん）
+
+`scripts/mkspice.py` をビット幅でパラメータ化した。共通サブ回路
+（`TLAT` / `DEC2` / `REGBUF` / `ADDBUF`）は REG4x16 と**バイト単位で同一**。
+
+```sh
+python3 scripts/mkspice.py --bits 4     # -> spice/REG4x16_src.spi（従来と同一の出力）
+python3 scripts/mkspice.py --bits 8     # -> spice/REG8x16_src.spi
+cp spice/REG8x16_src.spi lef/simulation/REG8x16.spice
+```
+
+> ランセットは `simulation/<top>.spice` を決め打ちで参照するので、
+> top cell `REG8x16` で回すなら **`REG8x16.spice`** という名前で置くこと。
+
+| | 個数 | Tr/個 | 計 |
+|---|---:|---:|---:|
+| TLAT | 128 | 12 | 1,536 |
+| DEC2 | 8 | 32 | 256 |
+| REGBUF | 8 | 8 | 64 |
+| ADDBUF | 1 | 20 | 20 |
+| **計** | | | **1,876** ← レイアウト抽出と一致 |
+
+トップのポート（GDS のピンラベル実測に一致、**23 ピン**）:
+
+```
+.subckt REG8x16 ADD[0] ADD[1] ADD[2] ADD[3] WEB
+                D[0]..D[7] Q[0]..Q[7] vdd vss
+```
+
+アバットメントボックス **399.6 × 933.0 µm = 0.3728 mm²**（2,913 µm²/bit）。
+REG4x16 ×2 = 0.4635 mm² に対し **19.6 % 減**。デコーダ DEC16 が 1 個で済むため。
+
+階層とセルは REG4x16 の幅方向拡張そのもの:
+
+```
+REG8x16 = TLAT128 @(0,0) + DEC16 @(-86.4,57.0) + REGBUF8 @(302.4,4.8) + ADDBUF @(-48.6,4.8)
+  TLAT128 = TLAT8B x8 @109.2      TLAT8B = TLAT8 x2（Y ミラー @114.0）
+  TLAT8   = TLAT x8 @37.8 + TAP2S   REGBUF8 = REGBUF x8 @37.8 + TAP2S
+```
+
+`DEC16` と `ADDBUF` は REG4x16 と**同じセル・同じ配置座標**なので、
+アドレス系の結線は LVS クリーンだったものがそのまま効いている。
+
+---
+
 ## LVS の考え方
 
 `REG4x16_src.spi` は**レイアウトから抽出したものではなく、設計意図を書き下したもの**。
