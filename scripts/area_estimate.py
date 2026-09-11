@@ -4,38 +4,57 @@
 usage:
   yowasp-yosys -p "read_verilog *.v; hierarchy -check -top TOP; synth -top TOP -flatten; \
                    abc -g simple; opt_clean; tee -o stat.txt stat"
-  python3 area_estimate.py stat.txt --top TOP
+  python3 scripts/area_estimate.py stat.txt --top TOP [--areas scripts/cell_area.json]
 
-面積は `lef/TR-1um_STDCELL.gds` の (235,0) abutment box 実測値。
-`python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds` で再生成・再確認できる。
+**面積は自前の表を持たない。**`scripts/cell_area.json`（= `scripts/cellinfo.py --areas`
+が GDS の (235,0) abutment box から書き出したもの）を読む。ライブラリを直したら
 
-**2026-09-09 のライブラリ更新に追従**: 行高 62.6→64.8 µm、INV 1,821.7→699.8 µm²、
-DFFR+MUX2 で作っていた DFFE は **MUXDFFRB 単一セル**に。全体で約 2.4 倍の高密度化。
+  python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds \
+          --genlib scripts/tr1um.genlib --areas scripts/cell_area.json
+
+を流し直すだけで、この見積りも自動で追従する。
+（行高 64.8→59.4 の変更でこのファイルの表だけが取り残され、
+  組合せセルの面積を 8.3% 過大に見積もっていたのを直したときの反省。）
 """
 from __future__ import annotations
-import argparse, collections, re, sys
+import argparse, collections, json, os, re, sys
 
-# --- TR-1um STDCELL 実測面積 [um^2]（GDS 235/0 外形, 行高 64.8um）---
-ROW_H  = 64.8
-INV    = 699.8    # INV_X1 (10.8 x 64.8)
-BUF    = 1049.8   # BUF_X1
-NAND2  = 1049.8   # NAND2 / NOR2
-AND2   = 1399.7   # AND2_X1 / OR2 / NAND3 / NOR3
-XOR2   = 1749.6   # XOR2 / XNOR2 / AND3 / OR3 / NAND4 / NOR4
-MUX2   = 2099.5   # MUX2 / AND4 / OR4 / BUFTH / DEL1
-DFF    = 4199.0   # DFF / DFFRB / DFFS / REG
-DFFE   = 6298.6   # MUXDFFRB（イネーブル付き FF が単一セルで存在する）
-TLAT   = 2443.0   # 12T ラッチ型ビットセル（メモリアレイ用）
-OR2 = AND2
-
-AREA = {
-    "$_NOT_": INV, "$_NAND_": NAND2, "$_NOR_": NAND2, "$_BUF_": BUF,
-    "$_AND_": AND2, "$_OR_": OR2, "$_XOR_": XOR2, "$_XNOR_": XOR2,
-    "$_MUX_": MUX2, "$_ANDNOT_": INV + AND2, "$_ORNOT_": INV + OR2,
-    "$_AOI3_": AND2 + NAND2, "$_OAI3_": OR2 + NAND2,
-    "$_AOI4_": AND2 + NAND2, "$_OAI4_": OR2 + NAND2,
-}
 CORE_W = CORE_H = 1840.0  # OSS_FRAME 内側の有効コア
+HERE = os.path.dirname(os.path.abspath(__file__))
+DEFAULT_AREAS = os.path.join(HERE, "cell_area.json")
+
+# Yosys の内部セル名 -> 実セル名（複数なら合計面積）
+MAP = {
+    "$_NOT_":    ["INV_X1"],
+    "$_BUF_":    ["BUF_X1"],
+    "$_NAND_":   ["NAND2"],
+    "$_NOR_":    ["NOR2"],
+    "$_AND_":    ["AND2_X1"],
+    "$_OR_":     ["OR2"],
+    "$_XOR_":    ["XOR2"],
+    "$_XNOR_":   ["XNOR2"],
+    "$_MUX_":    ["MUX2"],
+    "$_ANDNOT_": ["INV_X1", "AND2_X1"],
+    "$_ORNOT_":  ["INV_X1", "OR2"],
+    "$_AOI3_":   ["AND2_X1", "NAND2"],
+    "$_OAI3_":   ["OR2", "NAND2"],
+    "$_AOI4_":   ["AND2_X1", "NAND2"],
+    "$_OAI4_":   ["OR2", "NAND2"],
+}
+FALLBACK = "AND2_X1"        # 表に無い組合せセルはこれで代用
+FF_PLAIN = "DFFRB"          # リセット付き FF
+FF_EN = "MUXDFFRB"          # イネーブル付き FF（単一セルで存在する）
+
+
+def load_areas(path):
+    if not os.path.exists(path):
+        sys.exit(f"{path} が無い。先に\n"
+                 f"  python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds "
+                 f"--genlib scripts/tr1um.genlib --areas scripts/cell_area.json\n"
+                 f"を流すこと。")
+    doc = json.load(open(path))
+    return ({k: v["area"] for k, v in doc["cells"].items()},
+            doc.get("row_height", 59.4), doc.get("source", path))
 
 
 def parse(path: str) -> dict[str, dict[str, int]]:
@@ -64,7 +83,17 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("statfile")
     ap.add_argument("--top", required=True)
+    ap.add_argument("--areas", default=DEFAULT_AREAS)
     a = ap.parse_args()
+
+    A, row_h, src = load_areas(a.areas)
+    need = {n for v in MAP.values() for n in v} | {FALLBACK, FF_PLAIN, FF_EN}
+    missing = sorted(need - set(A))
+    if missing:
+        print(f"** {a.areas} に無いセル: {', '.join(missing)}", file=sys.stderr)
+
+    def area_of(names):
+        return sum(A.get(n, A[FALLBACK]) for n in names)
 
     mods = parse(a.statfile)
     if a.top not in mods:
@@ -73,24 +102,35 @@ def main() -> None:
 
     ff = comb = 0
     area = 0.0
+    detail = collections.Counter()
     for k, n in cells.items():
         if k == "$scopeinfo":
             continue
         if "DFF" in k or "LATCH" in k:
             ff += n
-            area += n * (DFFE if ("DFFE" in k or "CE_" in k) else DFF)
+            names = [FF_EN] if ("DFFE" in k or "CE_" in k) else [FF_PLAIN]
         else:
             comb += n
-            area += n * AREA.get(k, AND2)
+            names = MAP.get(k, [FALLBACK])
+        area += n * area_of(names)
+        for nm in names:
+            detail[nm] += n
 
+    nand2 = A.get("NAND2", 1.0)
+    print(f"--- 面積の出どころ: {a.areas}  (GDS {os.path.basename(src)}, 行高 {row_h} um) ---")
     print(f"--- cell mix ({a.top}) ---")
     for k, n in sorted(cells.items(), key=lambda x: -x[1]):
-        print(f"  {k:18} {n:6d}")
-    print(f"\nFF              : {ff}")
+        if k == "$scopeinfo":
+            continue
+        nm = "+".join(MAP.get(k, [FALLBACK])) if not ("DFF" in k or "LATCH" in k) else \
+             (FF_EN if ("DFFE" in k or "CE_" in k) else FF_PLAIN)
+        print(f"  {k:18} {n:6d}  -> {nm}")
+    print(f"\n実セル内訳      : " + ", ".join(f"{k} x{v}" for k, v in sorted(detail.items())))
+    print(f"FF              : {ff}")
     print(f"combinational   : {comb}")
     print(f"raw cell area   : {area:,.0f} um2 = {area/1e6:.3f} mm2")
-    print(f"NAND2 equiv     : {area/NAND2:,.0f} gates")
-    print(f"total cell width: {area/ROW_H:,.0f} um (row h={ROW_H} um)")
+    print(f"NAND2 equiv     : {area/nand2:,.0f} gates  (NAND2 = {nand2:.1f} um2)")
+    print(f"total cell width: {area/row_h:,.0f} um (row h={row_h} um)")
     core = CORE_W * CORE_H
     print(f"\ncore available  : {CORE_W:.0f} x {CORE_H:.0f} um = {core/1e6:.3f} mm2")
     for u in (0.5, 0.6, 0.7, 0.8):

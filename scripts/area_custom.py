@@ -1,9 +1,29 @@
 #!/usr/bin/env python3
 """TD4 / TR-1um: 素直な STDLIB 合成結果に C4004 設計方針のカスタムセルを適用した面積再見積り。
 
+**【2026-09-11 役目を終えた】このスクリプトは当時の見込みを残すためだけに置いてある。**
+
+  ・面積定数は**行高 62.6 µm 世代**のもの（NAND2=1821.7 / DFFR=6297.6 …）で、
+    現ライブラリ（行高 59.4 µm, NAND2=962.3, MUXDFFRB=5773.7）とは別物。
+  ・「命令メモリをカスタムアレイ化」「FF を TG 化」は**当時の仮定**だったが、
+    実際に REG8x16（399.6 x 933.0 µm / 1,876 Tr）が出来て DRC/LVS/検証まで
+    通ったので、仮定ではなく実測で語れるようになった。
+
+  → 今の見積りは以下を使うこと。数字は `scripts/cell_area.json`（GDS 実測）から読むので
+     ライブラリを直せば自動で追従する。
+
+       python3 scripts/area_estimate.py     stat.txt --top TOP   # 合成結果の面積換算
+       python3 scripts/mem_array_estimate.py                     # メモリ FF vs アレイ
+
 入力は area_estimate.py と同じ Yosys stat（FF数・組合せセル面積）。
 カスタムセル面積は reference/05_cell_circuits.md (C4004) の値を使用。
 """
+import sys
+
+print("** scripts/area_custom.py は行高 62.6µm 世代の見込み値。"
+      "今の見積りは area_estimate.py / mem_array_estimate.py を使うこと。\n",
+      file=sys.stderr)
+
 NAND2 = 1821.7
 DFFR, MUX2, AND4, INV = 6297.6, 3887.5, 2854.6, 1821.7
 DFFE_STD = DFFR + MUX2      # 10,185.1  現状 STDLIB での enable 付き FF

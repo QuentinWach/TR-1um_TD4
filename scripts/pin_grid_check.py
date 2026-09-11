@@ -11,6 +11,8 @@
   2. prBoundary の**幅と高さがピッチの倍数**か。
      幅が倍数でないと、隣に置いたセルの原点がグリッドから外れ、
      そのセルのピンが全部トラックから落ちる。
+     **これを合否に数えるのは「標準セル行に置くセル」（高さ = 行高）だけ。**
+     行高と違うセルはマクロ／アレイとみなし、座標を明示して置くので情報として出すだけ。
   3. 標準セル行の**高さが揃っている**か（最頻値を行高とみなす）。
   4. ピン図形の幅が揃っているか。
 
@@ -65,8 +67,9 @@ def main():
 
     heights = defaultdict(list)
     pin_w = Counter()
-    bad_pin, bad_size, no_bound = [], [], []
+    no_bound = []
     rows = []
+    cells_info = []      # (name, box, w, h, rel, off, size_ok)
 
     for name in sorted(cells):
         if name.startswith(SKIP_PREFIX) or name in SKIP_EXACT:
@@ -87,10 +90,7 @@ def main():
             pin_w[round(bb[1][0] - bb[0][0], 2)] += 1
         off = sorted(v for v in rel if not on_track(v))
         size_ok = on_pitch(w) and on_pitch(h)
-        if off:
-            bad_pin.append((name, b, off))
-        if not size_ok:
-            bad_size.append((name, w, h))
+        cells_info.append((name, b, w, h, rel, off, size_ok))
         rows.append((name, w, h, len(rel), not off, size_ok))
 
     print(f"{a.gds}   トラック = {a.offset} + n x {a.pitch} um")
@@ -102,6 +102,14 @@ def main():
         print("-" * 78)
 
     row_h = max(heights, key=lambda k: len(heights[k]))
+    # 行高と一致するセルだけを「行に置くセル」として合否に数える
+    bad_pin, bad_size, info_pin, info_size = [], [], [], []
+    for name, b, w, h, rel, off, size_ok in cells_info:
+        in_row = abs(h - row_h) < EPS
+        if off:
+            (bad_pin if in_row else info_pin).append((name, b, off))
+        if not size_ok:
+            (bad_size if in_row else info_size).append((name, w, h))
     print(f"標準セル行高（最頻値）: {row_h} um = {row_h / a.pitch:.3f} x pitch"
           f"   … {len(heights[row_h])} セル")
     other = {k: v for k, v in heights.items() if k != row_h}
@@ -115,25 +123,33 @@ def main():
     print()
 
     ng = 0
+    print(f"--- 行に置くセル（高さ {row_h}）: {len(heights[row_h])} 個 ---")
     if bad_pin:
         ng += len(bad_pin)
-        print("★ M2 ピンがトラックから外れているセル")
+        print("★ M2 ピンがトラックから外れている")
         for n, b, off in bad_pin:
             print(f"   {n:12} prBoundary x0={b[0]:7.2f}   外れている相対 x = {off}")
     else:
-        print("M2 ピン: 全セルがトラックに乗っている")
-    print()
+        print("  M2 ピン: 全部トラックに乗っている")
     if bad_size:
-        print("★ prBoundary の寸法がピッチの倍数でないセル")
+        print("★ prBoundary の寸法がピッチの倍数でない")
         for n, w, h in bad_size:
+            wt = "" if on_pitch(w) else f" 幅 {w}({w/a.pitch:.3f}x) ★ 隣接セルのトラックが崩れる"
+            ht = "" if on_pitch(h) else f" 高 {h}({h/a.pitch:.3f}x)"
+            print(f"   {n:12}{wt}{ht}")
+            ng += 1
+    else:
+        print("  prBoundary 寸法: 全部ピッチの倍数")
+
+    if info_pin or info_size:
+        print()
+        print("--- マクロ／アレイ（行高と違うので座標指定で置く。合否には数えない）---")
+        for n, b, off in info_pin:
+            print(f"   {n:12} M2 ピンの相対 x = {off}（prBoundary x0={b[0]}）")
+        for n, w, h in info_size:
             wt = "" if on_pitch(w) else f" 幅 {w}({w/a.pitch:.3f}x)"
             ht = "" if on_pitch(h) else f" 高 {h}({h/a.pitch:.3f}x)"
-            sev = "★ 隣接セルのトラックが崩れる" if not on_pitch(w) else ""
-            print(f"   {n:12}{wt}{ht}   {sev}")
-            if not on_pitch(w):
-                ng += 1
-    else:
-        print("prBoundary 寸法: 全セルがピッチの倍数")
+            print(f"   {n:12}{wt}{ht}")
     if no_bound:
         print()
         print(f"prBoundary が見つからないセル: {no_bound}")

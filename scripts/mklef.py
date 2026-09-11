@@ -35,7 +35,7 @@ DBU = 1000                          # LEF DATABASE MICRONS
 BLOCKS = {"TLAT", "TAP2S", "REGBUF", "DEC0", "DEC2", "DEC16", "ADDBUF",
           "TLAT4", "TLAT4B", "TLAT8", "TLAT8B", "TLAT64", "TLAT128",
           "REGBUF4", "REGBUF8", "REG4x16", "REG8x16"}
-SPACER = {"FILL2", "FILL3"}
+SPACER = {"FILL1", "FILL2", "FILL3"}
 WELLTAP = {"TAP2", "TAP3", "TAP2S"}
 
 TECH = f"""VERSION 5.8 ;

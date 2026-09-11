@@ -2,23 +2,29 @@
 """TR-1um_STDCELL.gds を読んで、セルの実寸法 / Tr数 / ピンを表にし、
 Yosys 用 genlib と area_estimate.py 用の面積テーブルを生成する。
 
-  usage: python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds [--genlib out.genlib] [--check]
+  usage: python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds [--genlib out.genlib]
+                                     [--areas scripts/cell_area.json] [--check]
+
+`--areas` は全セルの実測面積を JSON に書き出す。`scripts/area_estimate.py` が
+これを読むので、ライブラリを直したら genlib と一緒に必ず作り直すこと
+（面積の表を手で持たないための仕組み。行高 64.8→59.4 で古い表が残った反省）。
 
 レイヤ規約（GDS から読み取ったもの）:
   (3,1)=P+ implant  (3,2)=N+ implant  (8,1)=poly/GC  (11,0)=contact
   (13,0)=M1  (19,0)=V1  (20,0)=M2  (48,1)=電源レール/内部ネットラベル
   (49,1)=信号ピン(M2上のマーカ)  (140,0)=N-well  (235,0)=セル境界(abutment box)
-セル面積 = (235,0) の外形。行高 64.8 µm、ポリピッチ 5.4 µm、セル幅 = 10.8 + n*5.4。
+セル面積 = (235,0) の外形。行高 59.4 µm、ポリピッチ 5.4 µm、セル幅 = 5.4 * n。
+M2 配線トラックは prBoundary 左端から 2.7 + n*5.4（= 半ピッチオフセット）。
 """
 from __future__ import annotations
-import argparse, sys
+import argparse, json, sys
 
 try:
     import gdstk
 except ImportError:
     sys.exit("pip install gdstk --break-system-packages")
 
-ROW_H, POLY_PITCH, W_BASE = 64.8, 5.4, 10.8
+ROW_H, POLY_PITCH, W_BASE = 59.4, 5.4, 5.4   # 2026-09-11 に行高を 64.8 -> 59.4 に変更
 L_BOUND, L_NWELL, L_POLY, L_PIN, L_LBL = (235, 0), (140, 0), (8, 1), (49, 1), (48, 1)
 L_PIMP, L_NIMP = (3, 1), (3, 2)
 
@@ -38,19 +44,43 @@ def devices(cell):
     return out
 
 
+SKIP = {"cont_n", "via_1", "via_1$1"}
+
+
 def scan(path):
+    """全セルの外形／Tr 数／ピンを拾う。
+
+    REG8x16 のような**階層セルは自分では prBoundary を持たない**（配下の
+    (235,0) が並んで外形になる）ので、その場合は展開して外形を求め、
+    `array=True` を立てる。行高や幅ピッチの規約チェックは行に置く
+    標準セルだけに適用し、アレイ／マクロは対象外にする。
+    """
     lib = gdstk.read_gds(path)
     rows = []
     for cell in sorted(lib.cells, key=lambda c: c.name):
-        b = sel(cell, L_BOUND)
-        if not b:
+        if cell.name.startswith("$$$") or cell.name in SKIP:
             continue
-        pts = b[0].points
-        w = round(float(pts[:, 0].max() - pts[:, 0].min()), 3)
-        h = round(float(pts[:, 1].max() - pts[:, 1].min()), 3)
-        d = devices(cell)
+        b = sel(cell, L_BOUND)
+        array = False
+        if b:
+            pts = b[0].points
+            x0, x1 = float(pts[:, 0].min()), float(pts[:, 0].max())
+            y0, y1 = float(pts[:, 1].min()), float(pts[:, 1].max())
+        else:
+            flat = cell.copy("_f_" + cell.name)
+            flat.flatten()
+            fb = sel(flat, L_BOUND)
+            if not fb:
+                continue
+            bb = [p.bounding_box() for p in fb]
+            x0, x1 = min(b_[0][0] for b_ in bb), max(b_[1][0] for b_ in bb)
+            y0, y1 = min(b_[0][1] for b_ in bb), max(b_[1][1] for b_ in bb)
+            array = True
+        w, h = round(x1 - x0, 3), round(y1 - y0, 3)
+        # 階層セルは図形が配下にあるので、Tr 数は展開してから数える
+        d = devices(flat) if array else devices(cell)
         rows.append(dict(
-            name=cell.name, w=w, h=h, area=round(w * h, 1),
+            name=cell.name, w=w, h=h, area=round(w * h, 1), array=array,
             nP=len(d["P"]), nN=len(d["N"]), tr=len(d["P"]) + len(d["N"]),
             WP=sorted(set(d["P"])), WN=sorted(set(d["N"])),
             pins=[l.text for l in cell.labels if l.layer == L_PIN[0]],
@@ -61,9 +91,11 @@ def scan(path):
 
 
 def check(rows):
-    """設計規約からの逸脱を洗い出す"""
+    """設計規約からの逸脱を洗い出す（行に置く標準セルだけが対象）"""
     bad = []
     for r in rows:
+        if r["array"]:
+            continue                       # アレイ／マクロは座標指定で置くので対象外
         k = (r["w"] - W_BASE) / POLY_PITCH
         if abs(k - round(k)) > 1e-6:
             bad.append(f"{r['name']}: 幅 {r['w']} µm がポリピッチ格子外 "
@@ -83,7 +115,9 @@ def check(rows):
 # --- genlib 用の論理式（面積は GDS 実測で埋める）---
 FUNC = [
     ("INV_X1",  "Y=!A;",            "INV"),
+    ("INV_X2",  "Y=!A;",            "INV"),
     ("BUF_X1",  "Y=A;",             "NONINV"),
+    ("BUF_X2",  "Y=A;",             "NONINV"),
     ("NAND2",   "Y=!(A*B);",        "INV"),
     ("NAND3",   "Y=!(A*B*C);",      "INV"),
     ("NAND4",   "Y=!(A*B*C*D);",    "INV"),
@@ -111,7 +145,11 @@ def genlib(rows):
     for name, fn, ph in FUNC:
         if name not in a:
             continue
-        out.append(f"GATE {name:<9}{a[name]:>8.1f} {fn:<20}PIN * {ph:<8}1 999 1 0.2 1 0.2")
+        # X2 は駆動 2 倍・入力容量 2 倍として、ABC が X1 と使い分けられるようにする
+        #   PIN * <phase> <入力負荷> <max負荷> <立上り固定> <立上り/負荷> <立下り固定> <立下り/負荷>
+        load, slope = (2, 0.1) if name.endswith("_X2") else (1, 0.2)
+        out.append(f"GATE {name:<9}{a[name]:>8.1f} {fn:<20}"
+                   f"PIN * {ph:<8}{load} 999 1 {slope} 1 {slope}")
     return "\n".join(out) + "\n"
 
 
@@ -119,16 +157,24 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser()
     ap.add_argument("gds")
     ap.add_argument("--genlib")
+    ap.add_argument("--areas", help="全セルの実測面積を JSON で書き出す（area_estimate.py 用）")
     ap.add_argument("--check", action="store_true")
     args = ap.parse_args()
 
     rows = scan(args.gds)
-    print(f"{'cell':<12}{'W':>8}{'H':>7}{'area':>10}{'Tr':>4}  {'W(P)':<14}{'W(N)':<7} pins")
-    for r in rows:
-        wp = "/".join(f"{v:g}" for v in r["WP"]) or "-"
-        wn = "/".join(f"{v:g}" for v in r["WN"]) or "-"
-        print(f"{r['name']:<12}{r['w']:>8.1f}{r['h']:>7.1f}{r['area']:>10.1f}{r['tr']:>4}  "
-              f"{wp:<14}{wn:<7} {','.join(dict.fromkeys(r['pins']))}")
+    for tag, want in (("--- 標準セル（行に置く / 行高 %.1f）---" % ROW_H, False),
+                      ("--- アレイ／マクロ（座標指定で置く）---", True)):
+        grp = [r for r in rows if r["array"] is want]
+        if not grp:
+            continue
+        print(tag)
+        print(f"{'cell':<12}{'W':>8}{'H':>7}{'area':>10}{'Tr':>6}  {'W(P)':<14}{'W(N)':<7} pins")
+        for r in grp:
+            wp = "/".join(f"{v:g}" for v in r["WP"]) or "-"
+            wn = "/".join(f"{v:g}" for v in r["WN"]) or "-"
+            print(f"{r['name']:<12}{r['w']:>8.1f}{r['h']:>7.1f}{r['area']:>10.1f}{r['tr']:>6}  "
+                  f"{wp:<14}{wn:<7} {','.join(dict.fromkeys(r['pins']))}")
+        print()
 
     if args.check:
         bad = check(rows)
@@ -138,3 +184,17 @@ if __name__ == "__main__":
     if args.genlib:
         open(args.genlib, "w").write(genlib(rows))
         print(f"\nwrote {args.genlib}")
+
+    if args.areas:
+        doc = {
+            "source": args.gds,
+            "row_height": ROW_H,
+            "poly_pitch": POLY_PITCH,
+            "cells": {r["name"]: {"w": r["w"], "h": r["h"], "area": r["area"],
+                                  "tr": r["tr"], "array": r["array"]}
+                      for r in rows},
+        }
+        with open(args.areas, "w") as f:
+            json.dump(doc, f, indent=1, sort_keys=True)
+            f.write("\n")
+        print(f"wrote {args.areas}  ({len(rows)} cells, row height {ROW_H} um)")
