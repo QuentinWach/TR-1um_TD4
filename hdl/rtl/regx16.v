@@ -1,7 +1,9 @@
 //============================================================================
-//  reg4x16.v — REG4x16 (4bit x 16word レジスタファイル) スイッチレベル Verilog
+//  regx16.v — REG4x16 / REG8x16 (Nbit x 16word レジスタファイル)
+//             スイッチレベル Verilog
 //
-//  spice/REG4x16_src.spi（= LVS ソースネットリスト、LVS クリーン）を
+//  spice/REG4x16_src.spi / REG8x16_src.spi（= LVS ソースネットリスト、
+//  どちらも LVS クリーン）を
 //  トランジスタ 1 個ずつ 1:1 で書き起こしたもの。
 //  動作モデルではなく「ネットリストそのもの」を Verilog のスイッチ
 //  プリミティブ（pmos / nmos / tranif0 / tranif1）で表現している。
@@ -12,13 +14,19 @@
 //  トランスファゲートを双方向 tranif で書いてあるので、ビット線の
 //  ハイインピーダンス・多重駆動・向きの誤りがそのまま X として現れる。
 //
+//  ビット幅だけが違う同じ構成なので、トップを REGX16 #(BITS) として
+//  一般化し、REG4x16 / REG8x16 はその薄いラッパにしてある
+//  （scripts/mkspice.py --bits と同じ関係）。
+//
 //  階層・ポート順は SPICE と同じ:
 //    TLAT   WR WRB RD RDB D Q
 //    DEC2   A0 AB0 A1 A2 A3 WEB WRE WRBE RDE RDBE WRO WRBO RDO RDBO
 //    REGBUF DD D Q QQ
 //    ADDBUF A0_PIN A1_PIN A2_PIN A3_PIN WEB_PIN A0 AB0 A1 AB1 A2 AB2 A3 AB3 WEB
 //
-//  TR-1um (IP62) / L = 1.0um   1,076 Tr
+//  TR-1um (IP62) / L = 1.0um
+//    REG4x16 = 1,076 Tr / 248.4 x 933.0 um
+//    REG8x16 = 1,876 Tr / 399.6 x 933.0 um
 //============================================================================
 `timescale 1ns / 1ps
 `default_nettype none
@@ -179,16 +187,20 @@ module ADDBUF (input wire A0_PIN, input wire A1_PIN, input wire A2_PIN,
 endmodule
 
 //----------------------------------------------------------------------------
-// REG4x16 — トップ
-//   ADD[3:0]  アドレス（ブロック内で相補を作る）
-//   WEB       書込イネーブル（アクティブロー）
-//   D[3:0]    書込データ入力   Q[3:0] 読出データ出力
+// REGX16 — トップ（ビット幅 BITS でパラメータ化）
+//   ADD[3:0]       アドレス（ブロック内で相補を作る）
+//   WEB            書込イネーブル（アクティブロー）
+//   D[BITS-1:0]    書込データ入力   Q[BITS-1:0] 読出データ出力
 //
 //   ADD で選んだ 1 行が常に読み出される（非同期読出）。
 //   WEB=0 の間、その行に D が書き込まれる（レベル書込・ラッチ）。
+//
+//   デコーダ DEC2 x8 はビット幅に依存しない（4->16 なので 1 組で足りる）。
+//   増えるのは TLAT の列と REGBUF だけ。レイアウトもこの関係のまま。
 //----------------------------------------------------------------------------
-module REG4x16 (input wire [3:0] ADD, input wire WEB,
-                input wire [3:0] D, output wire [3:0] Q);
+module REGX16 #(parameter integer BITS = 4)
+               (input wire [3:0] ADD, input wire WEB,
+                input wire [BITS-1:0] D, output wire [BITS-1:0] Q);
 
   wire a0, ab0, a1, ab1, a2, ab2, a3, ab3, webi;
 
@@ -203,7 +215,7 @@ module REG4x16 (input wire [3:0] ADD, input wire WEB,
   wire [1:0] sel3 = {a3, ab3};
 
   wire [15:0] wr, wrb, rd, rdb;   // ワードライン
-  wire [3:0]  dl, ql;             // ビット線（dl=書込, ql=読出）
+  wire [BITS-1:0] dl, ql;         // ビット線（dl=書込, ql=読出）
 
   genvar k, i, j;
   generate
@@ -220,19 +232,32 @@ module REG4x16 (input wire [3:0] ADD, input wire WEB,
               .RDO (rd [2*k+1]), .RDBO(rdb[2*k+1]));
     end
 
-    //---- ビットセル 16 x 4 ---------------------------------------------
+    //---- ビットセル 16 x BITS -------------------------------------------
     for (i = 0; i < 16; i = i + 1) begin : G_ROW
-      for (j = 0; j < 4; j = j + 1) begin : G_BIT
+      for (j = 0; j < BITS; j = j + 1) begin : G_BIT
         TLAT U (.WR(wr[i]), .WRB(wrb[i]), .RD(rd[i]), .RDB(rdb[i]),
                 .D(dl[j]), .Q(ql[j]));
       end
     end
 
-    //---- データバッファ x4 ---------------------------------------------
-    for (j = 0; j < 4; j = j + 1) begin : G_BUF
+    //---- データバッファ x BITS ------------------------------------------
+    for (j = 0; j < BITS; j = j + 1) begin : G_BUF
       REGBUF U (.DD(D[j]), .D(dl[j]), .Q(ql[j]), .QQ(Q[j]));
     end
   endgenerate
+endmodule
+
+//----------------------------------------------------------------------------
+// 実際のマクロ名のラッパ（LVS ソースの .subckt と 1:1）
+//----------------------------------------------------------------------------
+module REG4x16 (input wire [3:0] ADD, input wire WEB,
+                input wire [3:0] D, output wire [3:0] Q);
+  REGX16 #(.BITS(4)) U (.ADD(ADD), .WEB(WEB), .D(D), .Q(Q));
+endmodule
+
+module REG8x16 (input wire [3:0] ADD, input wire WEB,
+                input wire [7:0] D, output wire [7:0] Q);
+  REGX16 #(.BITS(8)) U (.ADD(ADD), .WEB(WEB), .D(D), .Q(Q));
 endmodule
 
 `default_nettype wire

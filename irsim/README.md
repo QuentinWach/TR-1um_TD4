@@ -1,22 +1,23 @@
 # irsim/ — スイッチレベルシミュレーション
 
-## REG4x16（4bit x 16word レジスタファイル）
+## REG4x16 / REG8x16（Nbit x 16word レジスタファイル）
 
 **LVS がクリーンになったソースネットリスト `spice/REG4x16_src.spi` をそのまま
 IRSIM に持ち込んで、実 R/C モデルで全レジスタアクセスを検証する。**
 
 ```sh
-sh irsim/run_reg4x16.sh     # 全レジスタアクセス検証（合否まで表示）
-sh irsim/run_timing.sh      # 読出アクセス時間 / 書込レイテンシ / 最小 WEB パルス幅
+sh irsim/run_regx16.sh      # 4bit 全レジスタアクセス検証（合否まで表示）
+sh irsim/run_regx16.sh 8    # 8bit
+sh irsim/run_timing.sh      # 読出アクセス時間 / 書込レイテンシ / 最小 WEB パルス幅（4bit）
 ```
 
 | ファイル | 内容 |
 |---|---|
 | `TR-1um.prm` | TR-1um 実モデルから校正したパラメータ（TR-1um_Async_I2C と共通） |
-| `reg4x16.sim` | `scripts/spi2sim.py` が `spice/REG4x16_src.spi` から生成（1,076 Tr / 426 ノード） |
-| `reg4x16.cmd` | `scripts/gen_irsim_cmd.py` が生成。**`hdl/tb/tb_reg4x16.v` と同じベクタ・同じ期待値** |
+| `reg4x16.sim` / `reg8x16.sim` | `scripts/spi2sim.py` が LVS ソースから生成（1,076 Tr / 426 ノード、1,876 Tr / 705 ノード） |
+| `reg4x16.cmd` / `reg8x16.cmd` | `scripts/gen_irsim_cmd.py --bits N` が生成。**`hdl/tb/tb_regx16.v` と同じベクタ・同じ期待値** |
 | `reg4x16_timing.cmd` | `scripts/gen_irsim_timing.py` が生成。タイミング測定用 |
-| `run_reg4x16.sh` / `run_timing.sh` | 実行 → 判定まで一発 |
+| `run_regx16.sh` / `run_timing.sh` | 実行 → 判定まで一発 |
 
 ### 時間分解能
 
@@ -54,7 +55,9 @@ d AV QV                                        ← 実際の番地と値
   合計  PASS 512 / FAIL 0    assertion failed 0 件
 ```
 
-**Verilog 版（`hdl/run_reg4x16.sh`）と完全に一致。** 読出に X は 1 回も出ていない。
+REG8x16（`sh irsim/run_regx16.sh 8`）は T2 が倍になるので **PASS 640 / FAIL 0**。
+
+**どちらも Verilog 版（`hdl/run_regx16.sh [4|8]`）と完全に一致。** 読出に X は 1 回も出ていない。
 
 ### タイミング実測（TR-1um.prm, 1ns 分解能）
 

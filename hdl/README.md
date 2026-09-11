@@ -43,12 +43,15 @@ iverilog -g2012 -o tb2.vvp hdl/tb/tb_td4_soc_arr.v \
 sh scripts/syn.sh
 ```
 
-## REG4x16 — メモリアレイのスイッチレベル検証
+## REG4x16 / REG8x16 — メモリアレイのスイッチレベル検証
 
-`rtl/reg4x16.v` は RTL ではなく、**LVS ソースネットリスト
-`spice/REG4x16_src.spi`（LVS クリーン）をトランジスタ 1 個ずつ 1:1 で
-書き起こしたスイッチレベル記述**。動作モデルではないので、
-これが通ることは「その配線でちゃんと動く」ことの確認になる。
+`rtl/regx16.v` は RTL ではなく、**LVS ソースネットリスト
+`spice/REG4x16_src.spi` / `REG8x16_src.spi`（どちらも LVS クリーン）を
+トランジスタ 1 個ずつ 1:1 で書き起こしたスイッチレベル記述**。
+動作モデルではないので、これが通ることは「その配線でちゃんと動く」ことの確認になる。
+
+ビット幅だけが違う同じ構成なので、トップを `REGX16 #(BITS)` として一般化し、
+`REG4x16` / `REG8x16` はその薄いラッパにしてある（`scripts/mkspice.py --bits` と同じ関係）。
 
 | SPICE | Verilog |
 |---|---|
@@ -61,11 +64,12 @@ sh scripts/syn.sh
 （`TLAT` / `DEC2` / `REGBUF` / `ADDBUF` / `REG4x16`、1,076 Tr）。
 
 ```sh
-sh hdl/run_reg4x16.sh        # 実行
-sh hdl/run_reg4x16.sh -w     # VCD も出す (reg4x16.vcd)
+sh hdl/run_regx16.sh         # 4bit
+sh hdl/run_regx16.sh 8       # 8bit
+sh hdl/run_regx16.sh 8 -w    # VCD も出す (regx16.vcd)
 ```
 
-### 検証項目（`tb/tb_reg4x16.v`）
+### 検証項目（`tb/tb_regx16.v`）
 
 | | 内容 |
 |---|---|
@@ -77,7 +81,15 @@ sh hdl/run_reg4x16.sh -w     # VCD も出す (reg4x16.vcd)
 | 毎回 | 読出値に `x`/`z` が無いこと（`===` 比較）と **RD がちょうど 1 本**だけ立っていること |
 | 常時 | **WR が同時に 2 本以上立たないこと**（多重書込の検出） |
 
-**結果: PASS 1024 / FAIL 0 / WR 多重アサート 0。**
+**結果:**
+
+| | PASS | FAIL | WR 多重アサート |
+|---|---:|---:|---:|
+| REG4x16 (`sh hdl/run_regx16.sh`) | **1,024** | 0 | 0 |
+| REG8x16 (`sh hdl/run_regx16.sh 8`) | **1,280** | 0 | 0 |
+
+（データ照合とワードライン本数チェックで 1 読出につき 2 件。
+T2 のウォーキングがビット数に比例するので 8bit の方が多い。）
 
 ### タイミングについて分かったこと（I1 参考出力）
 
@@ -87,8 +99,8 @@ sh hdl/run_reg4x16.sh -w     # VCD も出す (reg4x16.vcd)
   開いている間に通過したワードは全部書かれる。
   **アドレス確定 → `WEB` 立下げ → `WEB` 立上げ → 次のアドレス**の順を守ること。
 
-> 次段: 同じベクタを IRSIM（`../irsim/`）に移して、レイアウト抽出ネットリストで
-> 遅延つきの検証を行う。Verilog 版は論理と接続、IRSIM 版は速度とマージンを見る。
+> 次段: 同じベクタを IRSIM（`../irsim/`）と ngspice（`../spice/`）に移す。
+> Verilog 版は論理と接続、IRSIM 版はスイッチレベルの遅延、ngspice は実デバイスモデルでの数字。
 
 
 ## オペコード

@@ -35,9 +35,19 @@ def read(path):
     return cbl, vals
 
 
+def bits_of(vals):
+    """.meas の t_rd_rise_q<j> の個数からビット幅を割り出す。"""
+    n = sum(1 for k in vals if k.startswith("t_rd_rise_q"))
+    return n if n else 4
+
+
 def do_tran(logs):
+    nb = 4
+    for p in logs:
+        _, v = read(p)
+        nb = max(nb, bits_of(v))
     print("=" * 70)
-    print(" REG4x16  タイミング確認（ngspice, TR-1um IP62 BSIM3, 0.1ns 刻み）")
+    print(f" REG{nb}x16  タイミング確認（ngspice, TR-1um IP62 BSIM3, 0.1ns 刻み）")
     print("=" * 70)
     print(f"  {'配線容量':>10}  {'書込レイテンシ':>14}  {'読出 1->0':>10}  {'読出 0->1':>10}   論理")
     print(f"  {'CBL [fF]':>10}  {'WEB↓→Q':>14}  {'ADD→Q':>10}  {'ADD→Q':>10}")
@@ -63,14 +73,14 @@ def do_tran(logs):
                 sl = (v1[k] - v0[k]) / (c1 - c0) * 1e12
                 print(f"  {lbl:16} 配線容量に対する傾き {sl:5.1f} ps/fF")
     print("-" * 70)
-    print("  論理 OK = 書いた値が読めている（1111 / 0000 / 1111）")
+    print("  論理 OK = 書いた値が読めている（全1 / 全0 / 全1）")
     print("  ※ 配線容量はネットリストに含まれないので、集中容量として外付けした値。")
     print("     ビット線 M2 878um・アドレス線 821um で 100〜200fF が現実的な範囲。")
 
 
 def do_pw(logs):
     print("=" * 70)
-    print(" REG4x16  最小 WEB パルス幅（ngspice, 0.1ns 刻み）")
+    print(" 最小 WEB パルス幅（ngspice, 0.1ns 刻み）")
     print("=" * 70)
     for p in logs:
         cbl, v = read(p)

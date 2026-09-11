@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """IRSIM コマンドファイル生成 — hdl/tb/tb_reg4x16.v と同じベクタを .cmd に落とす
 
-  usage: python3 scripts/gen_irsim_cmd.py irsim/reg4x16.cmd
+  usage: python3 scripts/gen_irsim_cmd.py irsim/reg4x16.cmd [--bits 4]
+         python3 scripts/gen_irsim_cmd.py irsim/reg8x16.cmd --bits 8
 
 IRSIM の .cmd 言語には条件分岐も算術も無いので、テストベンチのループを
 ここで展開して直線のコマンド列にする。合否判定は走らせたログを
@@ -23,7 +24,22 @@ T_WRITE = 50   # WEB=0 のパルス幅
 T_HOLD  = 50   # WEB=1 に戻してから次の操作まで
 T_READ  = 50   # アドレスを変えてから読むまで
 
-NW, NB = 16, 4
+NW, NB = 16, 4          # NB は --bits で上書きされる
+
+
+def _pats():
+    """BITS=4 のときに従来の 0101 / 1010 / 1100 / 0011 と一致する定数を作る。"""
+    rep = NB // 4
+    return (int("0101" * rep, 2), int("1010" * rep, 2),
+            int("1100" * rep, 2), int("0011" * rep, 2), (1 << NB) - 1)
+
+
+def pat_of(i):
+    """T1 でワード i に書く値。下位ニブルは従来どおり i^1010、上位があれば ~i。"""
+    return (((~i & 0xF) << 4) | ((i ^ 0b1010) & 0xF)) & MASK
+
+
+PAT_A, PAT_B, PAT_C, PAT_D, MASK = _pats()
 
 
 class Gen:
@@ -80,10 +96,10 @@ class Gen:
         self.set_add(a)
         self.raw(f"s {T_READ}")
         t = tag.replace(" ", "_")
-        self.raw(f"print CHECK tag={t} add={a:04b} exp={expect:04b}")
-        self.raw(f"assert QV {expect:04b}")
+        self.raw(f"print CHECK tag={t} add={a:04b} exp={expect:0{NB}b}")
+        self.raw(f"assert QV {expect:0{NB}b}")
         self.raw("d AV QV")
-        self.exp.append({"tag": tag, "add": a, "expect": f"{expect:04b}"})
+        self.exp.append({"tag": tag, "add": a, "expect": f"{expect:0{NB}b}"})
 
     def head(self, s):
         self.o.append("")
@@ -94,11 +110,11 @@ class Gen:
 
 def build():
     g = Gen()
-    g.c("reg4x16.cmd -- REG4x16 全レジスタアクセス検証（IRSIM 版）")
+    g.c(f"reg{NB}x16.cmd -- REG{NB}x16 全レジスタアクセス検証（IRSIM 版）")
     g.c("scripts/gen_irsim_cmd.py が生成。手で編集しないこと。")
-    g.c("hdl/tb/tb_reg4x16.v と同じベクタ・同じ順序・同じ期待値。")
+    g.c("hdl/tb/tb_regx16.v と同じベクタ・同じ順序・同じ期待値。")
     g.c()
-    g.c("合否判定:  python3 scripts/check_irsim_log.py irsim/reg4x16_run.log")
+    g.c(f"合否判定:  python3 scripts/check_irsim_log.py irsim/reg{NB}x16_run.log")
     g.c("読出のたびに print で期待値を刻み、assert でその場で判定し、")
     g.c("d で実際の値を残す。IRSIM の .cmd 言語には条件分岐も算術も無いので、")
     g.c("pass/fail の集計だけをログのオフライン突合せで行う。")
@@ -122,14 +138,14 @@ def build():
 
     g.c()
     g.c("表示用ベクタ。d AV QV で「読んだ番地」と「読めた値」が同時に出る。")
-    g.raw("vector AV ADD3 ADD2 ADD1 ADD0")
-    g.raw("vector QV Q3 Q2 Q1 Q0")
+    g.raw("vector AV " + " ".join(f"ADD{b}" for b in reversed(range(4))))
+    g.raw("vector QV " + " ".join(f"Q{b}" for b in reversed(range(NB))))
 
     #---- T1 -----------------------------------------------------------------
     g.head("T1  全ワード書込 / 読出（値と番地を違えてある）")
     shadow = [0] * NW
     for i in range(NW):
-        v = i ^ 0b1010
+        v = pat_of(i)
         g.wr(i, v); shadow[i] = v
     for i in range(NW):
         g.rd(i, shadow[i], "T1 readback")
@@ -144,41 +160,41 @@ def build():
             v = 1 << j
             g.wr(i, v); shadow[i] = v
             g.rd(i, v, "T2 walk1")
-            v = (~(1 << j)) & 0xF
+            v = (~(1 << j)) & MASK
             g.wr(i, v); shadow[i] = v
             g.rd(i, v, "T2 walk0")
 
     #---- T3 -----------------------------------------------------------------
-    g.head("T3  デコーダ一意性（全語 0101 -> 1 語だけ 1010、他 15 語が不変か）")
+    g.head("T3  デコーダ一意性（全語 0101… -> 1 語だけ 1010…、他 15 語が不変か）")
     for k in range(NW):
         for i in range(NW):
-            g.wr(i, 0b0101)
-        g.wr(k, 0b1010)
+            g.wr(i, PAT_A)
+        g.wr(k, PAT_B)
         for i in range(NW):
-            g.rd(i, 0b1010 if i == k else 0b0101, "T3 unique")
+            g.rd(i, PAT_B if i == k else PAT_A, "T3 unique")
 
     #---- T4 -----------------------------------------------------------------
     g.head("T4  WEB 極性（WEB=1 では書けない / 落とせば書ける）")
     for i in range(NW):
-        g.wr(i, 0b1100)
+        g.wr(i, PAT_C)
     g.c("WEB を落とさずにアドレスとデータだけ動かす -> 何も書かれないはず")
     for i in range(NW):
         g.set_add(i)
-        g.set_din(0b0011)
+        g.set_din(PAT_D)
         g.raw(f"s {T_SETUP + T_WRITE + T_HOLD}")
     g.set_din(0)
     for i in range(NW):
-        g.rd(i, 0b1100, "T4 no-write")
+        g.rd(i, PAT_C, "T4 no-write")
     g.c("WEB を落とせば書ける（そもそも書けていない、のではないことの証明）")
     for i in range(NW):
-        g.wr(i, 0b0011)
+        g.wr(i, PAT_D)
     for i in range(NW):
-        g.rd(i, 0b0011, "T4 write-ok")
+        g.rd(i, PAT_D, "T4 write-ok")
 
     #---- T5 -----------------------------------------------------------------
     g.head("T5  保持（全書込後にアドレス順でない順序で読み直す）")
     for i in range(NW):
-        v = (i * 7 + 3) & 0xF
+        v = (i * 7 + 3) & MASK
         g.wr(i, v); shadow[i] = v
     n = 0
     for _ in range(4 * NW):
@@ -191,7 +207,7 @@ def build():
     for i in range(NW):
         g.wr(i, 0)
     g.set_add(0)
-    g.set_din(0b1111)
+    g.set_din(MASK)
     g.raw(f"s {T_SETUP}")
     g.c("ここでアドレス変更と WEB 立下げを同じ時刻に置く")
     g.set_add(15)
@@ -201,14 +217,14 @@ def build():
     g.raw(f"s {T_HOLD}")
     g.set_din(0)
     for i in range(NW):
-        g.rd(i, 0b1111 if i == 15 else 0, "I1a timing")
+        g.rd(i, MASK if i == 15 else 0, "I1a timing")
 
     g.c()
     g.c("(b) WEB=0 のままアドレスを動かす（違反した使い方）")
     for i in range(NW):
         g.wr(i, 0)
     g.set_add(0)
-    g.set_din(0b1111)
+    g.set_din(MASK)
     g.raw(f"s {T_SETUP}")
     g.set_web(0)
     g.raw(f"s {T_WRITE}")
@@ -219,15 +235,20 @@ def build():
     g.raw(f"s {T_HOLD}")
     g.set_din(0)
     for i in range(NW):
-        g.rd(i, 0b1111 if i in (0, 15) else 0, "I1b timing")
+        g.rd(i, MASK if i in (0, 15) else 0, "I1b timing")
 
     g.o.append("")
-    g.c("end of reg4x16.cmd")
+    g.c(f"end of reg{NB}x16.cmd")
     return g
 
 
 def main():
-    out_cmd = sys.argv[1] if len(sys.argv) > 1 else "irsim/reg4x16.cmd"
+    global NB, PAT_A, PAT_B, PAT_C, PAT_D, MASK
+    args = [a for a in sys.argv[1:] if not a.startswith("--")]
+    if "--bits" in sys.argv:
+        NB = int(sys.argv[sys.argv.index("--bits") + 1])
+        PAT_A, PAT_B, PAT_C, PAT_D, MASK = _pats()
+    out_cmd = args[0] if args else f"irsim/reg{NB}x16.cmd"
     g = build()
     with open(out_cmd, "w", encoding="utf-8") as f:
         f.write("\n".join(g.o) + "\n")

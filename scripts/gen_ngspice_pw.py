@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """REG4x16 最小 WEB パルス幅測定用 ngspice デッキ生成
 
-  usage: python3 scripts/gen_ngspice_pw.py <CBL_fF> <出力.spi> [モデル] [ネットリスト] [幅リスト]
+  usage: python3 scripts/gen_ngspice_pw.py <CBL_fF> <出力.spi> [モデル] [ネットリスト] [幅リスト] [BITS]
 
 幅リストは "6,7,8,9,10,12" のようにカンマ区切り [ns]（既定 2,4,6,10,16,24）。
 
@@ -16,7 +16,9 @@ WEB=0 の幅をワードごとに変えて 1111 を書き込み、最後に全�
 from __future__ import annotations
 import sys
 
-NB = 4
+NB = 4              # 第6引数で上書き（4 or 8）
+NW = 16
+TOP = "REG4x16"
 VDD = 5.0
 PWS = [2, 4, 6, 10, 16, 24]     # ns（コマンドラインで上書きできる）
 T_SETUP = 40                    # アドレス確定から WEB 立下げまで
@@ -59,9 +61,13 @@ def main():
     models = sys.argv[3] if len(sys.argv) > 3 else \
         "~/Dropbox/91_OpenPDK/TR-1um/libs.tech/spice/models/ip62_models"
     netlist = sys.argv[4] if len(sys.argv) > 4 else "spice/REG4x16_ngspice.spi"
-    global PWS
-    if len(sys.argv) > 5:
+    global PWS, NB, TOP
+    if len(sys.argv) > 5 and sys.argv[5]:
         PWS = [int(x) for x in sys.argv[5].split(",")]
+    if len(sys.argv) > 6:
+        NB = int(sys.argv[6])
+    TOP = f"REG{NB}x{NW}"
+    MSB = NB - 1
 
     # ---- タイムライン ----------------------------------------------------
     add_pts = [[(0, 0)] for _ in range(4)]
@@ -85,9 +91,9 @@ def main():
     t_stop = read_t0 + len(PWS) * T_READ + 10
 
     L = []; a = L.append
-    a(f"* REG4x16 最小 WEB パルス幅 (ngspice, 0.1ns 刻み)  CBL = {cbl:g} fF")
+    a(f"* {TOP} 最小 WEB パルス幅 (ngspice, 0.1ns 刻み)  CBL = {cbl:g} fF")
     a("* scripts/gen_ngspice_pw.py が生成。手で編集しないこと。")
-    a("* ワードごとに WEB=0 の幅を変えて 1111 を書き、最後に読み出して判定する。")
+    a("* ワードごとに WEB=0 の幅を変えて全ビット 1 を書き、最後に読み出して判定する。")
     a("*   " + " / ".join(f"word{i}:{pw}ns" for i, pw in enumerate(PWS)))
     a("*")
     a(f".include {models}")
@@ -95,7 +101,7 @@ def main():
     a("")
     a(f".param VDD={VDD}")
     a(f".param CBL={cbl}f")
-    a(".param CWL='CBL/6'")
+    a(f".param CWL='CBL*{NB*37.8/878.4:.3f}'   $ ワードライン {NB*37.8:.1f}um / ビット線 878.4um")
     a("")
     a("Vvdd vdd 0 {VDD}")
     a("Vvss vss 0 0")
@@ -113,16 +119,16 @@ def main():
         a(f"Ca{k} a{k} 0 {{CBL}}")
         a(f"Cab{k} ab{k} 0 {{CBL}}")
     a("Cwebi WEBI 0 {CBL}")
-    for i in range(16):
+    for i in range(NW):
         for s in ("wr", "wrb", "rd", "rdb"):
             a(f"C{s}{i} {s}{i} 0 {{CWL}}")
     a("")
-    a("* --- REG4x16 本体 -----------------------------------------------------")
-    for ln in body_of(netlist, "REG4x16"):
+    a(f"* --- {TOP} 本体 -----------------------------------------------------")
+    for ln in body_of(netlist, TOP):
         a(ln)
     a("")
     a("* --- 初期状態: 全セル 0 ----------------------------------------------")
-    for i in range(16):
+    for i in range(NW):
         for j in range(NB):
             a(f".ic v(XT{i:02d}_{j}.n3)=0")
     a("")
@@ -130,7 +136,7 @@ def main():
     a("")
     a("* 読出結果。5V 近ければ書けた、0V 近ければ書けなかった。")
     for i, pw, at in reads:
-        a(f".meas tran vq_pw{pw:02d} FIND v(Q3) AT={at}n   $ word{i}, WEB幅 {pw}ns")
+        a(f".meas tran vq_pw{pw:02d} FIND v(Q{MSB}) AT={at}n   $ word{i}, WEB幅 {pw}ns")
     a("")
     a(".end")
     open(out, "w", encoding="utf-8").write("\n".join(L) + "\n")

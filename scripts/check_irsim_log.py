@@ -23,8 +23,8 @@ I1* は「参考」なので合否には数えず、結果だけ報告する。
 from __future__ import annotations
 import re, sys
 
-RE_CHECK = re.compile(r"CHECK\s+tag=(\S+)\s+add=([01]{4})\s+exp=([01]{4})")
-RE_VAL = re.compile(r"\b(AV|QV)=([01xX]{4})")
+RE_CHECK = re.compile(r"CHECK\s+tag=(\S+)\s+add=([01]+)\s+exp=([01]+)")
+RE_VAL = re.compile(r"\b(AV|QV)=([01xX]+)")
 RE_ASSERT = re.compile(r"assertion failed")
 
 
@@ -55,14 +55,16 @@ def main():
     verbose = "-v" in sys.argv[2:]
 
     rows, nassert = parse(path)
+    nb = len(rows[0][2]) if rows else 4
 
     print("=" * 62)
-    print(f" REG4x16  IRSIM スイッチレベル検証   log = {path}")
+    print(f" REG{nb}x16  IRSIM スイッチレベル検証   log = {path}")
     print("=" * 62)
     if not rows:
         print(" ** CHECK マーカーが 1 つも見つからない。")
         print("    .cmd が古い（print CHECK 行が無い）か、IRSIM が起動していない。")
         sys.exit(1)
+
 
     npass = nfail = 0
     per_tag, info = {}, {}
@@ -92,7 +94,7 @@ def main():
     print(f"  合計  PASS {npass} / FAIL {nfail}   （読出 {len(rows)} 回）")
     print(f"  IRSIM 自身の assertion failed: {nassert} 件")
     if nfail == 0 and nassert == 0:
-        print("  結果: 全項目 PASS — 16 word x 4 bit すべて正しくアクセスできる")
+        print(f"  結果: 全項目 PASS — 16 word x {nb} bit すべて正しくアクセスできる")
     else:
         print("  結果: 不一致あり")
 
