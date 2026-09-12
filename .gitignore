@@ -10,3 +10,6 @@ Claude outputs/
 # 特性化デッキの展開先。14,179 デッキ / 127MB あり、
 # scripts/char/genjobs.py + runjobs.sh でいつでも作り直せる
 scripts/char/pack/
+# 特性化のデッキとログ（生成物。char_mem.py / char_pad.py が作り直す）
+scripts/char/decks/
+scripts/char/logs/

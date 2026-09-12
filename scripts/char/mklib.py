@@ -14,7 +14,18 @@ import argparse, json, os, sys
 import cellspec
 from charlib import HERE, VDD, TEMP, SLEWS, LOADS, SLEWS_C, TH_DELAY, TH_SLEW_LO, TH_SLEW_HI
 
-AREAS = json.load(open(f"{HERE}/cell_area.json"))["cells"]
+def _areas():
+    """セル面積表。実体は scripts/cell_area.json（cellinfo.py が GDS から生成）。
+    `{HERE}/cell_area.json` を直に開いていたため Mac では
+    FileNotFoundError で起動すらできなかった。"""
+    for p in (f"{HERE}/cell_area.json", f"{HERE}/../cell_area.json"):
+        if os.path.exists(p):
+            return json.load(open(p))["cells"]
+    raise SystemExit("cell_area.json が見つからない。"
+                     "scripts/cellinfo.py で生成してください")
+
+
+AREAS = _areas()
 IND = "  "
 
 
@@ -383,11 +394,17 @@ def main():
     o.append("")
 
     ncell = 0
+    skipped = []
     for cell in sorted(os.listdir(f"{HERE}/char")):
         if not cell.endswith(".json") or cell.startswith("_"):
             continue
         name = cell[:-5]
         d = json.load(open(f"{HERE}/char/{cell}"))
+        if d.get("macro"):
+            # REG8x16 のようなマクロ。emit はまだ無いので飛ばす。
+            # 黙って emit_comb に流すと "arcs" が無くて落ちる。
+            skipped.append(name)
+            continue
         if d.get("pad"):
             emit_pad(name, d, o)
         elif d.get("seq"):
@@ -401,6 +418,8 @@ def main():
     o.append("}")
     open(a.out, "w").write("\n".join(o) + "\n")
     print(f"wrote {a.out}  ({ncell} cells, {len(o)} lines)")
+    for n in skipped:
+        print(f"  ! {n}: マクロなので飛ばした（Liberty への出力は未実装）")
 
 
 if __name__ == "__main__":

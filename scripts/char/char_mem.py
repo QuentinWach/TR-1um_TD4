@@ -230,7 +230,13 @@ def build_cap(netlist, pin_idx, kind):
     return "\n".join(L)
 
 
-def run(deck, tag):
+def run(deck, tag, need=True):
+    """1 デッキ回して .meas の結果を返す。
+
+    **失敗は握りつぶさない。** ngspice が落ちても空の dict を返していたため、
+    ネットリストが 1 つ無いだけで 56 デッキぶん静かに空回りしたことがある
+    （`cells_mem/REG8x16_src.spi` の include に失敗していた）。
+    """
     os.makedirs(f"{HERE}/decks", exist_ok=True)
     os.makedirs(f"{HERE}/logs", exist_ok=True)
     p = f"{HERE}/decks/{tag}.spi"
@@ -244,6 +250,13 @@ def run(deck, tag):
         if m:
             try: v[m.group(1)] = float(m.group(2))
             except ValueError: pass
+    if need and not v:
+        why = [ln for ln in log.splitlines()
+               if re.search(r"(?i)\b(error|could not|fatal|no such)\b", ln)]
+        raise SystemExit(
+            f"** {tag}: ngspice が値を 1 つも返さなかった（exit {r.returncode}）\n"
+            + "\n".join(f"   {w}" for w in why[:5])
+            + f"\n   デッキ: {p}\n   ログ:   {HERE}/logs/{tag}.log")
     return v
 
 
@@ -259,6 +272,14 @@ def main():
     ap.add_argument("--only", choices=["read", "cap"])
     a = ap.parse_args()
     global PORTS
+    if not os.path.exists(a.netlist):
+        raise SystemExit(
+            f"** ネットリストが無い: {a.netlist}\n"
+            f"   設計ネットリストから作るには（リポジトリルートで）:\n"
+            f"     python3 scripts/char/mkmemsrc.py lef/simulation/{CELL}.spice \\\n"
+            f"             -o scripts/char/cells_mem/{CELL}_src.spi\n"
+            f"   抽出ネットリストから作るには:\n"
+            f"     python3 scripts/char/loadext.py lef/extracted -o scripts/char/cells_mem")
     if a.ext:
         PORTS = PORTS_EXT
         a.netlist = f"{HERE}/cells_mem/{CELL}.spi"
@@ -306,6 +327,11 @@ def main():
                 res["cap"][nm] = abs(q) / VDD * 1e15 if q is not None else None
         print("\n入力容量: " + " / ".join(f"{k} {v:.1f} fF"
                                           for k, v in res["cap"].items() if v))
+
+    got = sum(1 for arc in res["read"].values() for tbl in arc.values()
+              for row in tbl for x in row if x is not None)
+    if a.only in (None, "read") and got == 0:
+        raise SystemExit("** 測定値が 1 点も取れなかった。logs/ を見てください")
 
     if os.path.exists(a.out):
         old = json.load(open(a.out))
