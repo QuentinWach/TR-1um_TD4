@@ -3,32 +3,38 @@
 
 === td4_soc_arr ===
 
-   Number of wires:                618
-   Number of wire bits:            806
-   Number of public wires:          47
-   Number of public wire bits:     232
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                571
-     AND2_X1                         3
-     AND3_X1                         1
-     BUFTH                           1
-     BUF_X2                         40
-     DFF                           128
-     DFFRB                          25
-     INV_X1                         15
-     MUX2                          276
-     NAND2                          11
-     NAND3                           5
-     NAND4                           1
-     NOR2                           30
-     NOR3                           13
-     NOR4                            4
-     OR2                             1
-     OR3                             5
-     XNOR2                           6
-     XOR2                            6
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      656        - wires
+      817        - wire bits
+       42        - public wires
+      200        - public wire bits
+        8        - ports
+       14        - port bits
+      616  1.3E+06 cells
+        2        -   $scopeinfo
+        8    10264   AND2_X1
+        5     8019   AND3_X1
+        1   1924.6   AND4_X1
+       42  40416.6   BUF_X2
+      128 4.93E+05   DFF
+       25  96227.5   DFFRB
+       12     7698   INV_X1
+        2     1283   INV_X2
+      249 4.79E+05   MUX2
+       45  43303.5   NAND2
+       21    26943   NAND3
+        5     8019   NAND4
+       37  35605.1   NOR2
+       13    16679   NOR3
+        7     8981   OR2
+        1   1603.8   OR3
+        9  14434.2   XNOR2
+        4   6415.2   XOR2
 
-   Chip area for module '\td4_soc_arr': 1274708.700000
+   Area for cell type $scopeinfo is unknown!
+
+   Chip area for module '\td4_soc_arr': 1299726.700000
+     of which used for sequential elements: 588912.300000 (45.31%)
 

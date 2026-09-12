@@ -1,26 +1,10 @@
 
  /----------------------------------------------------------------------------\
- |                                                                            |
  |  yosys -- Yosys Open SYnthesis Suite                                       |
- |                                                                            |
- |  Copyright (C) 2012 - 2020  Claire Xenia Wolf <claire@yosyshq.com>         |
- |                                                                            |
- |  Permission to use, copy, modify, and/or distribute this software for any  |
- |  purpose with or without fee is hereby granted, provided that the above    |
- |  copyright notice and this permission notice appear in all copies.         |
- |                                                                            |
- |  THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES  |
- |  WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF          |
- |  MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR   |
- |  ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES    |
- |  WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN     |
- |  ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF   |
- |  OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.            |
- |                                                                            |
+ |  Copyright (C) 2012 - 2026  Claire Xenia Wolf <claire@yosyshq.com>         |
+ |  Distributed under an ISC-like license, type "license" to see terms        |
  \----------------------------------------------------------------------------/
-
- Yosys 0.33 (git sha1 2584903a060)
-
+ Yosys 0.68+post (git sha1 c12172fbae8af5e20f6fb52e3d4e92d56ed587b6, Release, AppleClang clang++ 21.0.0.21000101)
 
 -- Running command `read_verilog hdl/rtl/td4_core.v hdl/rtl/td4_mem.v hdl/rtl/td4_soc_rom.v      hdl/rtl/td4_soc_ff.v hdl/rtl/td4_soc_arr.v; hierarchy -check -top td4_soc_ff; synth -top td4_soc_ff -flatten;           dfflibmap -liberty lef/tr1um_typ_5v0_25c.lib; abc -liberty lef/tr1um_typ_5v0_25c.lib -constr scripts/abc.constr; opt_clean;           write_verilog -noattr out/td4_soc_ff.v; tee -o out/td4_soc_ff.stat stat -liberty lef/tr1um_typ_5v0_25c.lib' --
 
@@ -83,8 +67,8 @@ Removed 0 unused modules.
 Cleaned up 0 empty switches.
 
 7.2.2. Executing PROC_RMDEAD pass (remove dead branches from decision trees).
-Removed 1 dead cases from process $proc$hdl/rtl/td4_soc_ff.v:0$55 in module td4_soc_ff.
-Marked 1 switch rules as full_case in process $proc$hdl/rtl/td4_soc_ff.v:0$55 in module td4_soc_ff.
+Removed 1 dead cases from process $proc$hdl/rtl/td4_soc_ff.v:21$55 in module td4_soc_ff.
+Marked 1 switch rules as full_case in process $proc$hdl/rtl/td4_soc_ff.v:21$55 in module td4_soc_ff.
 Marked 5 switch rules as full_case in process $proc$hdl/rtl/td4_soc_ff.v:23$34 in module td4_soc_ff.
 Marked 1 switch rules as full_case in process $proc$hdl/rtl/td4_core.v:41$16 in module td4_core.
 Removed a total of 1 dead cases.
@@ -104,7 +88,7 @@ Converted 0 switches.
 <suppressed ~10 debug messages>
 
 7.2.7. Executing PROC_MUX pass (convert decision trees to multiplexers).
-Creating decoders for process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:0$55'.
+Creating decoders for process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:21$55'.
      1/1: $1$mem2reg_rd$\mem$hdl/rtl/td4_soc_ff.v:21$31_DATA[7:0]$57
 Creating decoders for process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
      1/46: $0\mem[15][7:0] [7:4]
@@ -161,69 +145,69 @@ Creating decoders for process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
      5/5: $0\reg_a[3:0]
 
 7.2.8. Executing PROC_DLATCH pass (convert process syncs to latches).
-No latch inferred for signal `\td4_soc_ff.$mem2reg_rd$\mem$hdl/rtl/td4_soc_ff.v:21$31_DATA' from process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:0$55'.
+No latch inferred for signal `\td4_soc_ff.$mem2reg_rd$\mem$hdl/rtl/td4_soc_ff.v:21$31_DATA' from process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:21$55'.
 
 7.2.9. Executing PROC_DFF pass (convert process syncs to FFs).
-Creating register for signal `\td4_soc_ff.\ld_addr' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$640' with positive edge clock and negative level reset.
 Creating register for signal `\td4_soc_ff.\i' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$641' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$644' with positive edge clock and positive level reset.
+Creating register for signal `\td4_soc_ff.\ld_addr' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
+  created $adff cell `$procdff$649' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[0]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$642' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$654' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[1]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$643' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$659' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[2]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$644' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$664' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[3]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$645' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$669' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[4]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$646' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$674' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[5]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$647' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$679' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[6]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$648' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$684' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[7]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$649' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$689' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[8]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$650' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$694' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[9]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$651' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$699' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[10]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$652' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$704' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[11]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$653' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$709' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[12]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$654' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$714' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[13]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$655' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$719' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[14]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$656' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$724' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.\mem[15]' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$657' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$729' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.$mem2reg_wr$\mem$hdl/rtl/td4_soc_ff.v:28$32_ADDR' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$658' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$734' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.$mem2reg_wr$\mem$hdl/rtl/td4_soc_ff.v:28$32_DATA' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$659' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$739' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.$mem2reg_wr$\mem$hdl/rtl/td4_soc_ff.v:29$33_ADDR' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$660' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$744' with positive edge clock and positive level reset.
 Creating register for signal `\td4_soc_ff.$mem2reg_wr$\mem$hdl/rtl/td4_soc_ff.v:29$33_DATA' using process `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
-  created $adff cell `$procdff$661' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$749' with positive edge clock and positive level reset.
 Creating register for signal `\td4_core.\reg_a' using process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
-  created $adff cell `$procdff$662' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$754' with positive edge clock and positive level reset.
 Creating register for signal `\td4_core.\reg_b' using process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
-  created $adff cell `$procdff$663' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$759' with positive edge clock and positive level reset.
 Creating register for signal `\td4_core.\reg_out' using process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
-  created $adff cell `$procdff$664' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$764' with positive edge clock and positive level reset.
 Creating register for signal `\td4_core.\pc' using process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
-  created $adff cell `$procdff$665' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$769' with positive edge clock and positive level reset.
 Creating register for signal `\td4_core.\cflag' using process `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
-  created $adff cell `$procdff$666' with positive edge clock and negative level reset.
+  created $adff cell `$procdff$774' with positive edge clock and positive level reset.
 
 7.2.10. Executing PROC_MEMWR pass (convert process memory writes to cells).
 
 7.2.11. Executing PROC_CLEAN pass (remove empty switches from decision trees).
-Found and cleaned up 1 empty switch in `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:0$55'.
-Removing empty process `td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:0$55'.
+Found and cleaned up 1 empty switch in `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:21$55'.
+Removing empty process `td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:21$55'.
 Found and cleaned up 5 empty switches in `\td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
 Removing empty process `td4_soc_ff.$proc$hdl/rtl/td4_soc_ff.v:23$34'.
 Found and cleaned up 4 empty switches in `\td4_core.$proc$hdl/rtl/td4_core.v:41$16'.
@@ -232,408 +216,441 @@ Cleaned up 10 empty switches.
 
 7.2.12. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
-<suppressed ~3 debug messages>
+<suppressed ~47 debug messages>
 Optimizing module td4_core.
-<suppressed ~2 debug messages>
+<suppressed ~12 debug messages>
 
-7.3. Executing FLATTEN pass (flatten design).
+7.3. Executing CHECK pass (checking for obvious problems).
+Checking module td4_soc_ff...
+Checking module td4_core...
+Found and reported 0 problems.
+
+7.4. Executing FLATTEN pass (flatten design).
 Deleting now unused module td4_core.
 <suppressed ~1 debug messages>
 
-7.4. Executing OPT_EXPR pass (perform const folding).
+7.5. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.5. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
-Removed 19 unused cells and 174 unused wires.
-<suppressed ~21 debug messages>
+Removed 46 unused cells and 228 unused wires.
+<suppressed ~48 debug messages>
 
-7.6. Executing CHECK pass (checking for obvious problems).
+7.7. Executing CHECK pass (checking for obvious problems).
 Checking module td4_soc_ff...
 Found and reported 0 problems.
 
-7.7. Executing OPT pass (performing simple optimizations).
+7.8. Executing OPT pass (performing simple optimizations).
 
-7.7.1. Executing OPT_EXPR pass (perform const folding).
+7.8.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.7.2. Executing OPT_MERGE pass (detect identical cells).
+7.8.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 199 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
+Computing hashes of 183 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 <suppressed ~48 debug messages>
 Removed a total of 16 cells.
 
-7.7.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.8.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~42 debug messages>
+<suppressed ~155 debug messages>
 
-7.7.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.8.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.7.5. Executing OPT_MERGE pass (detect identical cells).
+7.8.5. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 183 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.7.6. Executing OPT_DFF pass (perform DFF optimizations).
+7.8.6. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.7.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.8.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 Removed 0 unused cells and 16 unused wires.
 <suppressed ~1 debug messages>
 
-7.7.8. Executing OPT_EXPR pass (perform const folding).
+7.8.8. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.7.9. Rerunning OPT passes. (Maybe there is more to do..)
+7.8.9. Rerunning OPT passes. (Maybe there is more to do..)
 
-7.7.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.8.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~42 debug messages>
+<suppressed ~155 debug messages>
 
-7.7.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.8.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.7.12. Executing OPT_MERGE pass (detect identical cells).
+7.8.12. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 183 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.7.13. Executing OPT_DFF pass (perform DFF optimizations).
+7.8.13. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.7.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.8.14. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.7.15. Executing OPT_EXPR pass (perform const folding).
+7.8.15. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.7.16. Finished OPT passes. (There is nothing left to do.)
+7.8.16. Finished fast OPT passes. (There is nothing left to do.)
 
-7.8. Executing FSM pass (extract and optimize FSM).
+7.9. Executing FSM pass (extract and optimize FSM).
 
-7.8.1. Executing FSM_DETECT pass (finding FSMs in design).
+7.9.1. Executing FSM_DETECT pass (finding FSMs in design).
 
-7.8.2. Executing FSM_EXTRACT pass (extracting FSM from design).
+7.9.2. Executing FSM_EXTRACT pass (extracting FSM from design).
 
-7.8.3. Executing FSM_OPT pass (simple optimizations of FSMs).
+7.9.3. Executing FSM_OPT pass (simple optimizations of FSMs).
 
-7.8.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.9.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.8.5. Executing FSM_OPT pass (simple optimizations of FSMs).
+7.9.5. Executing FSM_OPT pass (simple optimizations of FSMs).
 
-7.8.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
+7.9.6. Executing FSM_RECODE pass (re-assigning FSM state encoding).
 
-7.8.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
+7.9.7. Executing FSM_INFO pass (dumping all available information on FSM cells).
 
-7.8.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
+7.9.8. Executing FSM_MAP pass (mapping FSMs to basic logic).
 
-7.9. Executing OPT pass (performing simple optimizations).
+7.10. Executing OPT pass (performing simple optimizations).
 
-7.9.1. Executing OPT_EXPR pass (perform const folding).
+7.10.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.9.2. Executing OPT_MERGE pass (detect identical cells).
+7.10.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 183 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.9.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.10.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~42 debug messages>
+<suppressed ~155 debug messages>
 
-7.9.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.10.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.9.5. Executing OPT_MERGE pass (detect identical cells).
+7.10.5. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 183 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.9.6. Executing OPT_DFF pass (perform DFF optimizations).
-Adding EN signal on $procdff$657 ($adff) from module td4_soc_ff (D = \din, Q = \mem[15] [3:0]).
-Adding EN signal on $procdff$657 ($adff) from module td4_soc_ff (D = \din, Q = \mem[15] [7:4]).
-Adding EN signal on $procdff$656 ($adff) from module td4_soc_ff (D = \din, Q = \mem[14] [3:0]).
-Adding EN signal on $procdff$656 ($adff) from module td4_soc_ff (D = \din, Q = \mem[14] [7:4]).
-Adding EN signal on $procdff$655 ($adff) from module td4_soc_ff (D = \din, Q = \mem[13] [3:0]).
-Adding EN signal on $procdff$655 ($adff) from module td4_soc_ff (D = \din, Q = \mem[13] [7:4]).
-Adding EN signal on $procdff$654 ($adff) from module td4_soc_ff (D = \din, Q = \mem[12] [3:0]).
-Adding EN signal on $procdff$654 ($adff) from module td4_soc_ff (D = \din, Q = \mem[12] [7:4]).
-Adding EN signal on $procdff$653 ($adff) from module td4_soc_ff (D = \din, Q = \mem[11] [3:0]).
-Adding EN signal on $procdff$653 ($adff) from module td4_soc_ff (D = \din, Q = \mem[11] [7:4]).
-Adding EN signal on $procdff$652 ($adff) from module td4_soc_ff (D = \din, Q = \mem[10] [3:0]).
-Adding EN signal on $procdff$652 ($adff) from module td4_soc_ff (D = \din, Q = \mem[10] [7:4]).
-Adding EN signal on $procdff$651 ($adff) from module td4_soc_ff (D = \din, Q = \mem[9] [3:0]).
-Adding EN signal on $procdff$651 ($adff) from module td4_soc_ff (D = \din, Q = \mem[9] [7:4]).
-Adding EN signal on $procdff$650 ($adff) from module td4_soc_ff (D = \din, Q = \mem[8] [3:0]).
-Adding EN signal on $procdff$650 ($adff) from module td4_soc_ff (D = \din, Q = \mem[8] [7:4]).
-Adding EN signal on $procdff$649 ($adff) from module td4_soc_ff (D = \din, Q = \mem[7] [3:0]).
-Adding EN signal on $procdff$649 ($adff) from module td4_soc_ff (D = \din, Q = \mem[7] [7:4]).
-Adding EN signal on $procdff$648 ($adff) from module td4_soc_ff (D = \din, Q = \mem[6] [3:0]).
-Adding EN signal on $procdff$648 ($adff) from module td4_soc_ff (D = \din, Q = \mem[6] [7:4]).
-Adding EN signal on $procdff$647 ($adff) from module td4_soc_ff (D = \din, Q = \mem[5] [3:0]).
-Adding EN signal on $procdff$647 ($adff) from module td4_soc_ff (D = \din, Q = \mem[5] [7:4]).
-Adding EN signal on $procdff$646 ($adff) from module td4_soc_ff (D = \din, Q = \mem[4] [3:0]).
-Adding EN signal on $procdff$646 ($adff) from module td4_soc_ff (D = \din, Q = \mem[4] [7:4]).
-Adding EN signal on $procdff$645 ($adff) from module td4_soc_ff (D = \din, Q = \mem[3] [3:0]).
-Adding EN signal on $procdff$645 ($adff) from module td4_soc_ff (D = \din, Q = \mem[3] [7:4]).
-Adding EN signal on $procdff$644 ($adff) from module td4_soc_ff (D = \din, Q = \mem[2] [3:0]).
-Adding EN signal on $procdff$644 ($adff) from module td4_soc_ff (D = \din, Q = \mem[2] [7:4]).
-Adding EN signal on $procdff$643 ($adff) from module td4_soc_ff (D = \din, Q = \mem[1] [3:0]).
-Adding EN signal on $procdff$643 ($adff) from module td4_soc_ff (D = \din, Q = \mem[1] [7:4]).
-Adding EN signal on $procdff$642 ($adff) from module td4_soc_ff (D = \din, Q = \mem[0] [3:0]).
-Adding EN signal on $procdff$642 ($adff) from module td4_soc_ff (D = \din, Q = \mem[0] [7:4]).
-Adding EN signal on $procdff$640 ($adff) from module td4_soc_ff (D = $add$hdl/rtl/td4_soc_ff.v:30$54_Y, Q = \ld_addr).
-Adding EN signal on $flatten\u_core.$procdff$666 ($adff) from module td4_soc_ff (D = \u_core.sum [4], Q = \u_core.cflag).
-Adding EN signal on $flatten\u_core.$procdff$665 ($adff) from module td4_soc_ff (D = $flatten\u_core.$ternary$hdl/rtl/td4_core.v:49$19_Y, Q = \u_core.pc).
-Adding EN signal on $flatten\u_core.$procdff$664 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_out).
-Adding EN signal on $flatten\u_core.$procdff$663 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_b).
-Adding EN signal on $flatten\u_core.$procdff$662 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_a).
+7.10.6. Executing OPT_DFF pass (perform DFF optimizations).
+Adding EN signal on $procdff$709 ($adff) from module td4_soc_ff (D = \din, Q = \mem[11] [3:0]).
+Adding EN signal on $procdff$709 ($adff) from module td4_soc_ff (D = \din, Q = \mem[11] [7:4]).
+Adding EN signal on $procdff$724 ($adff) from module td4_soc_ff (D = \din, Q = \mem[14] [3:0]).
+Adding EN signal on $procdff$724 ($adff) from module td4_soc_ff (D = \din, Q = \mem[14] [7:4]).
+Adding EN signal on $procdff$674 ($adff) from module td4_soc_ff (D = \din, Q = \mem[4] [3:0]).
+Adding EN signal on $procdff$674 ($adff) from module td4_soc_ff (D = \din, Q = \mem[4] [7:4]).
+Adding EN signal on $procdff$679 ($adff) from module td4_soc_ff (D = \din, Q = \mem[5] [3:0]).
+Adding EN signal on $procdff$679 ($adff) from module td4_soc_ff (D = \din, Q = \mem[5] [7:4]).
+Adding EN signal on $procdff$684 ($adff) from module td4_soc_ff (D = \din, Q = \mem[6] [3:0]).
+Adding EN signal on $procdff$684 ($adff) from module td4_soc_ff (D = \din, Q = \mem[6] [7:4]).
+Adding EN signal on $procdff$729 ($adff) from module td4_soc_ff (D = \din, Q = \mem[15] [3:0]).
+Adding EN signal on $procdff$729 ($adff) from module td4_soc_ff (D = \din, Q = \mem[15] [7:4]).
+Adding EN signal on $procdff$689 ($adff) from module td4_soc_ff (D = \din, Q = \mem[7] [3:0]).
+Adding EN signal on $procdff$689 ($adff) from module td4_soc_ff (D = \din, Q = \mem[7] [7:4]).
+Adding EN signal on $procdff$694 ($adff) from module td4_soc_ff (D = \din, Q = \mem[8] [3:0]).
+Adding EN signal on $procdff$694 ($adff) from module td4_soc_ff (D = \din, Q = \mem[8] [7:4]).
+Adding EN signal on $procdff$699 ($adff) from module td4_soc_ff (D = \din, Q = \mem[9] [3:0]).
+Adding EN signal on $procdff$699 ($adff) from module td4_soc_ff (D = \din, Q = \mem[9] [7:4]).
+Adding EN signal on $flatten\u_core.$procdff$774 ($adff) from module td4_soc_ff (D = \u_core.sum [4], Q = \u_core.cflag).
+Adding EN signal on $flatten\u_core.$procdff$754 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_a).
+Adding EN signal on $flatten\u_core.$procdff$769 ($adff) from module td4_soc_ff (D = $flatten\u_core.$ternary$hdl/rtl/td4_core.v:49$19_Y, Q = \u_core.pc).
+Adding EN signal on $flatten\u_core.$procdff$759 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_b).
+Adding EN signal on $procdff$704 ($adff) from module td4_soc_ff (D = \din, Q = \mem[10] [3:0]).
+Adding EN signal on $procdff$704 ($adff) from module td4_soc_ff (D = \din, Q = \mem[10] [7:4]).
+Adding EN signal on $flatten\u_core.$procdff$764 ($adff) from module td4_soc_ff (D = \u_core.sum [3:0], Q = \u_core.reg_out).
+Adding EN signal on $procdff$714 ($adff) from module td4_soc_ff (D = \din, Q = \mem[12] [3:0]).
+Adding EN signal on $procdff$714 ($adff) from module td4_soc_ff (D = \din, Q = \mem[12] [7:4]).
+Adding EN signal on $procdff$649 ($adff) from module td4_soc_ff (D = $add$hdl/rtl/td4_soc_ff.v:30$54_Y, Q = \ld_addr).
+Adding EN signal on $procdff$654 ($adff) from module td4_soc_ff (D = \din, Q = \mem[0] [3:0]).
+Adding EN signal on $procdff$654 ($adff) from module td4_soc_ff (D = \din, Q = \mem[0] [7:4]).
+Adding EN signal on $procdff$719 ($adff) from module td4_soc_ff (D = \din, Q = \mem[13] [3:0]).
+Adding EN signal on $procdff$719 ($adff) from module td4_soc_ff (D = \din, Q = \mem[13] [7:4]).
+Adding EN signal on $procdff$659 ($adff) from module td4_soc_ff (D = \din, Q = \mem[1] [3:0]).
+Adding EN signal on $procdff$659 ($adff) from module td4_soc_ff (D = \din, Q = \mem[1] [7:4]).
+Adding EN signal on $procdff$664 ($adff) from module td4_soc_ff (D = \din, Q = \mem[2] [3:0]).
+Adding EN signal on $procdff$664 ($adff) from module td4_soc_ff (D = \din, Q = \mem[2] [7:4]).
+Adding EN signal on $procdff$669 ($adff) from module td4_soc_ff (D = \din, Q = \mem[3] [3:0]).
+Adding EN signal on $procdff$669 ($adff) from module td4_soc_ff (D = \din, Q = \mem[3] [7:4]).
 
-7.9.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.10.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 Removed 106 unused cells and 90 unused wires.
 <suppressed ~107 debug messages>
 
-7.9.8. Executing OPT_EXPR pass (perform const folding).
+7.10.8. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.9.9. Rerunning OPT passes. (Maybe there is more to do..)
+7.10.9. Rerunning OPT passes. (Maybe there is more to do..)
 
-7.9.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.10.10. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~5 debug messages>
+<suppressed ~12 debug messages>
 
-7.9.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.10.11. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.9.12. Executing OPT_MERGE pass (detect identical cells).
+7.10.12. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 145 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
+Computing hashes of 130 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 <suppressed ~45 debug messages>
 Removed a total of 15 cells.
 
-7.9.13. Executing OPT_DFF pass (perform DFF optimizations).
+7.10.13. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.9.14. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.10.14. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 Removed 0 unused cells and 15 unused wires.
 <suppressed ~1 debug messages>
 
-7.9.15. Executing OPT_EXPR pass (perform const folding).
+7.10.15. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.9.16. Rerunning OPT passes. (Maybe there is more to do..)
+7.10.16. Rerunning OPT passes. (Maybe there is more to do..)
 
-7.9.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.10.17. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~5 debug messages>
+<suppressed ~12 debug messages>
 
-7.9.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.10.18. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.9.19. Executing OPT_MERGE pass (detect identical cells).
+7.10.19. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 130 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.9.20. Executing OPT_DFF pass (perform DFF optimizations).
+7.10.20. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.9.21. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.10.21. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.9.22. Executing OPT_EXPR pass (perform const folding).
+7.10.22. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.9.23. Finished OPT passes. (There is nothing left to do.)
+7.10.23. Finished fast OPT passes. (There is nothing left to do.)
 
-7.10. Executing WREDUCE pass (reducing word size of cells).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$79_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$81_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$80_CMP0 ($eq).
+7.11. Executing WREDUCE pass (reducing word size of cells).
 Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$add$hdl/rtl/td4_soc_ff.v:30$54 ($add).
-Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$procmux$85_CMP0 ($eq).
-Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$84_CMP0 ($eq).
-Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$83_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$79_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$80_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$81_CMP0 ($eq).
 Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$82_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$197_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$214_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$232_CMP0 ($eq).
-Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$251_CMP0 ($eq).
-Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$271_CMP0 ($eq).
-Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$292_CMP0 ($eq).
-Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$procmux$314_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$83_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$84_CMP0 ($eq).
+Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$procmux$85_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$468_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$485_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$503_CMP0 ($eq).
+Removed top 1 bits (of 4) from port B of cell td4_soc_ff.$procmux$522_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$542_CMP0 ($eq).
+Removed top 2 bits (of 4) from port B of cell td4_soc_ff.$procmux$563_CMP0 ($eq).
+Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$procmux$585_CMP0 ($eq).
 Removed top 3 bits (of 4) from port B of cell td4_soc_ff.$flatten\u_core.$add$hdl/rtl/td4_core.v:49$18 ($add).
 Removed top 1 bits (of 5) from port A of cell td4_soc_ff.$flatten\u_core.$add$hdl/rtl/td4_core.v:36$12 ($add).
 Removed top 1 bits (of 5) from port B of cell td4_soc_ff.$flatten\u_core.$add$hdl/rtl/td4_core.v:36$12 ($add).
 Removed top 1 bits (of 2) from port B of cell td4_soc_ff.$flatten\u_core.$eq$hdl/rtl/td4_core.v:32$7 ($eq).
 Removed top 1 bits (of 2) from port B of cell td4_soc_ff.$flatten\u_core.$eq$hdl/rtl/td4_core.v:26$3 ($eq).
 
-7.11. Executing PEEPOPT pass (run peephole optimizers).
+7.12. Executing PEEPOPT pass (run peephole optimizers).
 
-7.12. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.13. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.13. Executing ALUMACC pass (create $alu and $macc cells).
+7.14. Executing ALUMACC pass (create $alu and $macc cells).
 Extracting $alu and $macc cells in module td4_soc_ff:
-  creating $macc model for $add$hdl/rtl/td4_soc_ff.v:30$54 ($add).
-  creating $macc model for $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12 ($add).
   creating $macc model for $flatten\u_core.$add$hdl/rtl/td4_core.v:49$18 ($add).
-  creating $alu model for $macc $flatten\u_core.$add$hdl/rtl/td4_core.v:49$18.
-  creating $alu model for $macc $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12.
+  creating $macc model for $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12 ($add).
+  creating $macc model for $add$hdl/rtl/td4_soc_ff.v:30$54 ($add).
   creating $alu model for $macc $add$hdl/rtl/td4_soc_ff.v:30$54.
-  creating $alu cell for $add$hdl/rtl/td4_soc_ff.v:30$54: $auto$alumacc.cc:485:replace_alu$809
-  creating $alu cell for $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12: $auto$alumacc.cc:485:replace_alu$812
-  creating $alu cell for $flatten\u_core.$add$hdl/rtl/td4_core.v:49$18: $auto$alumacc.cc:485:replace_alu$815
+  creating $alu model for $macc $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12.
+  creating $alu model for $macc $flatten\u_core.$add$hdl/rtl/td4_core.v:49$18.
+  creating $alu cell for $flatten\u_core.$add$hdl/rtl/td4_core.v:49$18: $auto$alumacc.cc:548:replace_alu$918
+  creating $alu cell for $flatten\u_core.$add$hdl/rtl/td4_core.v:36$12: $auto$alumacc.cc:548:replace_alu$921
+  creating $alu cell for $add$hdl/rtl/td4_soc_ff.v:30$54: $auto$alumacc.cc:548:replace_alu$924
   created 3 $alu and 0 $macc cells.
 
-7.14. Executing SHARE pass (SAT-based resource sharing).
+7.15. Executing SHARE pass (SAT-based resource sharing).
 
-7.15. Executing OPT pass (performing simple optimizations).
+7.16. Executing OPT pass (performing simple optimizations).
 
-7.15.1. Executing OPT_EXPR pass (perform const folding).
+7.16.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.15.2. Executing OPT_MERGE pass (detect identical cells).
+7.16.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 130 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.15.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.16.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~5 debug messages>
+<suppressed ~12 debug messages>
 
-7.15.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.16.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.15.5. Executing OPT_MERGE pass (detect identical cells).
+7.16.5. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 130 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.15.6. Executing OPT_DFF pass (perform DFF optimizations).
+7.16.6. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.15.7. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.16.7. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.15.8. Executing OPT_EXPR pass (perform const folding).
+7.16.8. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.15.9. Finished OPT passes. (There is nothing left to do.)
+7.16.9. Finished fast OPT passes. (There is nothing left to do.)
 
-7.16. Executing MEMORY pass.
+7.17. Executing MEMORY pass.
 
-7.16.1. Executing OPT_MEM pass (optimize memories).
+7.17.1. Executing OPT_MEM pass (optimize memories).
 Performed a total of 0 transformations.
 
-7.16.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
+7.17.2. Executing OPT_MEM_PRIORITY pass (removing unnecessary memory write priority relations).
 Performed a total of 0 transformations.
 
-7.16.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
+7.17.3. Executing OPT_MEM_FEEDBACK pass (finding memory read-to-write feedback paths).
 
-7.16.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
+7.17.4. Executing MEMORY_BMUX2ROM pass (converting muxes to ROMs).
 
-7.16.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
+7.17.5. Executing MEMORY_DFF pass (merging $dff cells to $memrd).
 
-7.16.6. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.17.6. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.16.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
+7.17.7. Executing MEMORY_SHARE pass (consolidating $memrd/$memwr cells).
 
-7.16.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
+7.17.8. Executing OPT_MEM_WIDEN pass (optimize memories where all ports are wide).
 Performed a total of 0 transformations.
 
-7.16.9. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.17.9. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.16.10. Executing MEMORY_COLLECT pass (generating $mem cells).
+7.17.10. Executing MEMORY_COLLECT pass (generating $mem cells).
 
-7.17. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.18. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.18. Executing OPT pass (performing simple optimizations).
+7.19. Executing OPT pass (performing simple optimizations).
 
-7.18.1. Executing OPT_EXPR pass (perform const folding).
+7.19.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 <suppressed ~1 debug messages>
 
-7.18.2. Executing OPT_MERGE pass (detect identical cells).
+7.19.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 130 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.18.3. Executing OPT_DFF pass (perform DFF optimizations).
+7.19.3. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.18.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.19.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 Removed 1 unused cells and 1 unused wires.
 <suppressed ~2 debug messages>
 
-7.18.5. Finished fast OPT passes.
+7.19.5. Finished fast OPT passes.
 
-7.19. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
+7.20. Executing MEMORY_MAP pass (converting memories to logic and flip-flops).
 
-7.20. Executing OPT pass (performing simple optimizations).
+7.21. Executing OPT pass (performing simple optimizations).
 
-7.20.1. Executing OPT_EXPR pass (perform const folding).
+7.21.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.20.2. Executing OPT_MERGE pass (detect identical cells).
+7.21.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 129 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.20.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
+7.21.3. Executing OPT_MUXTREE pass (detect dead branches in mux trees).
 Running muxtree optimizer on module \td4_soc_ff..
   Creating internal representation of mux trees.
   Evaluating internal representation of mux trees.
   Analyzing evaluation results.
 Removed 0 multiplexer ports.
-<suppressed ~5 debug messages>
+<suppressed ~12 debug messages>
 
-7.20.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
+7.21.4. Executing OPT_REDUCE pass (consolidate $*mux and $reduce_* inputs).
   Optimizing cells in module \td4_soc_ff.
 Performed a total of 0 changes.
 
-7.20.5. Executing OPT_MERGE pass (detect identical cells).
+7.21.5. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 129 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.20.6. Executing OPT_SHARE pass.
+7.21.6. Executing OPT_SHARE pass.
 
-7.20.7. Executing OPT_DFF pass (perform DFF optimizations).
+7.21.7. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.20.8. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.21.8. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
 
-7.20.9. Executing OPT_EXPR pass (perform const folding).
+7.21.9. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.20.10. Finished OPT passes. (There is nothing left to do.)
+7.21.10. Finished fast OPT passes. (There is nothing left to do.)
 
-7.21. Executing TECHMAP pass (map to technology primitives).
+7.22. Executing TECHMAP pass (map to technology primitives).
 
-7.21.1. Executing Verilog-2005 frontend: /usr/bin/../share/yosys/techmap.v
-Parsing Verilog input from `/usr/bin/../share/yosys/techmap.v' to AST representation.
+7.22.1. Executing Verilog-2005 frontend: /opt/homebrew/bin/../share/yosys/techmap.v
+Parsing Verilog input from `/opt/homebrew/bin/../share/yosys/techmap.v' to AST representation.
 Generating RTLIL representation for module `\_90_simplemap_bool_ops'.
 Generating RTLIL representation for module `\_90_simplemap_reduce_ops'.
 Generating RTLIL representation for module `\_90_simplemap_logic_ops'.
@@ -643,165 +660,176 @@ Generating RTLIL representation for module `\_90_simplemap_registers'.
 Generating RTLIL representation for module `\_90_shift_ops_shr_shl_sshl_sshr'.
 Generating RTLIL representation for module `\_90_shift_shiftx'.
 Generating RTLIL representation for module `\_90_fa'.
-Generating RTLIL representation for module `\_90_lcu'.
+Generating RTLIL representation for module `\_90_lcu_brent_kung'.
 Generating RTLIL representation for module `\_90_alu'.
 Generating RTLIL representation for module `\_90_macc'.
 Generating RTLIL representation for module `\_90_alumacc'.
-Generating RTLIL representation for module `\$__div_mod_u'.
-Generating RTLIL representation for module `\$__div_mod_trunc'.
+Generating RTLIL representation for module `$__div_mod_u'.
+Generating RTLIL representation for module `$__div_mod_trunc'.
 Generating RTLIL representation for module `\_90_div'.
 Generating RTLIL representation for module `\_90_mod'.
-Generating RTLIL representation for module `\$__div_mod_floor'.
+Generating RTLIL representation for module `$__div_mod_floor'.
 Generating RTLIL representation for module `\_90_divfloor'.
 Generating RTLIL representation for module `\_90_modfloor'.
 Generating RTLIL representation for module `\_90_pow'.
-Generating RTLIL representation for module `\_90_pmux'.
 Generating RTLIL representation for module `\_90_demux'.
 Generating RTLIL representation for module `\_90_lut'.
+Generating RTLIL representation for module `$connect'.
+Generating RTLIL representation for module `$input_port'.
 Successfully finished Verilog frontend.
 
-7.21.2. Continuing TECHMAP pass.
-Using extmapper simplemap for cells of type $reduce_and.
-Using extmapper simplemap for cells of type $eq.
-Using template $paramod$75a16668b548c3bac59647e2f0c7dad55b2b94b9\_90_pmux for cells of type $pmux.
-Using extmapper simplemap for cells of type $logic_not.
-Using extmapper simplemap for cells of type $logic_and.
+7.22.2. Continuing TECHMAP pass.
+Using template $paramod$32a7b7b86c07519b7537abc18e96f0331f97914d\_90_alu for cells of type $alu.
 Using template $paramod$b85fbb3374a1d9ba7ee4f4d6323c30f939df3ada\_90_alu for cells of type $alu.
-Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $reduce_and.
 Using extmapper simplemap for cells of type $adffe.
 Using extmapper simplemap for cells of type $not.
-Using template $paramod$32a7b7b86c07519b7537abc18e96f0331f97914d\_90_alu for cells of type $alu.
+Using extmapper simplemap for cells of type $logic_not.
+Using extmapper simplemap for cells of type $logic_and.
+Using extmapper simplemap for cells of type $mux.
+Using extmapper simplemap for cells of type $eq.
+Using extmapper simplemap for cells of type $pmux.
 Using extmapper simplemap for cells of type $and.
 Using extmapper simplemap for cells of type $or.
-Using extmapper simplemap for cells of type $reduce_or.
 Using extmapper simplemap for cells of type $xor.
-Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000101 for cells of type $lcu.
 Using extmapper simplemap for cells of type $pos.
-Using template $paramod\_90_lcu\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000100 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000100 for cells of type $lcu.
+Using template $paramod\_90_fa\WIDTH=32'00000000000000000000000000000101 for cells of type $fa.
+Using template $paramod\_90_lcu_brent_kung\WIDTH=32'00000000000000000000000000000101 for cells of type $lcu.
 No more expansions possible.
-<suppressed ~555 debug messages>
+<suppressed ~559 debug messages>
 
-7.22. Executing OPT pass (performing simple optimizations).
+7.23. Executing OPT pass (performing simple optimizations).
 
-7.22.1. Executing OPT_EXPR pass (perform const folding).
+7.23.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
-<suppressed ~201 debug messages>
+<suppressed ~240 debug messages>
 
-7.22.2. Executing OPT_MERGE pass (detect identical cells).
+7.23.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
-<suppressed ~378 debug messages>
-Removed a total of 126 cells.
+Computing hashes of 756 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
+Computing hashes of 651 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
+Computing hashes of 615 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
+<suppressed ~423 debug messages>
+Removed a total of 141 cells.
 
-7.22.3. Executing OPT_DFF pass (perform DFF optimizations).
+7.23.3. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.22.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.23.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
-Removed 14 unused cells and 351 unused wires.
+Removed 14 unused cells and 347 unused wires.
 <suppressed ~15 debug messages>
 
-7.22.5. Finished fast OPT passes.
+7.23.5. Finished fast OPT passes.
 
-7.23. Executing ABC pass (technology mapping using ABC).
+7.24. Executing ABC pass (technology mapping using ABC).
 
-7.23.1. Extracting gate netlist of module `\td4_soc_ff' to `<abc-temp-dir>/input.blif'..
-Extracted 466 gates and 620 wires to a netlist network with 152 inputs and 49 outputs.
+7.24.1. Extracting gate netlist of module `\td4_soc_ff' to `<abc-temp-dir>/input.blif'..
 
-7.23.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
+7.24.1.1. Executed ABC.
+Extracted 451 gates and 605 wires to a netlist network with 152 inputs and 49 outputs.
+Running ABC script: <abc-temp-dir>/abc.script
+ABC: ======== ABC command line "source <abc-temp-dir>/abc.script"
 ABC: + read_blif <abc-temp-dir>/input.blif 
 ABC: + read_library <abc-temp-dir>/stdcells.genlib 
-ABC: Entered genlib library with 13 gates from file "<abc-temp-dir>/stdcells.genlib".
 ABC: + strash 
+ABC: + &get -n 
+ABC: + &fraig -x 
+ABC: + &put 
+ABC: + scorr 
+ABC: Warning: The network is combinational (run "fraig" or "fraig_sweep").
+ABC: + dc2 
 ABC: + dretime 
-ABC: + map 
+ABC: + strash 
+ABC: + &get -n 
+ABC: + &dch -f 
+ABC: + &nf 
+ABC: + &put 
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
-7.23.1.2. Re-integrating ABC results.
-ABC RESULTS:              XNOR cells:        3
-ABC RESULTS:               NOT cells:       15
-ABC RESULTS:             ORNOT cells:       25
-ABC RESULTS:               MUX cells:       24
-ABC RESULTS:              NAND cells:       11
-ABC RESULTS:               AND cells:        5
-ABC RESULTS:               XOR cells:        9
-ABC RESULTS:               NOR cells:        2
-ABC RESULTS:            ANDNOT cells:      180
-ABC RESULTS:                OR cells:      155
-ABC RESULTS:        internal signals:      419
+7.24.1.2. Re-integrating ABC results.
+ABC RESULTS:               AND cells:      197
+ABC RESULTS:            ANDNOT cells:       13
+ABC RESULTS:               MUX cells:        8
+ABC RESULTS:              NAND cells:      162
+ABC RESULTS:               NOR cells:        4
+ABC RESULTS:               NOT cells:        3
+ABC RESULTS:                OR cells:        2
+ABC RESULTS:              XNOR cells:        2
+ABC RESULTS:               XOR cells:       10
+ABC RESULTS:        internal signals:      404
 ABC RESULTS:           input signals:      152
 ABC RESULTS:          output signals:       49
 Removing temp directory.
+Removing global temp directory.
 
-7.24. Executing OPT pass (performing simple optimizations).
+7.25. Executing OPT pass (performing simple optimizations).
 
-7.24.1. Executing OPT_EXPR pass (perform const folding).
+7.25.1. Executing OPT_EXPR pass (perform const folding).
 Optimizing module td4_soc_ff.
 
-7.24.2. Executing OPT_MERGE pass (detect identical cells).
+7.25.2. Executing OPT_MERGE pass (detect identical cells).
 Finding identical cells in module `\td4_soc_ff'.
+Computing hashes of 551 cells of `\td4_soc_ff'.
+Finding duplicate cells in `\td4_soc_ff'.
 Removed a total of 0 cells.
 
-7.24.3. Executing OPT_DFF pass (perform DFF optimizations).
+7.25.3. Executing OPT_DFF pass (perform DFF optimizations).
 
-7.24.4. Executing OPT_CLEAN pass (remove unused cells and wires).
+7.25.4. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
-Removed 0 unused cells and 353 unused wires.
-<suppressed ~8 debug messages>
+Removed 0 unused cells and 484 unused wires.
+<suppressed ~12 debug messages>
 
-7.24.5. Finished fast OPT passes.
+7.25.5. Finished fast OPT passes.
 
-7.25. Executing HIERARCHY pass (managing design hierarchy).
+7.26. Executing HIERARCHY pass (managing design hierarchy).
+Attribute `top' found on module `td4_soc_ff'. Setting top module to td4_soc_ff.
 
-7.25.1. Analyzing design hierarchy..
+7.26.1. Analyzing design hierarchy..
 Top module:  \td4_soc_ff
 
-7.25.2. Analyzing design hierarchy..
+7.26.2. Analyzing design hierarchy..
 Top module:  \td4_soc_ff
 Removed 0 unused modules.
 
-7.26. Printing statistics.
+7.27. Printing statistics.
 
 === td4_soc_ff ===
 
-   Number of wires:                466
-   Number of wire bits:            644
-   Number of public wires:          44
-   Number of public wire bits:     216
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                578
-     $_ANDNOT_                     180
-     $_AND_                          5
-     $_DFFE_PN0P_                  149
-     $_MUX_                         24
-     $_NAND_                        11
-     $_NOR_                          2
-     $_NOT_                         15
-     $_ORNOT_                       25
-     $_OR_                         155
-     $_XNOR_                         3
-     $_XOR_                          9
+        +----------Local Count, excluding submodules.
+        | 
+      434 wires
+      592 wire bits
+       40 public wires
+      192 public wire bits
+        9 ports
+       18 port bits
+      551 cells
+       13   $_ANDNOT_
+      197   $_AND_
+      149   $_DFFE_PN0P_
+        8   $_MUX_
+      162   $_NAND_
+        4   $_NOR_
+        3   $_NOT_
+        2   $_OR_
+        2   $_XNOR_
+       10   $_XOR_
+        1   $scopeinfo
 
-7.27. Executing CHECK pass (checking for obvious problems).
+7.28. Executing CHECK pass (checking for obvious problems).
 Checking module td4_soc_ff...
 Found and reported 0 problems.
 
 8. Executing DFFLIBMAP pass (mapping DFF cells to sequential cells from liberty file).
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
   cell DFF (noninv, pins=4, area=3849.10) is a direct match for cell type $_DFF_P_.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
   cell DFFRB (noninv, pins=5, area=3849.10) is a direct match for cell type $_DFF_PN0_.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
   cell DFFS (noninv, pins=5, area=3849.10) is a direct match for cell type $_DFF_PP1_.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
-Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDFFRB' - skipping.
   final dff cell mappings:
     unmapped dff cell: $_DFF_N_
     \DFF _DFF_P_ (.CK( C), .D( D), .Q( Q), .QB(~Q));
@@ -813,6 +841,10 @@ Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDF
     unmapped dff cell: $_DFF_PN1_
     unmapped dff cell: $_DFF_PP0_
     \DFFS _DFF_PP1_ (.CK( C), .D( D), .Q( Q), .QB(~Q), .SET( R));
+    unmapped dff cell: $_DFFE_NN_
+    unmapped dff cell: $_DFFE_NP_
+    unmapped dff cell: $_DFFE_PN_
+    unmapped dff cell: $_DFFE_PP_
     unmapped dff cell: $_DFFSR_NNN_
     unmapped dff cell: $_DFFSR_NNP_
     unmapped dff cell: $_DFFSR_NPN_
@@ -823,35 +855,22 @@ Warning: Found unsupported expression 'A*!S+B*S' in pin attribute of cell 'MUXDF
     unmapped dff cell: $_DFFSR_PPP_
 
 8.1. Executing DFFLEGALIZE pass (convert FFs to types supported by the target).
+<suppressed ~1 debug messages>
 Mapping DFF cells in module `\td4_soc_ff':
   mapped 149 $_DFF_PN0_ cells to \DFFRB cells.
 
 9. Executing ABC pass (technology mapping using ABC).
 
 9.1. Extracting gate netlist of module `\td4_soc_ff' to `<abc-temp-dir>/input.blif'..
-Extracted 578 gates and 748 wires to a netlist network with 170 inputs and 149 outputs.
+ABC: using cached merged SCL: /var/folders/gf/nw84jb093fzd316tjgncxvrh0000gn/T/yosys-liberty-scl-cache/yosys_merged_5266fe66.scl (1 files)
 
-9.1.1. Executing ABC.
-Running ABC command: "<yosys-exe-dir>/yosys-abc" -s -f <abc-temp-dir>/abc.script 2>&1
-ABC: ABC command line: "source <abc-temp-dir>/abc.script".
-ABC: 
+9.1.1. Executed ABC.
+Extracted 550 gates and 708 wires to a netlist network with 158 inputs and 149 outputs.
+Running ABC script: <abc-temp-dir>/abc.script
+ABC: ======== ABC command line "source <abc-temp-dir>/abc.script"
 ABC: + read_blif <abc-temp-dir>/input.blif 
-ABC: + read_lib -w /home/claude/syn2/lef/tr1um_typ_5v0_25c.lib 
-ABC: Parsing finished successfully.  Parsing time =     0.00 sec
-ABC: Scl_LibertyReadGenlib() skipped sequential cell "DFF".
-ABC: Scl_LibertyReadGenlib() skipped sequential cell "DFFRB".
-ABC: Scl_LibertyReadGenlib() skipped sequential cell "DFFS".
-ABC: Scl_LibertyReadGenlib() skipped sequential cell "MUXDFFRB".
-ABC: Scl_LibertyReadGenlib() skipped cell "OSS_ESD_5V_DIO" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "FILL1" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "FILL2" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "FILL3" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "TAP2" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "TAP2S" due to dont_use attribute.
-ABC: Scl_LibertyReadGenlib() skipped cell "TAP3" due to dont_use attribute.
-ABC: Library "tr1um_typ_5v0_25c" from "/home/claude/syn2/lef/tr1um_typ_5v0_25c.lib" has 21 cells (4 skipped: 4 seq; 0 tri-state; 0 no func; 7 dont_use).  Time =     0.00 sec
-ABC: Memory =    0.26 MB. Time =     0.00 sec
-ABC: + read_constr -v /home/claude/syn2/scripts/abc.constr 
+ABC: + read_scl /var/folders/gf/nw84jb093fzd316tjgncxvrh0000gn/T/yosys-liberty-scl-cache/yosys_merged_5266fe66.scl 
+ABC: + read_constr -v /Users/okamura/Dropbox/98_LSI_Design/TR-1um_TD4/scripts/abc.constr 
 ABC: Setting driving cell to be "BUF_X2".
 ABC: Setting output load to be 36.200001.
 ABC: + strash 
@@ -871,55 +890,60 @@ ABC: + buffer
 ABC: + upsize 
 ABC: + dnsize 
 ABC: + stime -p 
-ABC: WireLoad = "none"  Gates =    500 (  6.4 %)   Cap =115.1 ff (  0.0 %)   Area =   704396.50 (100.0 %)   Delay = 54269.02 ps  ( 16.4 %)               
-ABC: Path  0 --       2 : 0    5 pi      A =   0.00  Df = 643.9  -71.7 ps  S = 964.0 ps  Cin =  0.0 ff  Cout = 317.4 ff  Cmax =   0.0 ff  G =    0  
-ABC: Path  1 --     427 : 3    2 MUX2    A =1924.60  Df =4464.2-1500.6 ps  S =1444.5 ps  Cin = 48.1 ff  Cout = 116.8 ff  Cmax = 800.0 ff  G =  243  
-ABC: Path  2 --     428 : 1   10 BUF_X2  A = 962.30  Df =7078.5-1646.6 ps  S =1485.1 ps  Cin = 58.8 ff  Cout = 572.8 ff  Cmax = 800.0 ff  G =  974  
-ABC: Path  3 --     461 : 4    8 NOR4    A =1603.80  Df =14629.1-5839.7 ps  S =9002.4 ps  Cin = 55.7 ff  Cout = 476.7 ff  Cmax = 800.0 ff  G =  855  
-ABC: Path  4 --     514 : 2    1 NAND2   A = 962.30  Df =18313.6-8444.7 ps  S =2412.9 ps  Cin = 59.5 ff  Cout =  58.7 ff  Cmax = 800.0 ff  G =   98  
-ABC: Path  5 --     516 : 2    1 AND2_X1 A =1283.00  Df =20355.0-6684.6 ps  S = 776.5 ps  Cin = 58.7 ff  Cout =  58.7 ff  Cmax = 800.0 ff  G =   99  
-ABC: Path  6 --     525 : 4    1 NAND4   A =1603.80  Df =21219.4-1390.1 ps  S =3451.8 ps  Cin = 58.4 ff  Cout =  53.8 ff  Cmax = 800.0 ff  G =   92  
-ABC: Path  7 --     526 : 3    5 NOR3    A =1283.00  Df =23672.6 -446.5 ps  S =4435.2 ps  Cin = 56.6 ff  Cout = 290.4 ff  Cmax = 800.0 ff  G =  513  
-ABC: Path  8 --     552 : 3    6 NOR3    A =1283.00  Df =27710.9 -419.5 ps  S =4863.0 ps  Cin = 56.6 ff  Cout = 335.2 ff  Cmax = 800.0 ff  G =  592  
-ABC: Path  9 --     638 : 4    1 NOR4    A =1603.80  Df =30060.5 -263.7 ps  S =2751.3 ps  Cin = 55.7 ff  Cout =  60.5 ff  Cmax = 800.0 ff  G =  108  
-ABC: Path 10 --     641 : 3    2 NOR3    A =1283.00  Df =32978.6 -408.3 ps  S =3159.6 ps  Cin = 56.6 ff  Cout = 184.1 ff  Cmax = 800.0 ff  G =  325  
-ABC: Path 11 --     672 : 2    2 XOR2    A =1603.80  Df =36130.5 -300.4 ps  S =2193.8 ps  Cin =127.6 ff  Cout = 189.9 ff  Cmax = 800.0 ff  G =  148  
-ABC: Path 12 --     673 : 3    1 AND3_X1 A =1603.80  Df =39348.3-1382.3 ps  S = 985.0 ps  Cin = 58.4 ff  Cout =  55.5 ff  Cmax = 800.0 ff  G =   95  
-ABC: Path 13 --     674 : 2    2 NOR2    A = 962.30  Df =40796.0-1225.0 ps  S =1956.4 ps  Cin = 57.8 ff  Cout = 186.6 ff  Cmax = 800.0 ff  G =  323  
-ABC: Path 14 --     677 : 2    1 NOR2    A = 962.30  Df =42165.7-1117.2 ps  S =1154.6 ps  Cin = 57.8 ff  Cout =  55.5 ff  Cmax = 800.0 ff  G =   96  
-ABC: Path 15 --     678 : 2    2 NOR2    A = 962.30  Df =43645.0 -854.9 ps  S =1979.0 ps  Cin = 57.8 ff  Cout = 188.5 ff  Cmax = 800.0 ff  G =  326  
-ABC: Path 16 --     797 : 2    4 XNOR2   A =1603.80  Df =46968.4 -702.4 ps  S =2733.8 ps  Cin =129.9 ff  Cout = 145.2 ff  Cmax = 800.0 ff  G =  111  
-ABC: Path 17 --     800 : 3    1 MUX2    A =1924.60  Df =50901.9-2542.7 ps  S =1003.0 ps  Cin = 48.1 ff  Cout =  36.3 ff  Cmax = 800.0 ff  G =   75  
-ABC: Path 18 --     801 : 3    1 MUX2    A =1924.60  Df =54269.0-3932.8 ps  S = 998.2 ps  Cin = 48.1 ff  Cout =  36.2 ff  Cmax = 800.0 ff  G =   75  
-ABC: Start-point = pi1 (\u_core.pc [0]).  End-point = po136 ($auto$rtlil.cc:2609:MuxGate$3028).
+ABC: WireLoad = "none"  Gates =    509 (  8.1 %)   Cap =118.0 ff (  0.0 %)   Area =   710490.69 (100.0 %)   Delay = 52525.54 ps  ( 12.0 %)               
+ABC: Path  0 --       3 : 0    1 pi      A =   0.00  Df = 141.8   -9.4 ps  S = 533.1 ps  Cin =  0.0 ff  Cout =  58.8 ff  Cmax =   0.0 ff  G =    0  
+ABC: Path  1 --     311 : 1    8 BUF_X2  A = 962.30  Df =2444.7  -40.7 ps  S =1431.5 ps  Cin = 58.8 ff  Cout = 548.6 ff  Cmax = 800.0 ff  G =  933  
+ABC: Path  2 --     416 : 3    1 MUX2    A =1924.60  Df =5638.1-1366.2 ps  S =1126.5 ps  Cin = 48.1 ff  Cout =  58.8 ff  Cmax = 800.0 ff  G =  122  
+ABC: Path  3 --     417 : 1   10 BUF_X2  A = 962.30  Df =8153.5-1473.3 ps  S =1483.2 ps  Cin = 58.8 ff  Cout = 572.5 ff  Cmax = 800.0 ff  G =  974  
+ABC: Path  4 --     425 : 2    2 AND2_X1 A =1283.00  Df =10179.7 -843.3 ps  S =1016.7 ps  Cin = 58.7 ff  Cout = 117.1 ff  Cmax = 800.0 ff  G =  199  
+ABC: Path  5 --     438 : 1   10 BUF_X2  A = 962.30  Df =12686.6 -847.1 ps  S =1514.7 ps  Cin = 58.8 ff  Cout = 587.9 ff  Cmax = 800.0 ff  G = 1000  
+ABC: Path  6 --     486 : 4    1 NAND4   A =1603.80  Df =15268.2-1587.8 ps  S =3541.7 ps  Cin = 58.4 ff  Cout =  58.1 ff  Cmax = 800.0 ff  G =   99  
+ABC: Path  7 --     489 : 4    1 AND4_X1 A =1924.60  Df =18560.7 -394.3 ps  S =1271.0 ps  Cin = 58.2 ff  Cout =  58.7 ff  Cmax = 800.0 ff  G =  100  
+ABC: Path  8 --     495 : 4    1 NAND4   A =1603.80  Df =22432.8  -73.5 ps  S =3451.8 ps  Cin = 58.4 ff  Cout =  53.8 ff  Cmax = 800.0 ff  G =   92  
+ABC: Path  9 --     496 : 3    4 NOR3    A =1283.00  Df =25705.7 -955.8 ps  S =3732.3 ps  Cin = 56.6 ff  Cout = 227.2 ff  Cmax = 800.0 ff  G =  401  
+ABC: Path 10 --     519 : 2    1 OR2     A =1283.00  Df =27720.9 -658.5 ps  S = 718.8 ps  Cin = 57.6 ff  Cout =  58.8 ff  Cmax = 800.0 ff  G =  102  
+ABC: Path 11 --     520 : 1    9 BUF_X2  A = 962.30  Df =30032.8 -659.1 ps  S =1384.2 ps  Cin = 58.8 ff  Cout = 525.6 ff  Cmax = 800.0 ff  G =  894  
+ABC: Path 12 --     599 : 4    1 NAND4   A =1603.80  Df =33456.2-3119.9 ps  S =3860.6 ps  Cin = 58.4 ff  Cout =  58.8 ff  Cmax = 800.0 ff  G =  100  
+ABC: Path 13 --     602 : 3    2 NAND3   A =1283.00  Df =35316.5-1005.8 ps  S =4132.7 ps  Cin = 59.0 ff  Cout = 190.3 ff  Cmax = 800.0 ff  G =  322  
+ABC: Path 14 --     631 : 2    2 XNOR2   A =1603.80  Df =38460.8 -261.6 ps  S =3141.3 ps  Cin =129.9 ff  Cout = 184.1 ff  Cmax = 800.0 ff  G =  141  
+ABC: Path 15 --     632 : 2    1 NOR2    A = 962.30  Df =39892.9 -741.1 ps  S =1371.4 ps  Cin = 57.8 ff  Cout =  55.5 ff  Cmax = 800.0 ff  G =   96  
+ABC: Path 16 --     633 : 2    2 NOR2    A = 962.30  Df =41452.7 -574.9 ps  S =1964.1 ps  Cin = 57.8 ff  Cout = 186.6 ff  Cmax = 800.0 ff  G =  323  
+ABC: Path 17 --     635 : 2    1 NOR2    A = 962.30  Df =42821.9 -464.6 ps  S =1371.4 ps  Cin = 57.8 ff  Cout =  55.5 ff  Cmax = 800.0 ff  G =   96  
+ABC: Path 18 --     636 : 2    2 NOR2    A = 962.30  Df =44389.8 -290.5 ps  S =1979.2 ps  Cin = 57.8 ff  Cout = 188.5 ff  Cmax = 800.0 ff  G =  326  
+ABC: Path 19 --     664 : 2    4 XNOR2   A =1603.80  Df =47839.7 -774.0 ps  S =2925.6 ps  Cin =129.9 ff  Cout = 163.7 ff  Cmax = 800.0 ff  G =  126  
+ABC: Path 20 --     671 : 2    1 OR2     A =1283.00  Df =50316.0-1763.2 ps  S = 734.3 ps  Cin = 57.6 ff  Cout =  58.8 ff  Cmax = 800.0 ff  G =  102  
+ABC: Path 21 --     675 : 3    1 NAND3   A =1283.00  Df =51075.9 -114.1 ps  S =2189.6 ps  Cin = 59.0 ff  Cout =  59.7 ff  Cmax = 800.0 ff  G =  101  
+ABC: Path 22 --     676 : 2    1 NAND2   A = 962.30  Df =52525.5 -751.8 ps  S =1162.9 ps  Cin = 59.5 ff  Cout =  36.2 ff  Cmax = 800.0 ff  G =   60  
+ABC: Start-point = pi2 (\exec).  End-point = po50 ($auto$rtlil.cc:3513:MuxGate$3071).
 ABC: + write_blif <abc-temp-dir>/output.blif 
 
 9.1.2. Re-integrating ABC results.
-ABC RESULTS:            BUF_X2 cells:       19
-ABC RESULTS:             NAND4 cells:       33
-ABC RESULTS:              NOR4 cells:       10
-ABC RESULTS:            INV_X1 cells:       13
-ABC RESULTS:           AND2_X1 cells:       12
-ABC RESULTS:               OR2 cells:       12
-ABC RESULTS:               OR3 cells:       18
-ABC RESULTS:              NOR3 cells:       29
+ABC RESULTS:           AND2_X1 cells:       13
+ABC RESULTS:           AND3_X1 cells:       13
+ABC RESULTS:           AND4_X1 cells:        8
+ABC RESULTS:            BUF_X2 cells:       27
+ABC RESULTS:            INV_X1 cells:       14
+ABC RESULTS:              MUX2 cells:      152
+ABC RESULTS:             NAND2 cells:      142
+ABC RESULTS:             NAND3 cells:       36
+ABC RESULTS:             NAND4 cells:       36
+ABC RESULTS:              NOR2 cells:       22
+ABC RESULTS:              NOR3 cells:       10
+ABC RESULTS:              NOR4 cells:       11
+ABC RESULTS:               OR2 cells:        8
+ABC RESULTS:               OR3 cells:        4
+ABC RESULTS:               OR4 cells:        1
+ABC RESULTS:             XNOR2 cells:        7
 ABC RESULTS:              XOR2 cells:        5
-ABC RESULTS:             NAND3 cells:        8
-ABC RESULTS:             XNOR2 cells:        6
-ABC RESULTS:               OR4 cells:        3
-ABC RESULTS:           AND4_X1 cells:        4
-ABC RESULTS:             NAND2 cells:      145
-ABC RESULTS:              NOR2 cells:       20
-ABC RESULTS:           AND3_X1 cells:        6
-ABC RESULTS:              MUX2 cells:      157
-ABC RESULTS:        internal signals:      429
-ABC RESULTS:           input signals:      170
+ABC RESULTS:        internal signals:      401
+ABC RESULTS:           input signals:      158
 ABC RESULTS:          output signals:      149
 Removing temp directory.
+Removing global temp directory.
 
 10. Executing OPT_CLEAN pass (remove unused cells and wires).
 Finding unused cells or wires in module \td4_soc_ff..
-Removed 0 unused cells and 756 unused wires.
+Removed 0 unused cells and 704 unused wires.
 <suppressed ~2 debug messages>
 
 11. Executing Verilog backend.
@@ -933,36 +957,42 @@ Dumping module `\td4_soc_ff'.
 
 === td4_soc_ff ===
 
-   Number of wires:                692
-   Number of wire bits:            863
-   Number of public wires:          43
-   Number of public wire bits:     211
-   Number of memories:               0
-   Number of memory bits:            0
-   Number of processes:              0
-   Number of cells:                649
-     AND2_X1                        12
-     AND3_X1                         6
-     AND4_X1                         4
-     BUF_X2                         19
-     DFFRB                         149
-     INV_X1                         13
-     MUX2                          157
-     NAND2                         145
-     NAND3                           8
-     NAND4                          33
-     NOR2                           20
-     NOR3                           29
-     NOR4                           10
-     OR2                            12
-     OR3                            18
-     OR4                             3
-     XNOR2                           6
-     XOR2                            5
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      697        - wires
+      848        - wire bits
+       39        - public wires
+      187        - public wire bits
+        9        - ports
+       18        - port bits
+      659 1.28E+06 cells
+        1        -   $scopeinfo
+       13    16679   AND2_X1
+       13  20849.4   AND3_X1
+        8  15396.8   AND4_X1
+       27  25982.1   BUF_X2
+      149 5.74E+05   DFFRB
+       14     8981   INV_X1
+      152 2.93E+05   MUX2
+      142 1.37E+05   NAND2
+       36    46188   NAND3
+       36  57736.8   NAND4
+       22  21170.6   NOR2
+       10    12830   NOR3
+       11  17641.8   NOR4
+        8    10264   OR2
+        4   6415.2   OR3
+        1   1924.6   OR4
+        7  11226.6   XNOR2
+        5     8019   XOR2
 
-   Chip area for module '\td4_soc_ff': 1277912.400000
+   Area for cell type $scopeinfo is unknown!
 
-Warnings: 2 unique messages, 10 total
-End of script. Logfile hash: 19179cebea, CPU: user 0.25s system 0.01s, MEM: 16.29 MB peak
-Yosys 0.33 (git sha1 2584903a060)
-Time spent: 47% 2x abc (0 sec), 13% 20x opt_expr (0 sec), ...
+   Chip area for module '\td4_soc_ff': 1284006.600000
+     of which used for sequential elements: 573515.900000 (44.67%)
+
+Warnings: 1 unique messages, 1 total
+End of script. Logfile hash: 0049705618, time: 0.24s, user: 0.05s, system: 0.01s, MEM: 23.16 MB peak
+Yosys 0.68+post (git sha1 c12172fbae8af5e20f6fb52e3d4e92d56ed587b6, Release, AppleClang clang++ 21.0.0.21000101)
+Time spent: 78% 2x abc (0 sec), 3% 19x opt_clean (0 sec), ...

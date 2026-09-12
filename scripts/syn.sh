@@ -28,6 +28,18 @@ RTL="hdl/rtl/td4_core.v hdl/rtl/td4_mem.v hdl/rtl/td4_soc_rom.v \
 TOPS=${*:-"td4_core td4_soc_rom td4_soc_ff td4_soc_arr"}
 mkdir -p out
 
+# 実行ログを out/SYN_RESULTS.txt に残す。**手で tee するのを忘れると、
+# out/*.v と out/SYN_RESULTS.txt が別々の実行のものになる。**
+# 実際に一度そうなり、td4_core が 102 セルと 94 セルで食い違って見えた。
+LOG=out/SYN_RESULTS.txt
+if [ -z "${SYN_TEE:-}" ]; then
+  SYN_TEE=1; export SYN_TEE
+  sh "$0" "$@" 2>&1 | tee "$LOG"
+  tail -1 "$LOG" | grep -q '^完了' || {
+    echo "** 途中で止まった。$LOG を見てください" >&2; exit 1; }
+  exit 0
+fi
+
 [ -f "$LIB" ] || { echo "$LIB が無い。scripts/char/RUN.md の手順で作ってください" >&2; exit 1; }
 [ -f "$CONSTR" ] || { echo "$CONSTR が無い" >&2; exit 1; }
 
@@ -147,3 +159,6 @@ if command -v "${STA:-sta}" >/dev/null 2>&1; then
 else
   echo "  OpenSTA が無いので飛ばす（scripts/sta/README.md にビルド手順）"
 fi
+
+echo
+echo "完了"
