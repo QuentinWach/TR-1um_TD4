@@ -83,13 +83,7 @@ def extract(cell):
     diff = {}          # ('P'|'N', idx) -> polygon
     for tag, act in (("P", pact), ("N", nact)):
         for g in gdstk.boolean(sel(cell, "POLY"), act, "and", precision=EPS):
-            pts = g.points
-            # W = チャネル幅（縦）/ L = チャネル長（横 = poly の走る向きの厚み）。
-            # **L を 1.0u 決め打ちにしないこと。** DEL1 は遅延段の 4 個だけ L=2.0u、
-            # FILL2/FILL3 のデキャップは L=3.2/8.6u で、決め打ちだと遅延も容量も狂う。
-            devs.append((tag, g,
-                         round(float(pts[:, 1].max() - pts[:, 1].min()), 2),
-                         round(float(pts[:, 0].max() - pts[:, 0].min()), 2)))
+            devs.append((tag, g))
         for i, d in enumerate(merge(gdstk.boolean(act, sel(cell, "POLY"), "not", precision=EPS))):
             diff[(tag, i)] = d
 
@@ -146,9 +140,22 @@ def extract(cell):
         r = uf.find(node)
         return names.get(r, anon.get(r, "n?"))
 
-    # 各ゲートの端子
+    # --- 各ゲートの端子と寸法 -------------------------------------------------
+    # **チャネルの向きを決め打ちにしないこと。** 標準セルは poly が縦に走るので
+    # 「W = ゲートの高さ / L = 幅」で済んでいたが、フレームのパッドセルは
+    # OSS_NCH_DRV / OSS_PCH_DRV が 90 度回して置いてあり poly が横向きになる。
+    # 決め打ちだと W と L が入れ替わる（W=500µm の出力段が W=2µm に化けた）。
+    #
+    # 物理で決める: ゲートを x だけ／y だけ膨らませて、**拡散島が 2 つ当たる方が
+    # 電流の流れる向き**。その向きの寸法が L、直交方向が W。
+    def touch(tag, bb, dx, dy):
+        grow = gdstk.rectangle((bb[0][0] - dx, bb[0][1] - dy),
+                               (bb[1][0] + dx, bb[1][1] + dy))
+        return {k for k, d in diff.items()
+                if k[0] == tag and gdstk.boolean([grow], [d], "and", precision=EPS)}
+
     out = []
-    for tag, g, w, l in devs:
+    for tag, g in devs:
         gate = next((netname(("poly", i)) for i in hits(g, poly)), "?")
         # ゲートと拡散は**辺で接している**（重なりゼロ）ので 'and' では拾えない。
         # ゲート図形そのものを少しだけ膨らませて交差を取る。
@@ -157,7 +164,15 @@ def extract(cell):
         gg = gdstk.offset([g], 0.1, join="miter", precision=EPS, use_union=True)
         sd = [netname(k) for k, d in diff.items()
               if k[0] == tag and gdstk.boolean(gg, [d], "and", precision=EPS)]
-        out.append((tag, gate, sorted(set(sd)), w, l))
+        bb = g.bounding_box()
+        ex, ey = bb[1][0] - bb[0][0], bb[1][1] - bb[0][1]
+        nx, ny = len(touch(tag, bb, 0.1, 0.0)), len(touch(tag, bb, 0.0, 0.1))
+        if (nx >= 2) == (ny >= 2):
+            horiz = ex <= ey            # 決まらなければ短い方を L とする
+        else:
+            horiz = nx >= 2             # 左右に拡散 = 電流は横向き
+        l, w = (ex, ey) if horiz else (ey, ex)
+        out.append((tag, gate, sorted(set(sd)), round(float(w), 2), round(float(l), 2)))
     return out, names, uf
 
 
