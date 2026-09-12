@@ -100,6 +100,31 @@ def _prl_nets():
     return {n for n in npin if npin[n] >= PRL_MIN_PINS and len(nrow[n]) >= 2}
 
 
+def side_bus_nets():
+    """コア右の縦 M2 バスに乗せるネット（縦置きのみ）。
+
+    マクロの `Q[*]`（= `rom_data[*]`）。実測でチャネル span が大きいのは
+    この 8 本だけで、`D[*]` `nib_lo[*]` は ch[0…2] に収まる。
+    **stage6 の中で呼ぶこと**（`per_row_local_nets` と同じ理由）。
+    """
+    if getattr(cfg, "MACRO_MODE", "landscape") != "portrait":
+        return set()
+    if getattr(cfg, "SIDE_BUS_TRACKS", 0) <= 0:
+        return set()
+    try:
+        pl = json.load(open(cfg.PLACEMENT_JSON))
+    except Exception:
+        return set()
+    pref = tuple(os.environ.get("TD4_SIDE_BUS_PINS", "Q[").split(","))
+    for row in pl["rows"]:
+        for i in row:
+            if i["type"] != cfg.MACRO_CELL:
+                continue
+            return {p["net"] for pn, p in i["pins"].items()
+                    if p["net"] and pn.startswith(pref)}
+    return set()
+
+
 def per_row_local_nets():
     """`PER_ROW_LOCAL_NETS`。**stage6 の中で呼ぶこと。**
 
@@ -109,7 +134,9 @@ def per_row_local_nets():
     横倒しを流したら、同じ配置 (md5 e371a97d) なのに per-row-local が
     19 → 24 本になり、短絡 0 → 3 になった。
     """
-    return {"clk_buf", "rst_n_buf"} | _prl_nets()
+    # 縦バスに乗せるネットは**必ず per-row-local**にする。行ごとのトランクと
+    # spine の仕組みをそのまま使い、spine だけを帯へ逃がすため。
+    return {"clk_buf", "rst_n_buf"} | _prl_nets() | side_bus_nets()
 FORCE_HIGH_FO_NETS = set()
 # --- TD4 移植 (19): フォールバックしたネットを pass 3 送りにする -----------
 # `draw_jog` が「departure leg が clear なトラックが無い」と言って**無検査
@@ -197,6 +224,7 @@ def stage6(ch_heights):
             out_gds=cfg.ROUTED_RAW_GDS, ch_heights=ch_heights,
             force_jog_nets=FORCE_JOG_NETS,
             per_row_local_nets=per_row_local_nets(),
+            side_bus_nets=side_bus_nets(),
             force_high_fo_nets=FORCE_HIGH_FO_NETS,
             pin_map_path=cfg.PIN_MAP_JSON,
             net_shapes_path=cfg.NET_SHAPES_JSON,

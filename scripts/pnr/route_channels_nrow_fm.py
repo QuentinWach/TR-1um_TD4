@@ -396,7 +396,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
          pin_map_path=None, net_shapes_path=None, force_jog_events_path=None,
          channel_usage_path=None, ch_heights=None,
          checkpoint_dir=None, checkpoint_prefix="step",
-         compaction_info_path=None):
+         compaction_info_path=None, side_bus_nets=None):
     """Section 40 CLI overrides -- see insert_row_buffers.py: lets this be
     re-run against a different (placement_json, in_gds, out_gds) triple
     (e.g. the v4 row-buffered netlist's placement) without disturbing the
@@ -428,6 +428,21 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
     write, only adds extra layout.write() calls along the way so each
     stage's result can be inspected/compared on its own."""
     force_high_fo_nets = force_high_fo_nets or set()
+    # --- TD4 移植 (24): コア右の縦 M2 バス -----------------------------------
+    # 行スタックとマクロの間の帯には**セルが 1 つも無い**ので、ここを縦に走る
+    # M2 は行を 1 つも跨がない。`side_bus_nets` のネットは per-row-local の
+    # spine を `find_row_clear_x` で探す代わりに、**予約した帯の x を無条件に
+    # 使う**（帯は構造的に clear）。1 ネット 1 列。
+    side_bus_nets = list(side_bus_nets or ())
+    _bus_x = _cfg.side_bus_x() if hasattr(_cfg, "side_bus_x") else []
+    if side_bus_nets and len(side_bus_nets) > len(_bus_x):
+        raise SystemExit(f"縦バスに乗せるネットが {len(side_bus_nets)} 本、"
+                         f"列は {len(_bus_x)} 本しかない（TD4_SIDE_BUS を増やす）")
+    side_bus_of = {n: _bus_x[i] for i, n in enumerate(sorted(side_bus_nets))}
+    if side_bus_of:
+        print(f"side M2 bus: {len(side_bus_of)} net(s) at x="
+              f"{[round(v,1) for v in sorted(side_bus_of.values())]}  "
+              f"({sorted(side_bus_of)})")
     global FORCE_JOG_NETS, PER_ROW_LOCAL_NETS, CH_HEIGHTS
     if force_jog_nets is not None:
         FORCE_JOG_NETS = force_jog_nets
@@ -2042,8 +2057,16 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
 
                 # 2a. cross row_k's own cell body (live-checked, now also
                 # required to land cleanly on the other side)
-                clear_x = find_row_clear_x(row_k, cur_x, extra_ok=landing_ok)
-                row_signal_used[row_k].append(clear_x)
+                #
+                # TD4 移植 (24): 縦バスに乗せたネットは**行を跨がない**。
+                # 行スタックの右の帯（セルが無い）を通るので、探索せずに
+                # 予約した x をそのまま使う。`row_signal_used` にも入れない
+                # （行の中の x ではないので他ネットの探索に関係しない）。
+                if net in side_bus_of:
+                    clear_x = side_bus_of[net]
+                else:
+                    clear_x = find_row_clear_x(row_k, cur_x, extra_ok=landing_ok)
+                    row_signal_used[row_k].append(clear_x)
                 if abs(clear_x - cur_x) > 1e-6:
                     per_row_spine_jog_count += 1
                     m1_box(min(cur_x, clear_x), track_y_k - half_w, max(cur_x, clear_x), track_y_k + half_w)

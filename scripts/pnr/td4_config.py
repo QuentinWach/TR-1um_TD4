@@ -141,15 +141,30 @@ MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
 if _PORTRAIT:
     MACRO_CELL = "REG8x16"     # 回さずそのまま置く
     MACRO_W, MACRO_H = 399.6, 933.0
-    MACRO_SIDE_GAP = 21.6      # 行スタックとマクロの隙間（M2 4 トラック）
-    # 218 サイト。**コア幅 1600 を超えるとフレーム開口が 1840 → 1600 に落ちる**
-    # ので、行幅はここまで（`frame_opening()` で実測した崖）。
-    ROW_WIDTH_UM = 1177.2
-    # 等間隔にする。534.6 刻み（[0, 534.6, 1069.2, 1166.4]）だと最後の区間が
-    # 86.4 µm しか無く、優先コリドー 2 本を引くと 64.8 µm。そこへ回された
+    # --- コア右の縦 M2 バス（`TD4_SIDE_BUS`、既定 8 本） -------------------
+    # 行スタックとマクロの間の帯には**セルが 1 つも無い**ので、ここを縦に
+    # 走る M2 は行を 1 つも跨がない。マクロの `Q[*]`（`rom_data`）は
+    # ch[1] から row0…row4 まで散り、行またぎ失敗の主犯なのでここへ逃がす。
+    #
+    # **本数は実測で決めた。** マクロ 21 本のチャネル span:
+    #   span>=2 が 13 本 / span>=3 が 7 本 / span>=4 は Q[3] の 1 本だけ。
+    #   `D[*]` `nib_lo[*]` は ch[0…2] に収まるのでバスは要らない。
+    #   y 区間パッキングは効かない（全部が出口 ch[1] から始まるので必ず重なる）
+    #   → **バスの幅 = 本数**。
+    # 幅はそのまま行幅から引かれる（コア幅 1598.4 / マクロ 399.6 は固定）:
+    #   バス 0 本 行 1177.2 充填率 83.0%（コリドー 6 本）/ 79.3%（3 本）
+    #   バス 8 本 行 1134.0        86.6%              / **82.6%**
+    #   バス16 本 行 1090.8        90.6%              / 86.2%  ← 配置が組めない
+    SIDE_BUS_TRACKS = int(os.environ.get("TD4_SIDE_BUS", "8"))
+    MACRO_SIDE_GAP = round(21.6 + SIDE_BUS_TRACKS * SITE_UM, 3)
+    # **コア幅 1600 を超えるとフレーム開口が 1840 → 1600 に落ちる**ので、
+    # 行幅は残り全部（`frame_opening()` で実測した崖）。
+    ROW_WIDTH_UM = round(CORE_WIDTH_UM - MACRO_W - MACRO_SIDE_GAP, 3)
+    # TAP は等間隔。534.6 刻みだと最後の区間だけ極端に狭くなり、そこへ回された
     # セルが入らず step3 で落ちる（実測: 「1 個が行に入りきらない」）。
-    # 388.8 刻みなら 3 区間とも 378 µm で、TAP ピッチの上限 534.6 も満たす。
-    TAP_X_DEFAULT = [0.0, 388.8, 777.6, 1166.4]
+    _tap_last = round(ROW_WIDTH_UM - TAP_W, 3)
+    _tap_step = round(round(_tap_last / 3 / SITE_UM) * SITE_UM, 3)
+    TAP_X_DEFAULT = [0.0, _tap_step, round(2 * _tap_step, 3), _tap_last]
 else:
     MACRO_CELL = "MEMPORT"     # 実際に置く物理セル（R90 + 中継）
     MACRO_W, MACRO_H = 1598.4, 502.2   # mkmemport.py の出力と一致させること
@@ -235,6 +250,19 @@ def macro_box():
     return (0.0, MACRO_Y0, MACRO_W, round(MACRO_Y0 + MACRO_H, 3))
 
 
+def side_bus_x():
+    """コア右の縦 M2 バスのトラック中心 x（縦置きのみ）。
+
+    行スタックの右端 `ROW_WIDTH_UM` とマクロの左端の間に取る。行のセルは
+    `ROW_WIDTH_UM` で終わり、マクロの金属は左端 +2.8 から始まるので、
+    ここは**上下に素通し**。行を跨がないので `find_row_clear_x` を通らない。
+    """
+    if not _PORTRAIT or SIDE_BUS_TRACKS <= 0:
+        return []
+    return [round(ROW_WIDTH_UM + SITE_UM + k * SITE_UM, 3)
+            for k in range(SIDE_BUS_TRACKS)]
+
+
 def power_bars():
     """帯の上辺と ch[0] の間に確保した **M1 電源バスバー 2 本**の
     (name, y0, y1)。下が VSS、上が VDD（帯側が GND なのはマクロの
@@ -290,6 +318,16 @@ def check():
         _ys, _stack = row_y()
         if not (0 <= MACRO_ALIGN_ROW < N_ROWS):
             msg.append(f"TD4_MACRO_ROW {MACRO_ALIGN_ROW} が行の範囲外（0…{N_ROWS-1}）")
+        _bus = side_bus_x()
+        if _bus:
+            if _bus[0] - 1.7 < ROW_WIDTH_UM + 2.0 - 1e-9:
+                msg.append(f"縦バスの左端 {_bus[0]-1.7} が行スタックの右端 "
+                           f"{ROW_WIDTH_UM} に近すぎる（M2 最小間隔 2.0）")
+            if _bus[-1] + 1.7 > mx0 + 2.8 - 2.0 + 1e-9:
+                msg.append(f"縦バスの右端 {_bus[-1]+1.7} がマクロの金属 "
+                           f"{mx0+2.8} に近すぎる（M2 最小間隔 2.0）")
+        if not (0 <= MACRO_ALIGN_ROW < N_ROWS):
+            pass
         elif abs(my0 - _ys[MACRO_ALIGN_ROW]) > 1e-6:
             msg.append(f"縦置きのマクロ底面 {my0} が row{MACRO_ALIGN_ROW} の底面 "
                        f"{_ys[MACRO_ALIGN_ROW]} と面一でない"

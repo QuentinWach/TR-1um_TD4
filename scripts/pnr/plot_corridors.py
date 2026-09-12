@@ -75,12 +75,17 @@ def main(gds=None, place_json=None, out=None, zoom=None):
     fig, (axL, axR) = plt.subplots(
         1, 2, figsize=(15.0, 9.0), gridspec_kw=dict(width_ratios=[2.1, 1.0]))
 
+    bus = cfg.side_bus_x() if hasattr(cfg, "side_bus_x") else []
     bb = draw_gds(axL, gds)
     (x0, y0), (x1, y1) = bb
     for bx, bw in blocks:
         axL.add_patch(Rectangle((bx, y0), bw, y1 - y0, facecolor="#ffd54f",
                                 alpha=0.42, edgecolor="#f39c12", lw=0.6,
                                 zorder=8))
+    for bx in bus:                       # コア右の縦 M2 バス
+        axL.add_patch(Rectangle((bx - X_GRID / 2, y0), X_GRID, y1 - y0,
+                                facecolor="#4dd0e1", alpha=0.5,
+                                edgecolor="#00838f", lw=0.5, zorder=8))
     axL.set_xlim(x0 - 20, x1 + 20)
     axL.set_ylim(y0 - 10, y1 + 10)
     axL.set_aspect("equal")
@@ -92,6 +97,27 @@ def main(gds=None, place_json=None, out=None, zoom=None):
     axL.tick_params(labelsize=7)
 
     # 右: いちばん中寄りのコリドーを拡大
+    if bus and zoom is None:
+        lo, hi = bus[0] - 3 * X_GRID, bus[-1] + 3 * X_GRID + 40.0
+        draw_gds(axR, gds, xlim=(lo, hi))
+        for bx in bus:
+            axR.add_patch(Rectangle((bx - X_GRID / 2, y0), X_GRID, y1 - y0,
+                                    facecolor="#4dd0e1", alpha=0.5,
+                                    edgecolor="#00838f", lw=0.5, zorder=8))
+        axR.set_xlim(lo, hi); axR.set_ylim(y0 - 10, y1 + 10)
+        axR.set_aspect("equal"); axR.tick_params(labelsize=7)
+        axR.set_title(f"zoom: side M2 bus  {len(bus)} tracks  "
+                      f"x {bus[0]:.1f}...{bus[-1]:.1f}", fontsize=9.5, loc="left")
+        fig.text(0.5, 0.012,
+                 "cyan = side M2 bus (no cells there, so it crosses no row)   "
+                 "yellow = priority M2 corridor   blue = M1   orange = M2   black = V1",
+                 ha="center", fontsize=8.5, color="#555")
+        fig.tight_layout(rect=(0, 0.03, 1, 1))
+        os.makedirs(os.path.dirname(out) or ".", exist_ok=True)
+        fig.savefig(out, dpi=135)
+        print(f"wrote {os.path.relpath(out, cfg.ROOT)}  "
+              f"({len(blocks)} corridors + {len(bus)} bus tracks)")
+        return out
     cx = zoom if zoom is not None else min(
         blocks, key=lambda b: abs(b[0] + b[1] / 2 - (x0 + x1) / 2))[0]
     blk = min(blocks, key=lambda b: abs(b[0] - cx))
