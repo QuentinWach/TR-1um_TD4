@@ -66,16 +66,27 @@ def main(path=None):
     mx0, my0, mx1, my1 = cfg.macro_box()
     if [round(v, 3) for v in d["macro"]["box"]] != [round(v, 3) for v in (mx0, my0, mx1, my1)]:
         bad.append(f"マクロ枠 {d['macro']['box']} が設定 {(mx0,my0,mx1,my1)} と違う")
-    if my1 > EPS:
-        bad.append(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の下に"
-                   f"置くこと（そうしないと ch[0] のトラックが帯に食い込む）")
     ys, stack = cfg.row_y()
-    for r, y in enumerate(ys):
-        if y < my1 - EPS:
-            bad.append(f"row{r} (y {y}) がマクロ帯 (…{my1}) と重なる")
-    note.append(f"マクロ帯は y {my0}…{my1}（ルータ座標の下）。"
-                f"チップに落とすときのコア外形は {cfg.chip_core_box()}、"
-                f"高さ {cfg.chip_core_height()} µm")
+    if cfg.MACRO_MODE == "portrait":
+        # 縦置き: 行の**右**。行スタックと x が重ならないこと、底面が row0 と
+        # 面一であること（下辺のピン列が ch[0] を向くための拘束）。
+        if mx0 < cfg.ROW_WIDTH_UM - EPS:
+            bad.append(f"マクロ左端 {mx0} が行スタック (…{cfg.ROW_WIDTH_UM}) と重なる")
+        if abs(my0 - ys[0]) > EPS:
+            bad.append(f"マクロ底面 {my0} が row0 の底面 {ys[0]} と面一でない")
+        note.append(f"マクロは x {mx0}…{mx1} / y {my0}…{my1}（行スタックの右）。"
+                    f"行スタック高 {stack}、コア高 {cfg.core_size()[1]} µm"
+                    + ("（マクロが決めている）" if my1 > stack else "（行スタックが決めている）"))
+    else:
+        if my1 > EPS:
+            bad.append(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の下に"
+                       f"置くこと（そうしないと ch[0] のトラックが帯に食い込む）")
+        for r, y in enumerate(ys):
+            if y < my1 - EPS:
+                bad.append(f"row{r} (y {y}) がマクロ帯 (…{my1}) と重なる")
+        note.append(f"マクロ帯は y {my0}…{my1}（ルータ座標の下）。"
+                    f"チップに落とすときのコア外形は {cfg.chip_core_box()}、"
+                    f"高さ {cfg.chip_core_height()} µm")
 
     # ---- 6. コア枠 / 開口
     cw, ch = cfg.core_size()

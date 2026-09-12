@@ -108,7 +108,7 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
 
     # ---- マクロを row0 の末尾に ------------------------------------------
     mx0, my0, _, my1 = cfg.macro_box()
-    if my1 > 1e-6:
+    if cfg.MACRO_MODE == "landscape" and my1 > 1e-6:
         raise SystemExit(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の"
                          f"下に置くこと")
     row0_y0 = cfg.row_y()[0][0]

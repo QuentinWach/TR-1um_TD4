@@ -99,15 +99,45 @@ PRI_MODE = "both"
 # **チャネル予算は多めでよい。** 帯がチャネルの y 範囲にかからないので、
 # step10 の圧縮が全チャネルに効く（縦置きのときはマクロが y 200…1133 を
 # 塞いで 507.6 µm のうち 249.8 µm しか削れなかった）。実測の必要量は 891 µm。
-# 実験用の上書き（既定は 4 行）。`TD4_N_ROWS=5 python3 scripts/pnr/place.py` の
-# ように使う。コア高の詰め方を測るためのもので、常用は 4。
-N_ROWS = int(os.environ.get("TD4_N_ROWS", "4"))
+# ---- マクロの置き方 ------------------------------------------------------
+# `TD4_MACRO_MODE`:
+#   "landscape"（既定）  R90 して行スタックの**下に帯として敷く**（= `MEMPORT`）
+#   "portrait"           そのまま行スタックの**右に縦置き**（= `REG8x16`）
+#
+# 縦置きは最初に試して短絡 31 件で行き詰まった案。その後ルータを直したので
+# もう一度測れるように残してある（`scripts/pnr/README.md`「縦置き再訪」）。
+# 縦置きの得失:
+#   + 帯（502.2 + 隙間 27.0 = 529.2 µm）が丸ごと要らない
+#   − 行幅が 1598.4 → 1177.2 に縮み、配置率が 71% → 78% に上がる
+#   − マクロ（933 µm）は参照なので **step10 の圧縮がそこを貫通できない**
+MACRO_MODE = os.environ.get("TD4_MACRO_MODE", "landscape")
+if MACRO_MODE not in ("landscape", "portrait"):
+    raise SystemExit(f"TD4_MACRO_MODE は landscape か portrait（今 {MACRO_MODE}）")
+_PORTRAIT = MACRO_MODE == "portrait"
+
+# 実験用の上書き。`TD4_N_ROWS=5 python3 scripts/pnr/place.py` のように使う。
+N_ROWS = int(os.environ.get("TD4_N_ROWS", "5" if _PORTRAIT else "4"))
 CORE_WIDTH_UM = 1598.4
-ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横に無いので）
 
 MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
-MACRO_CELL = "MEMPORT"         # 実際に置く物理セル（R90 + 中継）
-MACRO_W, MACRO_H = 1598.4, 502.2   # mkmemport.py の出力と一致させること
+if _PORTRAIT:
+    MACRO_CELL = "REG8x16"     # 回さずそのまま置く
+    MACRO_W, MACRO_H = 399.6, 933.0
+    MACRO_SIDE_GAP = 21.6      # 行スタックとマクロの隙間（M2 4 トラック）
+    # 218 サイト。**コア幅 1600 を超えるとフレーム開口が 1840 → 1600 に落ちる**
+    # ので、行幅はここまで（`frame_opening()` で実測した崖）。
+    ROW_WIDTH_UM = 1177.2
+    # 等間隔にする。534.6 刻み（[0, 534.6, 1069.2, 1166.4]）だと最後の区間が
+    # 86.4 µm しか無く、優先コリドー 2 本を引くと 64.8 µm。そこへ回された
+    # セルが入らず step3 で落ちる（実測: 「1 個が行に入りきらない」）。
+    # 388.8 刻みなら 3 区間とも 378 µm で、TAP ピッチの上限 534.6 も満たす。
+    TAP_X_DEFAULT = [0.0, 388.8, 777.6, 1166.4]
+else:
+    MACRO_CELL = "MEMPORT"     # 実際に置く物理セル（R90 + 中継）
+    MACRO_W, MACRO_H = 1598.4, 502.2   # mkmemport.py の出力と一致させること
+    MACRO_SIDE_GAP = 0.0
+    ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横に無いので）
+    TAP_X_DEFAULT = [0.0, 534.6, 1069.2, 1587.6]
 # 帯の上端と ch[0] の下端 (y=0) の間に空ける隙間。
 # **0 にしてはいけない。** ルータは ch[0] の最初のトラックを y=2.0 に置き、
 # TAP の M2 電源メッシュを y=0 から立てるので、帯の上辺の金属と 1.4/2.0 µm を
@@ -119,14 +149,25 @@ MACRO_W, MACRO_H = 1598.4, 502.2   # mkmemport.py の出力と一致させるこ
 # 必要量: 1.4 + 10 + 1.4 + 10 + 1.4 = 24.2 µm → サイト grid に丸めて 27.0。
 POWER_BAR_W = 10.0             # バー 1 本の M1 幅
 POWER_BAR_GAP = 2.0            # バー間 / 帯とバーの間（M1 最小 1.4 に余裕）
-MACRO_GAP_UM = 27.0
-MACRO_Y0 = -(MACRO_H + MACRO_GAP_UM)   # ルータ座標での帯の下端
+MACRO_GAP_UM = 0.0 if _PORTRAIT else 27.0
+# ルータ座標での帯の下端。縦置きでは帯が無いので使わない（macro_box() 参照）。
+MACRO_Y0 = 0.0 if _PORTRAIT else -(MACRO_H + MACRO_GAP_UM)
 
-# チャネル予算。**圧縮で使わないトラックは丸ごと消える**ので多めでよい。
-# 最後だけ 250 なのは上端マージン（トップピンの引き出しにしか使わない）。
-CH_HEIGHTS = [600.0] * N_ROWS + [250.0]
+# チャネル予算。横倒しでは**圧縮で使わないトラックは丸ごと消える**ので多めで
+# よい。最後だけ 250 なのは上端マージン（トップピンの引き出しにしか使わない）。
+#
+# **縦置きでは多めにしてはいけない。** マクロは参照なので圧縮がその y 範囲を
+# 貫通できず、マクロが跨ぐチャネルの余りはそのままコア高に乗る。
+# `TD4_CH_HEIGHTS="200,290,330,250,250,90"` のようにカンマ区切りで渡せる。
+_ch_env = os.environ.get("TD4_CH_HEIGHTS")
+if _ch_env:
+    CH_HEIGHTS = [float(v) for v in _ch_env.split(",")]
+elif _PORTRAIT:
+    CH_HEIGHTS = [200.0] + [400.0] * (N_ROWS - 1) + [250.0]
+else:
+    CH_HEIGHTS = [600.0] * N_ROWS + [250.0]
 
-TAP_X = [0.0, 534.6, 1069.2, 1587.6]         # 行ローカル。tap_positions() と一致
+TAP_X = TAP_X_DEFAULT                        # 行ローカル。tap_positions() と一致
 
 # 配線で使うチャネル予算。配置と同じでなければならない（行の y が変わるため）。
 ROUTE_CH_HEIGHTS = list(CH_HEIGHTS)
@@ -140,7 +181,8 @@ DOWN_FACING_INSTS = {"u_mem"}
 # コアの下に `MEMPORT` の帯を敷くので、**BBOX の下辺はチップから見るとコアの
 # 内側**になる。トップピンを下辺に出さない（`route_top_pins_nrow_fm.py` の
 # 「TD4 移植 (8)」）。下辺のパッド 3 本 (D[0]/RSTN/OUT[0]) はチップ側で回り込む。
-NO_BOTTOM_PORTS = True
+# 縦置きではコアの下辺は素通しなので下辺にもポートを出せる。
+NO_BOTTOM_PORTS = not _PORTRAIT
 
 # ---- 派生値 --------------------------------------------------------------
 def row_y():
@@ -154,8 +196,17 @@ def row_y():
 
 
 def macro_box():
-    """`MEMPORT` の prBoundary (x0, y0, x1, y1)。**ルータ座標では y が負**で、
-    上端は 0 ではなく -MACRO_GAP_UM。"""
+    """マクロの prBoundary (x0, y0, x1, y1)（コアローカル）。
+
+    横倒し: 行スタックの**下**の帯。y は負で、上端は -MACRO_GAP_UM。
+    縦置き: 行スタックの**右**。**底面を row0 の底面と面一**にする
+            （y0 = CH_HEIGHTS[0]）ので、マクロの下辺ピン列が row0 の
+            セルのピン列と同じ ch[0] を向く。
+    """
+    if _PORTRAIT:
+        x0 = ROW_WIDTH_UM + MACRO_SIDE_GAP
+        y0 = CH_HEIGHTS[0]
+        return (x0, y0, round(x0 + MACRO_W, 3), round(y0 + MACRO_H, 3))
     return (0.0, MACRO_Y0, MACRO_W, round(MACRO_Y0 + MACRO_H, 3))
 
 
@@ -167,6 +218,8 @@ def power_bars():
     ルータはここに何も描かない（ch[0] は y>=0 から始まる）。実際の
     バーはチップ組み立てで TAP の M2 柱とマクロ右端の電源に繋ぐ。
     """
+    if _PORTRAIT:
+        return []                             # 帯が無いので隙間も無い
     top_of_band = MACRO_Y0 + MACRO_H          # = -MACRO_GAP_UM
     y = top_of_band + POWER_BAR_GAP
     out = []
@@ -177,20 +230,23 @@ def power_bars():
 
 
 def core_size():
-    """ルータが扱う領域（行 + チャネル）の幅・高さ。帯は含まない。"""
+    """ルータが扱う領域の幅・高さ。横倒しの帯は含まない（y<0 なので）。
+    縦置きではマクロが行スタックより高くなりうるので max を取る。"""
     _, stack_h = row_y()
+    if _PORTRAIT:
+        return CORE_WIDTH_UM, round(max(stack_h, macro_box()[3]), 3)
     return CORE_WIDTH_UM, stack_h
 
 
 def chip_core_box():
-    """チップに落とすときのコア外形。**帯を含む**ので下端が負。"""
+    """チップに落とすときのコア外形。横倒しは**帯を含む**ので下端が負。"""
     w, h = core_size()
-    return (0.0, MACRO_Y0, w, h)
+    return (0.0, 0.0 if _PORTRAIT else MACRO_Y0, w, h)
 
 
 def chip_core_height():
-    _, _, _, t = chip_core_box()
-    return round(t - MACRO_Y0, 3)
+    _, b, _, t = chip_core_box()
+    return round(t - b, 3)
 
 
 def check():
@@ -200,17 +256,24 @@ def check():
         msg.append(f"CH_HEIGHTS は {N_ROWS+1} 本要る（今 {len(CH_HEIGHTS)}）")
     if MACRO_W > CORE_WIDTH_UM + 1e-6:
         msg.append(f"マクロ幅 {MACRO_W} がコア幅 {CORE_WIDTH_UM} を超える")
-    if MACRO_Y0 >= 0:
+    if not _PORTRAIT and MACRO_Y0 >= 0:
         msg.append(f"マクロ帯はルータ座標の下（y<0）に置くこと（今 {MACRO_Y0}）")
-    # 電源バスバーが帯の上辺と ch[0] の間に収まるか
+    if _PORTRAIT:
+        mx0, my0, mx1, my1 = macro_box()
+        if mx1 > CORE_WIDTH_UM + 1e-6:
+            msg.append(f"縦置きのマクロ右端 {mx1} がコア幅 {CORE_WIDTH_UM} を超える")
+        if abs(my0 - CH_HEIGHTS[0]) > 1e-6:
+            msg.append(f"縦置きのマクロ底面 {my0} が row0 の底面 {CH_HEIGHTS[0]} と面一でない"
+                       f"（下辺のピン列が ch[0] を向かなくなる）")
+    # 電源バスバーが帯の上辺と ch[0] の間に収まるか（横倒しだけ）
     _need = 2 * POWER_BAR_W + 3 * POWER_BAR_GAP
-    if MACRO_GAP_UM + 1e-9 < _need:
+    if not _PORTRAIT and MACRO_GAP_UM + 1e-9 < _need:
         msg.append(f"MACRO_GAP_UM {MACRO_GAP_UM} では M1 電源バー 2 本 "
                    f"({POWER_BAR_W} µm x2 + 間隔 {POWER_BAR_GAP} x3 = {_need}) が入らない")
-    if power_bars()[-1][2] > -1.4:
+    if power_bars() and power_bars()[-1][2] > -1.4:
         msg.append(f"電源バーの上端 {power_bars()[-1][2]} が ch[0] (y=0) に近すぎる"
                    f"（M1 最小間隔 1.4 µm）")
-    if abs(MACRO_GAP_UM / SITE_UM - round(MACRO_GAP_UM / SITE_UM)) > 1e-9:
+    if not _PORTRAIT and abs(MACRO_GAP_UM / SITE_UM - round(MACRO_GAP_UM / SITE_UM)) > 1e-9:
         msg.append(f"MACRO_GAP_UM {MACRO_GAP_UM} がサイトグリッド {SITE_UM} に乗っていない")
     if any(abs(t / SITE_UM - round(t / SITE_UM)) > 1e-9 for t in TAP_X):
         msg.append("TAP_X がサイトグリッドに乗っていない")

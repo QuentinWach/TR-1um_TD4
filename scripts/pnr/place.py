@@ -293,6 +293,24 @@ def order_rows(assign, width, net_cells, ports, rows_y, n, mpin,
 
 # ------------------------------------------------------------- TAP / FILL
 def tap_positions(row_w):
+    """TAP2 の x。`cfg.TAP_X` があればそれを正とする。
+
+    既定は `TAP_PITCH` (534.6) 刻み + 行末。ただし行幅がピッチの整数倍から
+    外れると**最後の区間だけ極端に狭くなる**。実測（縦置き・行幅 1177.2）:
+    区間が 502.2 / 502.2 / **64.8** になり、64.8 に回されたセルが入らず
+    step3 で「1 個が行に入りきらない」で落ちた。`cfg.TAP_X` で等間隔
+    （0 / 388.8 / 777.6 / 1166.4）に置き直すと 3 区間とも 378 µm になる。
+    """
+    xs = getattr(cfg, "TAP_X", None)
+    if xs:
+        if abs(xs[-1] - (row_w - cfg.TAP_W)) > 1e-6:
+            raise SystemExit(f"cfg.TAP_X の最後 {xs[-1]} が行末 "
+                             f"{row_w - cfg.TAP_W} と違う")
+        gaps = [b - a for a, b in zip(xs, xs[1:])]
+        if gaps and max(gaps) > cfg.TAP_PITCH + 1e-6:
+            raise SystemExit(f"cfg.TAP_X の間隔 {max(gaps)} が TAP_PITCH "
+                             f"{cfg.TAP_PITCH} を超える")
+        return list(xs)
     xs, x = [], 0.0
     while x + cfg.TAP_W <= row_w - cfg.TAP_W:
         xs.append(round(x, 3))

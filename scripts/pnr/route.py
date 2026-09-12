@@ -98,7 +98,16 @@ def _prl_nets():
     return {n for n in npin if npin[n] >= PRL_MIN_PINS and len(nrow[n]) >= 2}
 
 
-PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf"} | _prl_nets()
+def per_row_local_nets():
+    """`PER_ROW_LOCAL_NETS`。**stage6 の中で呼ぶこと。**
+
+    モジュールの読み込み時に確定させてはいけない。`_prl_nets()` が読む
+    `cfg.PLACEMENT_JSON` は **stage5 が作り直す**ので、import 時点では
+    1 つ前の実行のものが残っている。実測: 縦置き（5 行）を試した直後に
+    横倒しを流したら、同じ配置 (md5 e371a97d) なのに per-row-local が
+    19 → 24 本になり、短絡 0 → 3 になった。
+    """
+    return {"clk_buf", "rst_n_buf"} | _prl_nets()
 FORCE_HIGH_FO_NETS = set()
 # --- TD4 移植 (19): フォールバックしたネットを pass 3 送りにする -----------
 # `draw_jog` が「departure leg が clear なトラックが無い」と言って**無検査
@@ -185,7 +194,7 @@ def stage6(ch_heights):
     rc.main(placement_json=cfg.PLACEMENT_JSON, in_gds=cfg.PLACEMENT_GDS,
             out_gds=cfg.ROUTED_RAW_GDS, ch_heights=ch_heights,
             force_jog_nets=FORCE_JOG_NETS,
-            per_row_local_nets=PER_ROW_LOCAL_NETS,
+            per_row_local_nets=per_row_local_nets(),
             force_high_fo_nets=FORCE_HIGH_FO_NETS,
             pin_map_path=cfg.PIN_MAP_JSON,
             net_shapes_path=cfg.NET_SHAPES_JSON,
@@ -244,7 +253,9 @@ def stage10(ch_heights):
 
 def routed_core_h(ch):
     p = json.load(open(cfg.PLACEMENT_JSON))
-    return sum(ch) + len(p["rows"]) * p["row_height"]
+    h = sum(ch) + len(p["rows"]) * p["row_height"]
+    # 縦置きではマクロが行スタックより高くなりうる
+    return max(h, p["macro"]["box"][3])
 
 
 def checks(gds, pin_map, ch, squeezed=False):
@@ -263,7 +274,10 @@ def checks(gds, pin_map, ch, squeezed=False):
         hi = routed_core_h(ch) + 10
     subprocess.run([sys.executable,
                     os.path.join(HERE, "verify_connectivity_nrow_fm_m1m2.py"),
-                    gds, pin_map, "0", str(hi), str(p["row_width"] + 30)])
+                    gds, pin_map, "0", str(hi),
+                    # 縦置きではマクロが行スタックの**右**にあるので、
+                    # 行幅だけではスキャン窓に入らない（コア幅で取る）。
+                    str(max(p["row_width"], p.get("core_w", 0)) + 30)])
 
 
 STAGES = {5: stage5, 6: stage6, 7: stage7, 8: stage8, 9: stage9,
