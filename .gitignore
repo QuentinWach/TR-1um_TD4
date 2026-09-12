@@ -13,3 +13,6 @@ scripts/char/pack/
 # 特性化のデッキとログ（生成物。char_mem.py / char_pad.py が作り直す）
 scripts/char/decks/
 scripts/char/logs/
+
+# P&R の受け渡し用 tarball（cloud <-> Mac）。中身は展開済み
+.pnr_stage/
