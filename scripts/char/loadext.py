@@ -17,6 +17,7 @@ KLayout 版はこちらの簡易抽出器より**素性がよい**:
   1. 無名ネットの `\\$6` → `n6`。`$` は ngspice で行末コメントの開始記号なので、
      そのまま食わせるとネット名が途中で切れる。
   2. インスタンス名の `XM$1` → `XM1`、サブサーキット呼び出しの `X$4` → `X4`。同じ理由。
+     残った `$` は `_` に落とす（`vss$1` → `vss_1`）。
   3. `M$1 ...` → `XM1 ...`。PDK の PMOS/NMOS は `.model` ではなく
      **サブサーキット**なので、素の `M` カードでは ngspice が
      「model PMOS が無い」で落ちる。KLayout の SPICE ライタは MOS4 を
@@ -39,6 +40,13 @@ def convert(path):
         s = RE_NET.sub(r"n\1", s)              # \$6 -> n6
         s = RE_INST.sub(r"\1\2", s)            # XM$1 -> XM1
         s = RE_XINST.sub(r"X\1", s)             # X$4 -> X4
+        if not s.lstrip().startswith("*"):
+            # 残った `$` を潰す。`vss$1`（1 つのセルに同名のネットが 2 本ある
+            # ときに KLayout が付ける区別子）がそのままだと ngspice は `$` から
+            # 先をコメントとして捨て、**2 本が 1 本に潰れて .subckt 行に
+            # 同名ポートが 2 つ並ぶ**。DEC0 は電源レールをアバットで繋ぐ設計で
+            # 単体抽出だと必ずこれが出る。
+            s = s.replace("$", "_")
         s = RE_MOS.sub(r"XM\1\2", s)           # M$1 -> XM1（PDK の MOS は subckt）
         out.append(s)
     return out

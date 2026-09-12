@@ -22,6 +22,7 @@
   標準セルにも出てこないので実装していない（出てきたら気づけるよう検査する）。
 """
 from __future__ import annotations
+import re
 import argparse, os, sys
 
 try:
@@ -158,6 +159,13 @@ def main():
     # lef/extracted/*.extracted（PDK の LVS ランセット出力）と同じ書き方になる。
     w.use_net_names = True
     nl.write(a.out, w, f"TR-1um {a.top} — KLayout 抽出 (scripts/klayout_extract.py)")
+    # MOS を `M...` で書くが、PDK の PMOS/NMOS は `.model` ではなく
+    # **サブサーキット**なので `XM...` でないと ngspice に持っていけない。
+    # lef/extracted/ の既存ファイル（PDK の LVS ランセット出力）も XM なので
+    # 同じ綴りに揃える。
+    txt = open(a.out).read()
+    txt = re.sub(r"^M(?=[\w$])", "XM", txt, flags=re.M)
+    open(a.out, "w").write(txt)
     print(f"wrote {a.out}")
     for c in nl.each_circuit():
         nd = sum(1 for _ in c.each_device())

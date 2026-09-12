@@ -10,6 +10,11 @@
 
 これは「レイアウトが正しいこと」の証明ではない（元が同じなので当然一致する）。
 証明するのは**この .spice がレイアウトを取りこぼしなく写していること**。
+
+階層の切り方が両者で違うことがある（REG8x16 は抽出が TLAT8 / TLAT8B /
+TLAT128 / REGBUF8 / DEC16 という中間階層を作るのに対し、設計側は
+TLAT / DEC2 / REGBUF / ADDBUF の 4 段しか持たない）。そのままでは
+circuit 数が合わず不一致になるので `--flat` で両方を潰してから比べる。
 """
 from __future__ import annotations
 import argparse, sys
@@ -21,6 +26,8 @@ import klayout_extract
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("gds"); ap.add_argument("top"); ap.add_argument("spice")
+    ap.add_argument("--flat", action="store_true",
+                    help="両方を平坦化してから比較する（階層の切り方が違うとき）")
     a = ap.parse_args()
 
     l2n = klayout_extract.build(a.gds, a.top)
@@ -29,6 +36,8 @@ def main():
     lay.combine_devices()
     lay.purge()
     lay.purge_nets()
+    if a.flat:
+        lay.flatten()
 
     sch = db.Netlist()
     sch.read(a.spice, db.NetlistSpiceReader())
@@ -36,9 +45,10 @@ def main():
     sch.combine_devices()
     sch.purge()
     sch.purge_nets()
+    if a.flat:
+        sch.flatten()
 
     cmp_ = db.NetlistComparer()
-    logger = db.NetlistBrowserModel if False else None
     ok = cmp_.compare(lay, sch)
 
     def count(nl):

@@ -20,7 +20,7 @@ LVS はこれとレイアウト抽出ネットリストを突き合わせるの�
                RD  = INV(RDB)
                WR  = NOR2(RDB, WEB)
                WRB = INV(WR)
-  REGBUF (8T)  DD --INV--INV--> D            書込（外部 → ビット線）
+  REGBUF (8T)  D --INV--INV--> DD            書込（外部 → ビット線）
                Q  --INV--INV--> QQ           読出（ビット線 → 外部）
   ADDBUF (20T) ABk = INV(Ak_pin) / Ak = INV(ABk)  (k=0..3)   平衡型 true/complement
                t   = INV(WEB_pin) / WEB = INV(t)              バッファ2段
@@ -34,7 +34,7 @@ P_WEB  = "WEB"           # 書込イネーブル（アクティブロー）
 # ADDBUF が作るバッファ後の内部 WE 線。SPICE は大文字小文字を区別しないので
 # トップピン WEB と同じ綴り（web）にすると同一ネットに潰れてしまう。必ず別名にする。
 W_INT  = "WEBI"
-P_DIN  = "D[{j}]"        # 外部書込データ  -> REGBUF.DD
+P_DIN  = "D[{j}]"        # 外部書込データ  -> REGBUF.D
 P_DOUT = "Q[{j}]"        # 外部読出データ  <- REGBUF.QQ
 VDD, VSS = "vdd", "vss"  # 電源（セル内のラベルは gnd だが物理的に同一ネット）
 
@@ -126,10 +126,13 @@ def sub_dec2():
 
 def sub_regbuf():
     o = ["* REGBUF — 1bit ぶんのデータバッファ (37.8 x 59.4 um)",
-         "*   DD -> D : 書込（外部 → ビット線） / Q -> QQ : 読出（ビット線 → 外部）",
-         f".subckt REGBUF DD D Q QQ {VDD} {VSS}"]
-    o += inv(0, "DD", "w1", WP_BUF, WN_BUF)
-    o += inv(1, "w1", "D", WP_BUF, WN_BUF)
+         "*   D -> DD : 書込（外部 → ビット線） / Q -> QQ : 読出（ビット線 → 外部）",
+         "*   ピン名は GDS のラベルに合わせる。**D が外側、DD がビット線側。**",
+         "*   以前は逆に書いていた（DD が外側）。LVS はネット名ではなく構造で",
+         "*   照合するので通ってしまい、名前で読む側だけが食い違っていた。",
+         f".subckt REGBUF D DD Q QQ {VDD} {VSS}"]
+    o += inv(0, "D", "w1", WP_BUF, WN_BUF)
+    o += inv(1, "w1", "DD", WP_BUF, WN_BUF)
     o += inv(2, "Q", "r1", WP_BUF, WN_BUF)
     o += inv(3, "r1", "QQ", WP_BUF, WN_BUF)
     o.append(".ends REGBUF")
@@ -176,7 +179,7 @@ def top():
         for j in range(BITS):
             o.append(f"XT{i:02d}_{j} wr{i} wrb{i} rd{i} rdb{i} dl{j} ql{j} {VDD} {VSS} TLAT")
     o.append("")
-    o.append(f"* データバッファ x{BITS}   （トップの D[j] -> REGBUF.DD、REGBUF.QQ -> トップの Q[j]）")
+    o.append(f"* データバッファ x{BITS}   （トップの D[j] -> REGBUF.D、REGBUF.QQ -> トップの Q[j]）")
     for j in range(BITS):
         o.append(f"XBUF{j} {P_DIN.format(j=j)} dl{j} ql{j} {P_DOUT.format(j=j)} {VDD} {VSS} REGBUF")
     o.append(f".ends {TOP}")

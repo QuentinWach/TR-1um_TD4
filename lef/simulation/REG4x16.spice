@@ -64,12 +64,15 @@ MNOD WRBO WRO vss vss NMOS W=4.6u L=1.0u
 .ends DEC2
 
 * REGBUF — 1bit ぶんのデータバッファ (37.8 x 59.4 um)
-*   DD -> D : 書込（外部 → ビット線） / Q -> QQ : 読出（ビット線 → 外部）
-.subckt REGBUF DD D Q QQ vdd vss
-MP0 w1 DD vdd vdd PMOS W=10.2u L=1.0u
-MN0 w1 DD vss vss NMOS W=3.4u L=1.0u
-MP1 D w1 vdd vdd PMOS W=10.2u L=1.0u
-MN1 D w1 vss vss NMOS W=3.4u L=1.0u
+*   D -> DD : 書込（外部 → ビット線） / Q -> QQ : 読出（ビット線 → 外部）
+*   ピン名は GDS のラベルに合わせる。**D が外側、DD がビット線側。**
+*   以前は逆に書いていた（DD が外側）。LVS はネット名ではなく構造で
+*   照合するので通ってしまい、名前で読む側だけが食い違っていた。
+.subckt REGBUF D DD Q QQ vdd vss
+MP0 w1 D vdd vdd PMOS W=10.2u L=1.0u
+MN0 w1 D vss vss NMOS W=3.4u L=1.0u
+MP1 DD w1 vdd vdd PMOS W=10.2u L=1.0u
+MN1 DD w1 vss vss NMOS W=3.4u L=1.0u
 MP2 r1 Q vdd vdd PMOS W=10.2u L=1.0u
 MN2 r1 Q vss vss NMOS W=3.4u L=1.0u
 MP3 QQ r1 vdd vdd PMOS W=10.2u L=1.0u
@@ -184,7 +187,7 @@ XT15_1 wr15 wrb15 rd15 rdb15 dl1 ql1 vdd vss TLAT
 XT15_2 wr15 wrb15 rd15 rdb15 dl2 ql2 vdd vss TLAT
 XT15_3 wr15 wrb15 rd15 rdb15 dl3 ql3 vdd vss TLAT
 
-* データバッファ x4   （トップの D[j] -> REGBUF.DD、REGBUF.QQ -> トップの Q[j]）
+* データバッファ x4   （トップの D[j] -> REGBUF.D、REGBUF.QQ -> トップの Q[j]）
 XBUF0 D[0] dl0 ql0 Q[0] vdd vss REGBUF
 XBUF1 D[1] dl1 ql1 Q[1] vdd vss REGBUF
 XBUF2 D[2] dl2 ql2 Q[2] vdd vss REGBUF
