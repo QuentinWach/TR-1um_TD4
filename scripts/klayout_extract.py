@@ -143,8 +143,20 @@ def main():
     nl.purge_nets()
     if a.flat:
         nl.flatten()
+        # flatten() でピンに繋がるネットの**名前が落ちる**（ピン自身は名前を
+        # 保っているのに .SUBCKT 行がネット番号になり、そのままでは使えない）。
+        # ピン名をネット名に書き戻す。
+        for c in nl.each_circuit():
+            for pin in c.each_pin():
+                net = c.net_for_pin(pin.id())
+                if net is not None and pin.name() and not net.name:
+                    net.name = pin.name()
 
     w = db.NetlistSpiceWriter()
+    # 既定はネット番号。これだと .SUBCKT 行まで番号になって ngspice に持って
+    # いけない（--flat で顕著）。名前の付いたネットは名前で書かせる。
+    # lef/extracted/*.extracted（PDK の LVS ランセット出力）と同じ書き方になる。
+    w.use_net_names = True
     nl.write(a.out, w, f"TR-1um {a.top} — KLayout 抽出 (scripts/klayout_extract.py)")
     print(f"wrote {a.out}")
     for c in nl.each_circuit():

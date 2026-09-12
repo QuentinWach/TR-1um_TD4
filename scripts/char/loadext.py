@@ -16,13 +16,19 @@ KLayout 版はこちらの簡易抽出器より**素性がよい**:
 
   1. 無名ネットの `\\$6` → `n6`。`$` は ngspice で行末コメントの開始記号なので、
      そのまま食わせるとネット名が途中で切れる。
-  2. インスタンス名の `XM$1` → `XM1`。同じ理由。
+  2. インスタンス名の `XM$1` → `XM1`、サブサーキット呼び出しの `X$4` → `X4`。同じ理由。
+  3. `M$1 ...` → `XM1 ...`。PDK の PMOS/NMOS は `.model` ではなく
+     **サブサーキット**なので、素の `M` カードでは ngspice が
+     「model PMOS が無い」で落ちる。KLayout の SPICE ライタは MOS4 を
+     `M` で書くことがある（`--flat` や素の NetlistSpiceWriter のとき）。
 """
 from __future__ import annotations
 import argparse, os, re, sys
 
 RE_NET = re.compile(r"\\\$(\w+)")
 RE_INST = re.compile(r"^(XM)\$(\w+)")
+RE_XINST = re.compile(r"^X\$(\w+)")   # サブサーキット呼び出し X$4 -> X4
+RE_MOS = re.compile(r"^M\$?(\w+)(\s)")
 
 
 def convert(path):
@@ -32,6 +38,8 @@ def convert(path):
         s = ln.rstrip("\n")
         s = RE_NET.sub(r"n\1", s)              # \$6 -> n6
         s = RE_INST.sub(r"\1\2", s)            # XM$1 -> XM1
+        s = RE_XINST.sub(r"X\1", s)             # X$4 -> X4
+        s = RE_MOS.sub(r"XM\1\2", s)           # M$1 -> XM1（PDK の MOS は subckt）
         out.append(s)
     return out
 
