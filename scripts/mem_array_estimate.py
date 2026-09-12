@@ -2,8 +2,9 @@
 """td4_mem（16word x 8bit 命令メモリ）を FF 実装 / TLAT アレイで作った場合の面積比較。
 
 FF 実装側は Yosys 合成の実測差分:
-    td4_soc_arr（メモリも FF）      = 1.429 mm2   (scripts/stat_arr_ff.txt)
-    td4_soc_arr（td4_mem をBB化）   = 0.277 mm2   (scripts/stat_arr_bb.txt)
+    td4_soc_arr（メモリも FF）      out/td4_soc_arr.stat
+    td4_soc_arr（td4_mem をBB化）   out/td4_soc_arr_bb.stat
+どちらも `sh scripts/syn.sh` が .lib で実セルにマッピングして作る。
 
 アレイ側は **実在するセルの GDS 実測寸法**で積み上げる（推定値ではない）。
 セル寸法は `scripts/cell_area.json`（scripts/cellinfo.py --areas が GDS から生成）
@@ -40,7 +41,24 @@ WORDS, BITS = 16, 8
 NBIT = WORDS * BITS
 TILE = 4                                       # ビットセルタイルのビット幅
 
-SOC_FF, SOC_BB = 1429429.0, 277488.0
+def _mapped_area(stat, fallback):
+    """`.lib` でマッピングした結果の面積を Yosys の stat から読む。
+
+    **数字を手書きしない**（行高変更のとき手書き表だけ取り残された反省）。
+    `sh scripts/syn.sh` が out/*.stat を作る。無ければ従来の
+    `abc -g simple` + area_estimate.py の概算値で代用し、その旨を出す。
+    """
+    import re
+    p = os.path.join(HERE, os.pardir, "out", stat)
+    if os.path.exists(p):
+        m = re.search(r"Chip area for module.*?:\s*([\d.]+)", open(p).read())
+        if m:
+            return float(m.group(1)), True
+    return fallback, False
+
+
+SOC_FF, FF_MAPPED = _mapped_area("td4_soc_arr.stat", 1429429.0)
+SOC_BB, BB_MAPPED = _mapped_area("td4_soc_arr_bb.stat", 277488.0)
 MEM_FF = SOC_FF - SOC_BB
 
 ARRAY_H = (WORDS - 1) * TLAT_PITCH + TLAT_H    # 878.4 (TLAT64 実測と一致)
@@ -57,11 +75,24 @@ if __name__ == "__main__":
     print(f"（セル寸法は {os.path.relpath(AREAS, os.path.join(HERE, os.pardir))} "
           f"= GDS 実測 / 行高 {ROW_H} um）")
     print()
-    print("=== FF 実装（Yosys 実測の差分） ===")
+    src = (".lib で実セルにマッピングした実測" if (FF_MAPPED and BB_MAPPED)
+           else "abc -g simple + area_estimate.py の概算（syn.sh を流すと実測に変わる）")
+    print(f"=== FF 実装（Yosys 合成の差分 / {src}） ===")
     print(f"  td4_soc_arr 全体   {SOC_FF/1e6:.3f} mm2 / うちメモリ以外 {SOC_BB/1e6:.3f} mm2")
     print(f"  命令メモリ {NBIT}bit  {MEM_FF/1e6:.3f} mm2  (全体の {MEM_FF/SOC_FF:.0%})")
-    print(f"    = MUXDFFRB {NBIT}bit {NBIT*A_DFFE:,.0f} + "
-          f"16:1リードMUX x8bit {BITS*(WORDS-1)*A_MUX2:,.0f} um2 ほか")
+    # 内訳。実マッピングでは合成が **DFF + イネーブル用 MUX2** に分けるので
+    # MUXDFFRB は出てこない（面積は DFFRB + MUX2 = MUXDFFRB でちょうど同じ）。
+    print(f"    内訳の目安: 記憶 {NBIT}bit {NBIT*(A('DFF')+A_MUX2):,.0f}"
+          f"（DFF+イネーブルMUX2）+ 16:1 リード MUX x{BITS}bit "
+          f"{BITS*(WORDS-1)*A_MUX2:,.0f} um2")
+    if FF_MAPPED:
+        import re, collections
+        p_ = os.path.join(HERE, os.pardir, "out", "td4_soc_arr.stat")
+        cs = dict(re.findall(r"^\s+([A-Z][A-Za-z0-9_]*)\s+(\d+)\s*$",
+                             open(p_).read(), re.M))
+        if cs:
+            print("    実マッピング: " + ", ".join(f"{k} x{v}" for k, v in
+                  sorted(cs.items(), key=lambda x: -A(x[0]) * int(x[1]))[:5]))
     print()
 
     print(f"=== TLAT アレイ 積み上げ見積り（{TILE}bit タイル x {BITS//TILE} = {BITS}bit ワード）===")

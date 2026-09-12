@@ -19,7 +19,11 @@ usage:
 from __future__ import annotations
 import argparse, collections, json, os, re, sys
 
-CORE_W = CORE_H = 1840.0  # OSS_FRAME 内側の有効コア
+# OSS_FRAME_GIO のコア。パッドの内側は 1840 x 1840 だが、四隅の OSS_FRAME_CNR が
+# 120 x 120 um ずつ食うので実際に置けるのは 3.33 mm2（内接する最大の正方形は
+# 1600 x 1600 = 2.56 mm2）。数字の出どころは scripts/mkleffrm.py が実形状から出したもの。
+CORE_W = CORE_H = 1840.0
+CORE_AREA = CORE_W * CORE_H - 4 * 120.0 * 120.0      # = 3,328,000 um2
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_AREAS = os.path.join(HERE, "cell_area.json")
 
@@ -131,8 +135,9 @@ def main() -> None:
     print(f"raw cell area   : {area:,.0f} um2 = {area/1e6:.3f} mm2")
     print(f"NAND2 equiv     : {area/nand2:,.0f} gates  (NAND2 = {nand2:.1f} um2)")
     print(f"total cell width: {area/row_h:,.0f} um (row h={row_h} um)")
-    core = CORE_W * CORE_H
-    print(f"\ncore available  : {CORE_W:.0f} x {CORE_H:.0f} um = {core/1e6:.3f} mm2")
+    core = CORE_AREA
+    print(f"\ncore available  : {CORE_W:.0f} x {CORE_H:.0f} um から四隅を欠いて "
+          f"{core/1e6:.3f} mm2")
     for u in (0.5, 0.6, 0.7, 0.8):
         need = area / u
         print(f"  util {u:.0%}: {need/1e6:6.3f} mm2  {'OK' if need <= core else 'NG'}")

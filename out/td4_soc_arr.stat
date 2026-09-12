@@ -1,0 +1,38 @@
+
+12. Printing statistics.
+
+=== td4_soc_arr ===
+
+        +----------Local Count, excluding submodules.
+        |        +-Local Area, excluding submodules.
+        |        | 
+      614        - wires
+      775        - wire bits
+       42        - public wires
+      200        - public wire bits
+        8        - ports
+       14        - port bits
+      574 1.26E+06 cells
+        2        -   $scopeinfo
+        8    10264   AND2_X1
+        5     8019   AND3_X1
+        1   1924.6   AND4_X1
+      128 4.93E+05   DFF
+       25  96227.5   DFFRB
+       14     8981   INV_X1
+      249 4.79E+05   MUX2
+       45  43303.5   NAND2
+       21    26943   NAND3
+        5     8019   NAND4
+       37  35605.1   NOR2
+       13    16679   NOR3
+        7     8981   OR2
+        1   1603.8   OR3
+        9  14434.2   XNOR2
+        4   6415.2   XOR2
+
+   Area for cell type $scopeinfo is unknown!
+
+   Chip area for module '\td4_soc_arr': 1259310.100000
+     of which used for sequential elements: 588912.300000 (46.76%)
+
