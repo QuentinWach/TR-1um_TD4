@@ -56,7 +56,7 @@ COMPACTION_INFO_JSON = os.path.join(LAYOUT, "compaction_info_nrow_fm.json")
 # prBoundary の実測値（lef/TR-1um_STDCELL.gds、35 セルすべて 59.4）。
 ROW_HEIGHT_UM = 59.4
 SITE_UM = 5.4
-TRACK_PITCH = 5.4
+TRACK_PITCH = float(os.environ.get("TD4_TRACK_PITCH", "5.4"))   # チャネルの M1 トラック間隔（x のサイトとは別物）
 TAP_CELL = "TAP2"
 TAP_W = 10.8
 TAP_PITCH = 534.6              # I2C 実チップ実測。SCLK_SPI から踏襲
@@ -99,13 +99,15 @@ PRI_MODE = "both"
 # **チャネル予算は多めでよい。** 帯がチャネルの y 範囲にかからないので、
 # step10 の圧縮が全チャネルに効く（縦置きのときはマクロが y 200…1133 を
 # 塞いで 507.6 µm のうち 249.8 µm しか削れなかった）。実測の必要量は 891 µm。
-N_ROWS = 4
+# 実験用の上書き（既定は 4 行）。`TD4_N_ROWS=5 python3 scripts/pnr/place.py` の
+# ように使う。コア高の詰め方を測るためのもので、常用は 4。
+N_ROWS = int(os.environ.get("TD4_N_ROWS", "4"))
 CORE_WIDTH_UM = 1598.4
 ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横に無いので）
 
 MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
 MACRO_CELL = "MEMPORT"         # 実際に置く物理セル（R90 + 中継）
-MACRO_W, MACRO_H = 1598.4, 550.8   # mkmemport.py の出力と一致させること
+MACRO_W, MACRO_H = 1598.4, 502.2   # mkmemport.py の出力と一致させること
 # 帯の上端と ch[0] の下端 (y=0) の間に空ける隙間。
 # **0 にしてはいけない。** ルータは ch[0] の最初のトラックを y=2.0 に置き、
 # TAP の M2 電源メッシュを y=0 から立てるので、帯の上辺の金属と 1.4/2.0 µm を
@@ -120,7 +122,9 @@ POWER_BAR_GAP = 2.0            # バー間 / 帯とバーの間（M1 最小 1.4 
 MACRO_GAP_UM = 27.0
 MACRO_Y0 = -(MACRO_H + MACRO_GAP_UM)   # ルータ座標での帯の下端
 
-CH_HEIGHTS = [600.0, 600.0, 600.0, 600.0, 250.0]
+# チャネル予算。**圧縮で使わないトラックは丸ごと消える**ので多めでよい。
+# 最後だけ 250 なのは上端マージン（トップピンの引き出しにしか使わない）。
+CH_HEIGHTS = [600.0] * N_ROWS + [250.0]
 
 TAP_X = [0.0, 534.6, 1069.2, 1587.6]         # 行ローカル。tap_positions() と一致
 

@@ -150,8 +150,24 @@ V1_LAYER = (19, 0)
 M1_TRUNK_WIDTH = 1.8
 M1_PAD_SIZE = 3.4        # via_1 default pad size (Wmin), matches the old raw-box pad
 PAD_HALF = M1_PAD_SIZE / 2.0
+M2_MIN_GAP = 2.0
 
-TRACK_PITCH = 5.4  # v17 (design_notes 47/48, this session): was 4.0 --
+# --- TD4 移植 (18): トラックピッチを設定可能にする -------------------------
+# チャネルの高さは**そのままトラック本数 × ピッチ**。実測でコア高 1721.9 µm
+# のうち 826.2 µm (48%) がチャネルなので、ピッチを削れば直接効く。
+# **下限は 5.4 で、いまがその下限**。via_1 は M1 と M2 の両方に 3.4 角の
+# パッドを置くので、隣接トラックの via が同じ x に来ると
+#   M1: 3.4 + 1.4 (M1 最小間隔) = 4.8
+#   M2: 3.4 + 2.0 (**M2 最小間隔**) = 5.4   ← こちらが効く
+# 実測（`TD4_TRACK_PITCH=5.0` で step10 まで通した）: M2 の間隔違反 2 件が
+# ちょうど `dy=1.6 dx=3.4`（= 5.0 - 3.4）で出た。M1 側も 11 件出る。
+# 高さは 1655.8 → 1593.6 µm と確かに縮むが DRC が通らないので**使えない**。
+TRACK_PITCH = float(_os.environ.get("TD4_TRACK_PITCH", "5.4"))
+_TRACK_PITCH_MIN = M1_PAD_SIZE + M2_MIN_GAP
+if TRACK_PITCH < _TRACK_PITCH_MIN - 1e-9:
+    raise SystemExit(f"TD4_TRACK_PITCH {TRACK_PITCH} は下限 {_TRACK_PITCH_MIN} を割る"
+                     f"（via_1 の M2 パッド {M1_PAD_SIZE} + M2 最小間隔 {M2_MIN_GAP}）")
+# 以下は 5.4 を選んだ経緯（v17, design_notes 47/48）:
                     # adjacent-track via_1 M1 pads (M1_PAD_SIZE=3.4) at
                     # the same X only cleared by 4.0-3.4=0.6um, well
                     # under the 1.4um M1 min-space rule (confirmed as the
@@ -168,7 +184,6 @@ TRACK_PITCH = 5.4  # v17 (design_notes 47/48, this session): was 4.0 --
                     # recover the extra area this coarser pitch costs.
 TRACK0_OFFSET = 2.0
 LANE_MARGIN = 2.0
-M2_MIN_GAP = 2.0
 X_GRID = 5.4              # cell/pin grid pitch -- all jog/search X steps use this
 # --- TD4 移植 (1): 行幅を設定から取る ---------------------------------------
 # 原本は 1620.0 を直書きしていた。TD4 の行スタックは 1177.2 um で、コア幅

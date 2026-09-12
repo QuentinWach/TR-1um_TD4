@@ -100,7 +100,16 @@ def _prl_nets():
 
 PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf"} | _prl_nets()
 FORCE_HIGH_FO_NETS = set()
-FORCE_JOG_NETS = set()
+# --- TD4 移植 (19): フォールバックしたネットを pass 3 送りにする -----------
+# `draw_jog` が「departure leg が clear なトラックが無い」と言って**無検査
+# フォールバック**に落ちると、そのネットはほぼ確実に短絡する。`FORCE_JOG_NETS`
+# に入れたネットは **pass 3**（全ネットを描き終えた後）で live チェック付きで
+# 描き直されるので、この取りこぼしを拾える。
+#
+# 使い方: step6 を 1 回流して WARNING に出たネット名を `TD4_FORCE_JOG` に
+# 渡して流し直す（`route.py --from 5 --to 6` を 2 回）。`sweep_height.py` は
+# これを自動でやる。
+FORCE_JOG_NETS = {n for n in os.environ.get("TD4_FORCE_JOG", "").split("\x1f") if n}
 
 # Top-level port directions as seen from the GIO frame.  Derived from the
 # netlist's own port declarations by the ported highlight_top_pins module,
@@ -263,10 +272,16 @@ STAGES = {5: stage5, 6: stage6, 7: stage7, 8: stage8, 9: stage9,
 
 def main(first=5, last=10, ch=None):
     ch = ch or cfg.ROUTE_CH_HEIGHTS
-    n_rows = len(json.load(open(cfg.PLACEMENT_JSON))["rows"])
+    # `cfg.PLACEMENT_JSON` は **stage5 が作り直す**ので、ここで見ると
+    # 1 つ前の実行のものが残っている。行数を変えて回すと「need 5 channel
+    # heights, got 6」と嘘のアサートで落ちた。行数は place.py の生出力
+    # （step4）から取る。
+    src = (os.path.join(cfg.LAYOUT, "step4", "place_step4_fill.json")
+           if first <= 5 else cfg.PLACEMENT_JSON)
+    n_rows = len(json.load(open(src))["rows"])
     assert len(ch) == n_rows + 1, f"need {n_rows + 1} channel heights, got {len(ch)}"
     print(f"routing channel budget: {ch}  (placement estimate was "
-          f"{json.load(open(cfg.PLACEMENT_JSON))['ch_heights']})")
+          f"{json.load(open(src)).get('ch_heights')})")
     for n in range(first, last + 1):
         print(f"\n{'=' * 60}\n=== step{n} ===\n{'=' * 60}")
         STAGES[n](ch)

@@ -298,7 +298,15 @@ def main(in_gds, compaction_info_path, out_gds, pin_map_in=None, pin_map_out=Non
     # **チャネルの中にポートの PIN マーカ（高さ 3.0）が並んだ**こと。
     # 各区間を track_pitch だけ広げておけば、外側の写像先は必ず 1 トラック
     # 以上離れる（M1 パッド 3.4 + 間隔 1.4 = 4.8 < 5.4）。
-    protect_y = [(a - 2 * track_pitch, b + 2 * track_pitch) for a, b in protect_y]
+    # 膨らませ量はトラックピッチの何倍か（`TD4_PROTECT_PAD`）。
+    # 実測（4 行・PRL 5・seed 1、step10 の BBOX 高さと DRC）:
+    #   2  1673.3 µm  DRC 0          （もとの値）
+    #   1  1655.8 µm  DRC 0   <- 既定
+    #   0  1622.8 µm  M1 間隔違反 15 件
+    # 1 で足りるのは「M1 パッド 3.4 + 最小間隔 1.4 = 4.8 < 5.4」だから。
+    # 0 にすると保護区間のすぐ脇に次のトラックが寄ってきて破綻する。
+    _pad = int(_os.environ.get("TD4_PROTECT_PAD", "1"))
+    protect_y = [(a - _pad * track_pitch, b + _pad * track_pitch) for a, b in protect_y]
     # --- TD4 移植 (6): ハードマクロの y 範囲を保護する ------------------------
     # マクロは参照なので、この圧縮は**中身を縮められない**（原点が動くだけ）。
     # マクロの y 範囲の内側でスライスを潰すと、マクロは丸ごと下がるのに

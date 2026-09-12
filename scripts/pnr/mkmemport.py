@@ -121,7 +121,27 @@ def load_order(place_json):
     return g
 
 
-def build(plot=None, order_from=None):
+def load_pad_order_from_lef(lef_path):
+    """既存の `MEMPORT` LEF から「パッド x の順に並んだピン名」を取る。
+
+    **配置をやり直さずに帯の高さだけ変えたいとき**に使う。パッドの x と
+    ネットの対応をそのまま引き継げば、配置器が見るマクロのピン座標
+    （x = パッド x、y = -MACRO_GAP_UM - 5.7）が 1 µm も動かないので、
+    配置も配線もビット単位で同じものが出る。帯の**下**が縮むだけ。
+
+    `--order-from`（負荷の重心順）は逆に**並べ替える**ので、配置がやり直しに
+    なり配線もサイコロを振り直すことになる。
+    """
+    pins = lef_parser.parse_lef(lef_path)[CELL]["pins"]
+    out = []
+    for name, info in pins.items():
+        for r in info["rects"]:
+            out.append((name, round((r[1] + r[3]) / 2.0, 3)))
+    out.sort(key=lambda t: t[1])
+    return [n for n, _x in out]
+
+
+def build(plot=None, order_from=None, pads_from_lef=None):
     import gdstk
     lib = gdstk.read_gds(cfg.LIB_GDS)
     cells = {c.name: c for c in lib.cells}
@@ -179,6 +199,30 @@ def build(plot=None, order_from=None):
         box(M1, cx - HALF, cy - HALF, cx + HALF, cy + HALF)
         box(M2, cx - HALF, cy - HALF, cx + HALF, cy + HALF)
 
+    def fanout_direct(name, use, px0, py0, px1, py1, rx, pad_y0, pad_y1):
+        """ライザ列より**右**のパッドへは、マクロの上の段を使わずに直行する。
+
+          ピン(M2) → M1 を**ピン自身の y のまま**パッドの x まで → M2 上 → パッド
+
+        マクロの右（x 933…1598.4、y 0…399.6）は空き地なので、ここは
+        ピンの y のまま水平に走れる。マクロの**上**に段を取るのは
+        「マクロの OBS を越えて x<933 のパッドへ行く」ためだけなので、
+        右側のパッドには要らない。
+
+        効果: 段が 25 本 → 16 本になり、帯が **48.6 µm 低く**なる。
+        """
+        cy = round((py0 + py1) / 2.0, 3)
+        box(M2, px0, cy - HALF, VIA_X + HALF, cy + HALF)
+        via(VIA_X, cy)
+        box(M1, VIA_X - HALF, cy - HALF, rx + HALF, cy + HALF)
+        via(rx, cy)
+        box(M2, rx - HALF, cy - HALF, rx + HALF, pad_y1)
+        box(M2PIN, rx - HALF, pad_y0, rx + HALF, pad_y1)
+        top.add(gdstk.Label(name, (rx, (pad_y0 + pad_y1) / 2.0),
+                            layer=M2LBL[0], texttype=M2LBL[1], magnification=2.0))
+        return dict(name=name, use=use, x0=round(rx - HALF, 3), y0=pad_y0,
+                    x1=round(rx + HALF, 3), y1=pad_y1)
+
     def fanout(name, use, px0, py0, px1, py1, k, rx, ty):
         """1 本ぶんの中継。
 
@@ -209,11 +253,6 @@ def build(plot=None, order_from=None):
 
     allpins = sig + pwr_r
     n = len(allpins)
-    ty_last = TRACK_Y0 + (n - 1) * TRACK_DY
-    pad_y0 = round(ty_last + TRACK_DY + HALF, 3)
-    pad_y1 = round(pad_y0 + PAD_H, 3)
-    H = round(pad_y1 + 1.1, 3)
-    H = round(math.ceil(H / GRID) * GRID, 3)     # サイトグリッドに丸める
 
     # パッドの x を**コア幅いっぱい**に散らす（ライザ列の帯は避ける）
     span = sum(b - a for a, b in PAD_BANDS)
@@ -230,9 +269,30 @@ def build(plot=None, order_from=None):
     if len(set(pad_xs)) != n:
         raise SystemExit(f"パッドの x が重複した: {pad_xs}")
 
+    # **マクロの上の M1 段は「ライザ列より左のパッド」にしか要らない。**
+    # 右のパッドへはマクロの右の空き地をピン自身の y のまま直行できる
+    # （fanout_direct）。段の本数がそのまま帯の高さなので、ここで
+    # 25 本 → 左側のパッドの本数だけに減る。
+    riser_hi = RISER_X0 + (n - 1) * RISER_DX
+    n_track = sum(1 for x in pad_xs if x <= riser_hi)
+    ty_last = TRACK_Y0 + (max(n_track, 1) - 1) * TRACK_DY
+    pad_y0 = round(ty_last + TRACK_DY + HALF, 3)
+    pad_y1 = round(pad_y0 + PAD_H, 3)
+    H = round(pad_y1 + 1.1, 3)
+    H = round(math.ceil(H / GRID) * GRID, 3)     # サイトグリッドに丸める
+
     # パッドの割り当て。既定はピンの並び順だが、配置結果があれば
     # **負荷の重心 x の順**に並べ替える（中継の M1 段はどこへでも引ける）。
-    if order_from:
+    if pads_from_lef:
+        want = load_pad_order_from_lef(pads_from_lef)
+        if sorted(want) != sorted(r[0] for r in allpins):
+            raise SystemExit(f"既存 LEF のピン構成が違う: {sorted(set(want))}")
+        pool = {}
+        for r in allpins:
+            pool.setdefault(r[0], []).append(r)
+        allpins = [pool[n].pop(0) for n in want]
+        print(f"  パッドの割り当てを既存 LEF から引き継いだ（配置は動かない）")
+    elif order_from:
         g = load_order(order_from)
         miss = [r[0] for r in sig if r[0] not in g]
         if miss:
@@ -243,8 +303,14 @@ def build(plot=None, order_from=None):
         print(f"  パッドを負荷の重心 x 順に並べ替えた")
 
     pins = []
+    k_track = 0                       # マクロの上の段は左側のパッドだけが使う
     for k, ((name, use, x0, y0, x1, y1), rx) in enumerate(zip(allpins, pad_xs)):
-        ty = round(TRACK_Y0 + k * TRACK_DY, 3)
+        if rx > riser_hi:
+            pins.append(fanout_direct(name, use, x0, y0, x1, y1, rx,
+                                      pad_y0, pad_y1))
+            continue
+        ty = round(TRACK_Y0 + k_track * TRACK_DY, 3)
+        k_track += 1
         pins.append(fanout(name, use, x0, y0, x1, y1, k, rx, ty))
 
     top.add(gdstk.rectangle((0, 0), (W, H), layer=BOUND[0], datatype=BOUND[1]))
@@ -297,7 +363,8 @@ def build(plot=None, order_from=None):
           f"右の空き地 {W - h_src:.1f} um に中継）")
     print(f"  上辺パッド {n} 本（信号 {len(sig)} + 電源 {len(pwr_r)}）"
           f" x {min(pad_xs)}…{max(pad_xs)}（コア幅いっぱいに分散）")
-    print(f"  マクロの上に M1 の段 {n} 本（y {TRACK_Y0}…{ty_last}）")
+    print(f"  マクロの上に M1 の段 {n_track} 本（y {TRACK_Y0}…{ty_last}）"
+          f"／右側 {n - n_track} 本はピンの y のまま直行（段を使わない）")
     print(f"  ** 電源はマクロ右辺の 2 本ずつだけを引き出している"
           f"（左辺はマクロの真上を通れない）。チップ側で太く受けること")
     if plot:
@@ -344,5 +411,9 @@ if __name__ == "__main__":
     ap.add_argument("--plot", default=None)
     ap.add_argument("--order-from", default=None,
                     help="配置 JSON。パッドを負荷の重心 x 順に並べ替える")
+    ap.add_argument("--pads-from-lef", default=None,
+                    help="既存の MEMPORT LEF からパッドの割り当てを引き継ぐ。"
+                         "**配置器が見るピン座標が 1 µm も動かない**ので、"
+                         "配置も配線も同じまま帯の高さだけ変えられる")
     a = ap.parse_args()
-    build(a.plot, a.order_from)
+    build(a.plot, a.order_from, a.pads_from_lef)
