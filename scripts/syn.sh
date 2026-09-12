@@ -15,6 +15,13 @@
 #   どちらも出どころは scripts/char/cellspec.py の 1 箇所。
 set -e
 LIB=lef/tr1um_typ_5v0_25c.lib
+# ABC に駆動元と負荷を教えるファイル。**これが無いと ABC はタイミングを見ない。**
+# Yosys の abc パスは -constr があるときだけ ABC のスクリプトを
+#   ... &nf {D}; &put; buffer; upsize {D}; dnsize {D}; stime -p
+# というゲートサイジング付きの版に切り替える。付けないと buffer/upsize/dnsize が
+# 走らず、面積だけで貼った netlist になる。td4_soc_arr の reg->reg 所要周期で
+# 85.0ns -> 63.9ns（-25%）、面積は +3.3%。OpenSTA で実測（scripts/sta/）。
+CONSTR=scripts/abc.constr
 CELLS=hdl/rtl/tr1um_cells.v
 RTL="hdl/rtl/td4_core.v hdl/rtl/td4_mem.v hdl/rtl/td4_soc_rom.v \
      hdl/rtl/td4_soc_ff.v hdl/rtl/td4_soc_arr.v"
@@ -22,6 +29,7 @@ TOPS=${*:-"td4_core td4_soc_rom td4_soc_ff td4_soc_arr"}
 mkdir -p out
 
 [ -f "$LIB" ] || { echo "$LIB が無い。scripts/char/RUN.md の手順で作ってください" >&2; exit 1; }
+[ -f "$CONSTR" ] || { echo "$CONSTR が無い" >&2; exit 1; }
 
 # --- Yosys を探す -----------------------------------------------------------
 # `sh scripts/syn.sh` は対話シェルの設定（.zshrc など）を読まないので、
@@ -55,6 +63,8 @@ YS=$(find_yosys) || {
 echo "Yosys: $YS  ($($YS -V 2>&1 | head -1))"
 command -v iverilog >/dev/null 2>&1 || echo "** iverilog が無いので段 1 と段 4 を飛ばします"
 
+echo "ABC 制約: $(tr '\n' ' ' < $CONSTR)"
+echo
 echo "##################### 0. セルの Verilog モデルを生成"
 # cellspec.py（ngspice で実レイアウトと突き合わせ済み）から起こす。
 python3 scripts/char/mkcellverilog.py -o $CELLS
@@ -77,7 +87,7 @@ for T in $TOPS; do
   # dfflibmap が FF を、abc -liberty が組合せ論理を、それぞれ .lib のセルに割り当てる。
   # .lib の dont_use（FILL / TAP）は ABC 側で自動的に外れる。
   $YS -p "read_verilog $RTL; hierarchy -check -top $T; synth -top $T -flatten; \
-          dfflibmap -liberty $LIB; abc -liberty $LIB; opt_clean; \
+          dfflibmap -liberty $LIB; abc -liberty $LIB -constr $CONSTR; opt_clean; \
           write_verilog -noattr out/$T.v; tee -o out/$T.stat stat -liberty $LIB" \
       > out/$T.synlog 2>&1 || { echo "** $T: 合成に失敗"; tail -20 out/$T.synlog; exit 1; }
   # ライブラリに無いセル（$_ で始まる Yosys 内部セル）が残っていないか
@@ -118,7 +128,7 @@ done
 
 echo "##################### 6. td4_mem をブラックボックス化した周辺ロジック"
 $YS -p "read_verilog $RTL; blackbox td4_mem; hierarchy -check -top td4_soc_arr; \
-        synth -top td4_soc_arr -flatten; dfflibmap -liberty $LIB; abc -liberty $LIB; \
+        synth -top td4_soc_arr -flatten; dfflibmap -liberty $LIB; abc -liberty $LIB -constr $CONSTR; \
         opt_clean; write_verilog -noattr out/td4_soc_arr_bb.v; \
         tee -o out/td4_soc_arr_bb.stat stat -liberty $LIB" > out/arr_bb.synlog 2>&1 \
   || { echo "** ブラックボックス版の合成に失敗"; tail -20 out/arr_bb.synlog; exit 1; }
@@ -127,3 +137,13 @@ python3 scripts/syn_report.py td4_soc_arr_bb -n out/td4_soc_arr_bb.v
 echo
 echo "##################### 7. 命令メモリ カスタムアレイ化の効果"
 python3 scripts/mem_array_estimate.py
+
+echo
+echo "##################### 8. STA（OpenSTA があれば）"
+if command -v "${STA:-sta}" >/dev/null 2>&1; then
+  for T in $TOPS; do
+    sh scripts/sta/sta.sh out/$T.v $T 100 2>&1 | grep -vE "Warning (1210|503)"
+  done
+else
+  echo "  OpenSTA が無いので飛ばす（scripts/sta/README.md にビルド手順）"
+fi

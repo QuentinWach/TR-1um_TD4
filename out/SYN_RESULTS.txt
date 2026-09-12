@@ -1,4 +1,6 @@
 Yosys: yosys  (Yosys 0.33 (git sha1 2584903a060))
+ABC 制約: set_driving_cell BUF_X2 set_load 36.2 
+
 ##################### 0. セルの Verilog モデルを生成
 wrote hdl/rtl/tr1um_cells.v  (26 cells)
 
@@ -9,10 +11,10 @@ hdl/tb/tb_td4_core.v:62: $finish called at 176000 (1ps)
 hdl/tb/tb_td4_soc_arr.v:57: $finish called at 276000 (1ps)
 
 ##################### 2. 合成 → 実セルへマッピング
-  td4_core: 660 行 / 94 セル / 定数に繋がったピン 0
-  td4_soc_rom: 644 行 / 92 セル / 定数に繋がったピン 0
-  td4_soc_ff: 4452 行 / 630 セル / 定数に繋がったピン 0
-  td4_soc_arr: 3728 行 / 530 セル / 定数に繋がったピン 0
+  td4_core          94 セル (FF 17 / 組合せ 77)     172,569 um2 = 0.173 mm2
+  td4_soc_rom       93 セル (FF 17 / 組合せ 76)     161,984 um2 = 0.162 mm2
+  td4_soc_ff       649 セル (FF 149 / 組合せ 500)   1,277,912 um2 = 1.278 mm2
+  td4_soc_arr      571 セル (FF 153 / 組合せ 418)   1,274,709 um2 = 1.275 mm2
 
 ##################### 3. 形式等価（RTL ⇔ マップ後）
   td4_core       形式等価: **証明**（帰納法・全サイクル）
@@ -33,16 +35,17 @@ hdl/tb/tb_td4_soc_arr.v:57: $finish called at 276000 (1ps)
   NOR3          6  x   1283.0 =      7,698 um2
   OR3           4  x   1603.8 =      6,415 um2
   AND2_X1       5  x   1283.0 =      6,415 um2
-  INV_X1        8  x    641.5 =      5,132 um2
   NOR4          3  x   1603.8 =      4,811 um2
   XOR2          3  x   1603.8 =      4,811 um2
+  INV_X1        7  x    641.5 =      4,490 um2
   NAND2         4  x    962.3 =      3,849 um2
   NAND3         2  x   1283.0 =      2,566 um2
   OR2           1  x   1283.0 =      1,283 um2
+  INV_X2        1  x    641.5 =        642 um2
   合計           94                     172,569 um2 = 0.173 mm2
 FF 17 / 組合せ 77 / NAND2 換算 179 ゲート
 セル幅の総和 2,905 um  (行高 59.4 um → 1 行 1840um なら 1.6 行ぶん)
-コア 1840 x 1840 um = 3.386 mm2
+コア 1840 x 1840 um から四隅を欠いて 3.328 mm2
   util 50%:  0.345 mm2  OK
   util 60%:  0.288 mm2  OK
   util 70%:  0.247 mm2  OK
@@ -55,20 +58,21 @@ FF 17 / 組合せ 77 / NAND2 換算 179 ゲート
   NAND2        16  x    962.3 =     15,397 um2
   AND2_X1       6  x   1283.0 =      7,698 um2
   XOR2          4  x   1603.8 =      6,415 um2
+  BUF_X2        5  x    962.3 =      4,812 um2
   XNOR2         3  x   1603.8 =      4,811 um2
-  BUF_X1        4  x    962.3 =      3,849 um2
   OR2           3  x   1283.0 =      3,849 um2
-  INV_X1        3  x    641.5 =      1,924 um2
+  INV_X1        2  x    641.5 =      1,283 um2
   NAND3         1  x   1283.0 =      1,283 um2
   NOR3          1  x   1283.0 =      1,283 um2
-  合計           92                     161,022 um2 = 0.161 mm2
-FF 17 / 組合せ 75 / NAND2 換算 167 ゲート
-セル幅の総和 2,711 um  (行高 59.4 um → 1 行 1840um なら 1.5 行ぶん)
-コア 1840 x 1840 um = 3.386 mm2
-  util 50%:  0.322 mm2  OK
-  util 60%:  0.268 mm2  OK
-  util 70%:  0.230 mm2  OK
-  util 80%:  0.201 mm2  OK
+  INV_X2        1  x    641.5 =        642 um2
+  合計           93                     161,984 um2 = 0.162 mm2
+FF 17 / 組合せ 76 / NAND2 換算 168 ゲート
+セル幅の総和 2,727 um  (行高 59.4 um → 1 行 1840um なら 1.5 行ぶん)
+コア 1840 x 1840 um から四隅を欠いて 3.328 mm2
+  util 50%:  0.324 mm2  OK
+  util 60%:  0.270 mm2  OK
+  util 70%:  0.231 mm2  OK
+  util 80%:  0.202 mm2  OK
 
 --- td4_soc_ff: マッピング後の実セル（out/td4_soc_ff.v）---
   DFFRB       149  x   3849.1 =    573,516 um2
@@ -78,6 +82,7 @@ FF 17 / 組合せ 75 / NAND2 換算 167 ゲート
   NOR3         29  x   1283.0 =     37,207 um2
   OR3          18  x   1603.8 =     28,868 um2
   NOR2         20  x    962.3 =     19,246 um2
+  BUF_X2       19  x    962.3 =     18,284 um2
   NOR4         10  x   1603.8 =     16,038 um2
   AND2_X1      12  x   1283.0 =     15,396 um2
   OR2          12  x   1283.0 =     15,396 um2
@@ -88,19 +93,20 @@ FF 17 / 組合せ 75 / NAND2 換算 167 ゲート
   XOR2          5  x   1603.8 =      8,019 um2
   AND4_X1       4  x   1924.6 =      7,698 um2
   OR4           3  x   1924.6 =      5,774 um2
-  合計          630                   1,259,629 um2 = 1.260 mm2
-FF 149 / 組合せ 481 / NAND2 換算 1309 ゲート
-セル幅の総和 21,206 um  (行高 59.4 um → 1 行 1840um なら 11.5 行ぶん)
-コア 1840 x 1840 um = 3.386 mm2
-  util 50%:  2.519 mm2  OK
-  util 60%:  2.099 mm2  OK
-  util 70%:  1.799 mm2  OK
-  util 80%:  1.575 mm2  OK
+  合計          649                   1,277,912 um2 = 1.278 mm2
+FF 149 / 組合せ 500 / NAND2 換算 1328 ゲート
+セル幅の総和 21,514 um  (行高 59.4 um → 1 行 1840um なら 11.7 行ぶん)
+コア 1840 x 1840 um から四隅を欠いて 3.328 mm2
+  util 50%:  2.556 mm2  OK
+  util 60%:  2.130 mm2  OK
+  util 70%:  1.826 mm2  OK
+  util 80%:  1.597 mm2  OK
 
 --- td4_soc_arr: マッピング後の実セル（out/td4_soc_arr.v）---
   MUX2        276  x   1924.6 =    531,190 um2
   DFF         128  x   3849.1 =    492,685 um2
   DFFRB        25  x   3849.1 =     96,228 um2
+  BUF_X2       40  x    962.3 =     38,492 um2
   NOR2         30  x    962.3 =     28,869 um2
   NOR3         13  x   1283.0 =     16,679 um2
   NAND2        11  x    962.3 =     10,585 um2
@@ -111,17 +117,18 @@ FF 149 / 組合せ 481 / NAND2 換算 1309 ゲート
   NOR4          4  x   1603.8 =      6,415 um2
   NAND3         5  x   1283.0 =      6,415 um2
   AND2_X1       3  x   1283.0 =      3,849 um2
+  BUFTH         1  x   1924.6 =      1,925 um2
   AND3_X1       1  x   1603.8 =      1,604 um2
   NAND4         1  x   1603.8 =      1,604 um2
   OR2           1  x   1283.0 =      1,283 um2
-  合計          530                   1,234,292 um2 = 1.234 mm2
-FF 153 / 組合せ 377 / NAND2 換算 1283 ゲート
-セル幅の総和 20,779 um  (行高 59.4 um → 1 行 1840um なら 11.3 行ぶん)
-コア 1840 x 1840 um = 3.386 mm2
-  util 50%:  2.469 mm2  OK
-  util 60%:  2.057 mm2  OK
-  util 70%:  1.763 mm2  OK
-  util 80%:  1.543 mm2  OK
+  合計          571                   1,274,709 um2 = 1.275 mm2
+FF 153 / 組合せ 418 / NAND2 換算 1325 ゲート
+セル幅の総和 21,460 um  (行高 59.4 um → 1 行 1840um なら 11.7 行ぶん)
+コア 1840 x 1840 um から四隅を欠いて 3.328 mm2
+  util 50%:  2.549 mm2  OK
+  util 60%:  2.125 mm2  OK
+  util 70%:  1.821 mm2  OK
+  util 80%:  1.593 mm2  OK
 
 ##################### 6. td4_mem をブラックボックス化した周辺ロジック
 --- td4_soc_arr_bb: マッピング後の実セル（out/td4_soc_arr_bb.v）---
@@ -138,37 +145,38 @@ FF 153 / 組合せ 377 / NAND2 換算 1283 ゲート
   NAND3         4  x   1283.0 =      5,132 um2
   OR3           3  x   1603.8 =      4,811 um2
   OR2           2  x   1283.0 =      2,566 um2
+  BUF_X2        2  x    962.3 =      1,925 um2
   AND3_X1       1  x   1603.8 =      1,604 um2
   NAND4         1  x   1603.8 =      1,604 um2
-  合計          124                     237,042 um2 = 0.237 mm2
-FF 25 / 組合せ 99 / NAND2 換算 246 ゲート
-セル幅の総和 3,991 um  (行高 59.4 um → 1 行 1840um なら 2.2 行ぶん)
-コア 1840 x 1840 um = 3.386 mm2
-  util 50%:  0.474 mm2  OK
-  util 60%:  0.395 mm2  OK
-  util 70%:  0.339 mm2  OK
-  util 80%:  0.296 mm2  OK
+  合計          126                     238,966 um2 = 0.239 mm2
+FF 25 / 組合せ 101 / NAND2 換算 248 ゲート
+セル幅の総和 4,023 um  (行高 59.4 um → 1 行 1840um なら 2.2 行ぶん)
+コア 1840 x 1840 um から四隅を欠いて 3.328 mm2
+  util 50%:  0.478 mm2  OK
+  util 60%:  0.398 mm2  OK
+  util 70%:  0.341 mm2  OK
+  util 80%:  0.299 mm2  OK
 
 ##################### 7. 命令メモリ カスタムアレイ化の効果
 （セル寸法は scripts/cell_area.json = GDS 実測 / 行高 59.4 um）
 
 === FF 実装（Yosys 合成の差分 / .lib で実セルにマッピングした実測） ===
-  td4_soc_arr 全体   1.234 mm2 / うちメモリ以外 0.237 mm2
-  命令メモリ 128bit  0.997 mm2  (全体の 81%)
+  td4_soc_arr 全体   1.275 mm2 / うちメモリ以外 0.239 mm2
+  命令メモリ 128bit  1.036 mm2  (全体の 81%)
     内訳の目安: 記憶 128bit 739,034（DFF+イネーブルMUX2）+ 16:1 リード MUX x8bit 230,952 um2
-    実マッピング: MUX2 x276, DFF x128, DFFRB x25, NOR2 x30, NOR3 x13
+    実マッピング: MUX2 x276, DFF x128, DFFRB x25, BUF_X2 x40, NOR2 x30
 
 === TLAT アレイ 積み上げ見積り（4bit タイル x 2 = 8bit ワード）===
   ビットセル 16行 x 8列 (TLAT 37.8x59.4)              302.4 x  878.4 =   265,628 um2
   デコーダ+WLドライバ帯 (AND4/INV/AND2/INV) x16行         75.6 x  878.4 =    66,407 um2
   カラム I/O 帯 (ライトドライバ x8 + リード受け x16)           302.4 x   59.4 =    17,963 um2
-  計                                                             349,998 um2 = 0.350 mm2   (2.8x 圧縮)
+  計                                                             349,998 um2 = 0.350 mm2   (3.0x 圧縮)
   マクロ外形 378.0 x 937.8 um = 0.354 mm2
 
 === 実測: 出来上がった REG8x16（DRC/LVS クリーン）===
   外形 399.6 x 933.0 um = 0.373 mm2  (1,876 Tr / 2,913 um2 per bit)
   見積り 0.354 mm2 に対して 1.05x (差 +0.018 mm2)
-  FF 実装比 2.7x 小さい
+  FF 実装比 2.8x 小さい
 
 === ワードライン RC（M1 が途切れ、セルごとに poly を 9.2 µm 渡る）===
   WR: ゲート容量 18.8 fF/bit -> 4bit  75.0 fF / 8bit 150.1 fF
@@ -178,5 +186,31 @@ FF 25 / 組合せ 99 / NAND2 換算 246 ゲート
   ※ 実測: ngspice で REG8x16 の読出 23.1->27.7ns / 書込 23.5->26.8ns (CBL 0->200fF)。4bit 版 +2ns に収まった。
 
 === チップ全体（td4_soc_arr） ===
-  FF 実装                  ロジック 0.237 + メモリ 0.997 -> 2.057 mm2  (コアの 61%)  OK
-  TLAT アレイ (REG8x16)     ロジック 0.237 + メモリ 0.373 -> 0.768 mm2  (コアの 23%)  OK
+  FF 実装                  ロジック 0.239 + メモリ 1.036 -> 2.125 mm2  (コアの 63%)  OK
+  TLAT アレイ (REG8x16)     ロジック 0.239 + メモリ 0.373 -> 0.771 mm2  (コアの 23%)  OK
+
+##################### 8. STA（OpenSTA があれば）
+######## td4_core   out/td4_core.v   period = 100 ns
+  reg->reg    slack    67.267 ns   _185_/QB -> _179_/D
+  in->reg     slack    49.574 ns   rom_data[7] -> _179_/D
+  reg->out    slack    70.279 ns   _177_/Q -> rom_addr[1]
+  hold r->r   slack     8.541 ns   _172_/Q -> _172_/D
+  => reg->reg の所要周期 32.733 ns  (Fmax 30.55 MHz)
+######## td4_soc_rom   out/td4_soc_rom.v   period = 100 ns
+  reg->reg    slack    60.735 ns   _180_/Q -> _171_/D
+  in->reg     (パスなし)
+  reg->out    slack    68.540 ns   _183_/Q -> pc_o[3]
+  hold r->r   slack     6.970 ns   _176_/Q -> _176_/D
+  => reg->reg の所要周期 39.265 ns  (Fmax 25.47 MHz)
+######## td4_soc_ff   out/td4_soc_ff.v   period = 100 ns
+  reg->reg    slack    33.783 ns   _1283_/Q -> _1285_/D
+  in->reg     slack    24.012 ns   exec -> _1285_/D
+  reg->out    slack    68.981 ns   _1283_/Q -> pc_o[1]
+  hold r->r   slack     7.310 ns   _1206_/QB -> _1206_/D
+  => reg->reg の所要周期 66.217 ns  (Fmax 15.10 MHz)
+######## td4_soc_arr   out/td4_soc_arr.v   period = 100 ns
+  reg->reg    slack    36.106 ns   _1042_/Q -> _1105_/D
+  in->reg     slack    25.457 ns   exec -> _1105_/D
+  reg->out    slack    72.828 ns   _1029_/Q -> cflag_o
+  hold r->r   slack     7.310 ns   _1042_/QB -> _1042_/D
+  => reg->reg の所要周期 63.894 ns  (Fmax 15.65 MHz)
