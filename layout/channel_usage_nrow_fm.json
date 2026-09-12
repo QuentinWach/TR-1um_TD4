@@ -29,9 +29,9 @@
  },
  {
   "channel": 4,
-  "used_tracks": 11,
+  "used_tracks": 6,
   "budget_tracks": 46,
   "height_um": 250.0,
-  "max_signal_geom_y_um": 57.7
+  "max_signal_geom_y_um": 30.7
  }
 ]

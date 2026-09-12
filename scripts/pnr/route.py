@@ -62,27 +62,42 @@ def _macro_nets():
 #   rom_data[4] は 41 本・15 列（623.7…683.1 に 10 列連続）
 # per-row-local は行ごとに専用の guarded トラックを持つので、同じ扇形でも
 # clk_buf は 2.6 本/ピンで済んでいる（rom_data[4] は 8 本/ピン）。
-# **どれを per-row-local にするかは実測で決めた。**
+# **per-row-local にするネットは配置から自動で決める。**
 #
-# マクロのパッドは帯の上辺（= ch[0] の下）にしか無いので spine は ch[0] 固定。
-# そこから row1..row3 のシンクへ登るたびに draw_jog が新しいトラックを取り、
-# x が 5.4 ずつずれる階段になる。実測（全部を普通の spanning 扱いにしたとき）:
+# 既定の spanning 扱いは「ピン 1 本ごとに行を跨いで、そのたび新しいトラックを
+# 取る」ので、同じ行に複数のピンがあるネットは**同じ行を何度も跨ぐ**。
+# 実測（手で 10 本だけ指定していたとき）: 行またぎ 113 本のうち **45 本 (40%)
+# が重複**。`\u_core.pc [1]` は row0 を 5 回跨ぎ、ch[1] に 5 本の平行トランク
+# （y 373.0/378.4/383.8/389.2/394.6）を持っていた。x 395.2…438.4 に 10.8 µm
+# 間隔で 5 本の縦 M2 が並ぶ、あの形がこれ。
 #
-#   縦 M2 セグメント  マクロ系 15.2 本/ネット vs その他 5.2 本/ネット
-#   rom_data[4] は 41 本・15 列（623.7…683.1 に 10 列連続）
-#
-# per-row-local は行ごとに専用の guarded トラックを持つので階段にならない。
-# ただし専用トラックはチャネルを太らせるので、入れすぎると逆効果:
-#
-#   per-row-local に入れる本数   行またぎジョグ   短絡   圧縮後コア高
-#   clk/rst のみ（2 本）              134          20    1097.5 µm
-#   + マクロ 8 本（下表の上位）        79          16    1131.1 µm   <- 採用
-#   + マクロ 21 本（全部）             62          22    1218.7 µm
-#
-# 上位 8 本 = 縦 M2 が多かった rom_data[4..7] と d_buf[0..3]。
-PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf",
-                      "rom_data[4]", "rom_data[5]", "rom_data[6]", "rom_data[7]",
-                      "d_buf[0]", "d_buf[1]", "d_buf[2]", "d_buf[3]"}
+# per-row-local は行ごとに専用トラックを 1 本持つので重複しない。ただし専用
+# トラックはチャネルを太らせるので、**ピン数が多く複数行にまたがるものだけ**に
+# 絞る。しきい値は `TD4_PRL_MIN_PINS`（既定 5）。
+PRL_MIN_PINS = int(os.environ.get("TD4_PRL_MIN_PINS", "5"))
+
+
+def _prl_nets():
+    import collections
+    try:
+        pl = json.load(open(cfg.PLACEMENT_JSON))
+    except Exception:
+        return set()
+    npin = collections.Counter()
+    nrow = collections.defaultdict(set)
+    for r, row in enumerate(pl["rows"]):
+        for i in row:
+            if i["type"] == cfg.MACRO_CELL:
+                continue
+            for p in i["pins"].values():
+                if p["use"] in ("POWER", "GROUND") or not p["net"]:
+                    continue
+                npin[p["net"]] += 1
+                nrow[p["net"]].add(r)
+    return {n for n in npin if npin[n] >= PRL_MIN_PINS and len(nrow[n]) >= 2}
+
+
+PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf"} | _prl_nets()
 FORCE_HIGH_FO_NETS = set()
 FORCE_JOG_NETS = set()
 

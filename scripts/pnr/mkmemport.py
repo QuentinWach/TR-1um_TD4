@@ -4,6 +4,7 @@
 
   usage: python3 scripts/pnr/mkmemport.py
          python3 scripts/pnr/mkmemport.py --plot layout/memport.png
+         python3 scripts/pnr/mkmemport.py --order-from layout/placement_nrow_fm.json
 
 ## なぜ要るか
 
@@ -91,7 +92,36 @@ def r90(x, y, w_src, h_src):
     return (h_src - y, x)
 
 
-def build(plot=None):
+def load_order(place_json):
+    """配置結果から「負荷の重心 x」の順に並べたピン名を返す。
+
+    パッドの x は**中継の M1 段でどこへでも引ける**ので、ピンの並び順のまま
+    等間隔に散らす必然性は無い。接続先セルの重心に合わせて並べ替えると、
+    ch[0] のトランクが短くなり行またぎも減る。
+
+    実測（並べ替え前）: パッド x と負荷の重心のずれが合計 7,138 µm、
+    平均 340 µm/ネット。`rom_data[0]` はパッド 378.0 に対し負荷の重心が
+    1240.2（862 µm 離れ）だった。
+    """
+    import json
+    pl = json.load(open(place_json))
+    mac = [i for i in pl["rows"][0] if i["type"] == CELL][0]
+    net_of = {p["net"]: pn for pn, p in mac["pins"].items() if p["net"]}
+    cen = {}
+    for row in pl["rows"]:
+        for i in row:
+            if i["type"] == CELL:
+                continue
+            for p in i["pins"].values():
+                n = p["net"]
+                if p["use"] in ("POWER", "GROUND") or n not in net_of:
+                    continue
+                cen.setdefault(n, []).append(i["x"] + i["width"] / 2.0)
+    g = {net_of[n]: sum(v) / len(v) for n, v in cen.items()}
+    return g
+
+
+def build(plot=None, order_from=None):
     import gdstk
     lib = gdstk.read_gds(cfg.LIB_GDS)
     cells = {c.name: c for c in lib.cells}
@@ -200,6 +230,18 @@ def build(plot=None):
     if len(set(pad_xs)) != n:
         raise SystemExit(f"パッドの x が重複した: {pad_xs}")
 
+    # パッドの割り当て。既定はピンの並び順だが、配置結果があれば
+    # **負荷の重心 x の順**に並べ替える（中継の M1 段はどこへでも引ける）。
+    if order_from:
+        g = load_order(order_from)
+        miss = [r[0] for r in sig if r[0] not in g]
+        if miss:
+            print(f"  ! 重心が取れないピン（負荷なし）: {miss} — 元の順のまま")
+        key = {r[0]: g.get(r[0], 1e9) for r in allpins}
+        # 電源は最後（重心が無い）。信号だけ重心順に並べ替える
+        allpins = sorted(allpins, key=lambda r: (key[r[0]], r[3]))
+        print(f"  パッドを負荷の重心 x 順に並べ替えた")
+
     pins = []
     for k, ((name, use, x0, y0, x1, y1), rx) in enumerate(zip(allpins, pad_xs)):
         ty = round(TRACK_Y0 + k * TRACK_DY, 3)
@@ -300,5 +342,7 @@ if __name__ == "__main__":
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--plot", default=None)
+    ap.add_argument("--order-from", default=None,
+                    help="配置 JSON。パッドを負荷の重心 x 順に並べ替える")
     a = ap.parse_args()
-    build(a.plot)
+    build(a.plot, a.order_from)
