@@ -257,6 +257,53 @@ def emit_pad(cell, d, o):
     o.append(f'{IND}}}')
 
 
+def emit_macro(cell, d, o):
+    """メモリマクロ（`REG8x16`）。
+
+    クロックを持たないラッチアレイなので、Liberty では
+      ADD[j] -> Q[i]  を **組合せアーク**（non_unate）として書く。
+    これが P&R の本命 `td4_soc_arr_bb` のクリティカルパスの主成分になる。
+
+    **まだ入っていないもの**（`char_mem.py` が測っていない）:
+      * `D[i]` / `ADD[j]` の `WEB` 立上りに対する setup / hold
+      * `WEB` -> `Q[i]`（書込み中に Q が追従する経路）
+      * `WEB` の最小ローパルス幅
+    書込みタイミングを STA で見るにはこれらが要る。読出しパスだけなら足りる。
+    """
+    area = AREAS[cell]["area"]
+    nq = len(d["cap"]) and 8
+    o.append(f'{IND}cell ({cell}) {{')
+    o.append(f'{IND*2}area : {area:.1f};')
+    o.append(f'{IND*2}dont_use : true;   /* 座標指定で置くマクロ。合成が挿してはいけない */')
+    o.append(f'{IND*2}dont_touch : true;')
+    o.append(f'{IND*2}is_macro_cell : true;')
+    o.append(f'{IND*2}/* 測定: {d.get("netlist", "?")} / 書込み後に ADD を振って読出し */')
+    for pin, cap in sorted(d["cap"].items()):
+        o.append(f'{IND*2}pin ({pin}) {{')
+        o.append(f'{IND*3}direction : input;')
+        o.append(f'{IND*3}capacitance : {cap:.3f};')
+        o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
+        o.append(f'{IND*2}}}')
+    adds = sorted(d["read"], key=lambda k: int(k.strip("ADD[]")))
+    for i in range(nq):
+        o.append(f'{IND*2}pin (Q[{i}]) {{')
+        o.append(f'{IND*3}direction : output;')
+        o.append(f'{IND*3}max_capacitance : {d["loads"][-1]:g};')
+        for ad in adds:
+            arc = d["read"][ad]
+            o.append(f'{IND*3}timing () {{')
+            o.append(f'{IND*4}related_pin : "{ad}";')
+            o.append(f'{IND*4}timing_sense : non_unate;')
+            o.append(f'{IND*4}timing_type : combinational;')
+            for key in ("cell_rise", "rise_transition", "cell_fall", "fall_transition"):
+                o.append(f'{IND*4}{key} (mem_template_7x7) {{')
+                o.append(values_block(arc[key], IND * 5))
+                o.append(f'{IND*4}}}')
+            o.append(f'{IND*3}}}')
+        o.append(f'{IND*2}}}')
+    o.append(f'{IND}}}')
+
+
 def emit_plain(cell, o, kind):
     """論理も遅延も持たないセル（TAP / FILL）"""
     area = AREAS[cell]["area"]
@@ -385,6 +432,20 @@ def main():
         o.append(f'{IND*2}index_1 ("{idx(pad["slews_t"])}");')
         o.append(f'{IND*2}index_2 ("{idx(pad["loads"])}");')
         o.append(f"{IND}}}")
+    mem = None
+    mp = f"{HERE}/char/REG8x16.json"
+    if os.path.exists(mp):
+        m = json.load(open(mp))
+        if any(v is not None for a in m.get("read", {}).values()
+               for t in a.values() for r in t for v in r):
+            mem = m
+            o.append(f"{IND}/* マクロ用。負荷の格子が標準セルと 1 点だけ違う（25 -> 20 fF） */")
+            o.append(f"{IND}lu_table_template (mem_template_7x7) {{")
+            o.append(f"{IND*2}variable_1 : input_net_transition;")
+            o.append(f"{IND*2}variable_2 : total_output_net_capacitance;")
+            o.append(f'{IND*2}index_1 ("{idx(mem["slews"])}");')
+            o.append(f'{IND*2}index_2 ("{idx(mem["loads"])}");')
+            o.append(f"{IND}}}")
     o.append(f"{IND}lu_table_template (constraint_template_3x3) {{")
     o.append(f"{IND*2}variable_1 : constrained_pin_transition;")
     o.append(f"{IND*2}variable_2 : related_pin_transition;")
@@ -401,9 +462,14 @@ def main():
         name = cell[:-5]
         d = json.load(open(f"{HERE}/char/{cell}"))
         if d.get("macro"):
-            # REG8x16 のようなマクロ。emit はまだ無いので飛ばす。
-            # 黙って emit_comb に流すと "arcs" が無くて落ちる。
-            skipped.append(name)
+            if not any(v is not None for a in d.get("read", {}).values()
+                       for t in a.values() for r in t for v in r):
+                # 測定が空のまま（失敗した実行の書き残しなど）。
+                # 黙って emit_comb に流すと "arcs" が無くて落ちる。
+                skipped.append(name)
+                continue
+            emit_macro(name, d, o)
+            ncell += 1
             continue
         if d.get("pad"):
             emit_pad(name, d, o)
