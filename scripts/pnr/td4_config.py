@@ -93,7 +93,10 @@ PRI_PITCH = float(os.environ.get("TD4_PRI_PITCH", "1e9"))
 # コリドーの置き方。"after" = TAP 直後だけ（移植元と同じ）、
 # "both" = **TAP の両側**。行末の TAP の手前にも 1 枠できるので、
 # 行の右端にも縦に抜ける列ができる（ユーザ指摘）。
-PRI_MODE = "both"
+# `TD4_PRI_MODE`。"both" は 1 行あたり 6 本、"after" は 3 本。
+# 縦バスを入れると行幅が減るので、コリドーを 3 本に戻して取り返せる
+# （FILL3 なら 48.6 µm/行）。
+PRI_MODE = os.environ.get("TD4_PRI_MODE", "both")
 
 # ---- フロアプラン --------------------------------------------------------
 # **メモリは横倒しにして行スタックの下に敷く。**
@@ -155,8 +158,18 @@ if _PORTRAIT:
     #   バス 0 本 行 1177.2 充填率 83.0%（コリドー 6 本）/ 79.3%（3 本）
     #   バス 8 本 行 1134.0        86.6%              / **82.6%**
     #   バス16 本 行 1090.8        90.6%              / 86.2%  ← 配置が組めない
-    SIDE_BUS_TRACKS = int(os.environ.get("TD4_SIDE_BUS", "8"))
-    MACRO_SIDE_GAP = round(21.6 + SIDE_BUS_TRACKS * SITE_UM, 3)
+    SIDE_BUS_TRACKS = int(os.environ.get("TD4_SIDE_BUS", "9"))
+    # 帯の余り（バス本体 `SIDE_BUS_TRACKS × 5.4` の外側に足す分）。
+    # **ここは 21.6 µm も要らない。** KLayout で実測すると、バスの右端と
+    # マクロの間に 19.9 µm の空きが残っていた（ユーザ指摘）。必要なのは
+    #   行側: via の M1 パッド 3.4/2 + M1 最小間隔 1.4 = **3.1 µm**
+    #   マクロ側: 同上 3.1（`REG8x16` の M1 は prBoundary の左端 x=0.0 から。
+    #             M2 は x=1.0 からなので M2 同士なら 2.7 で足りるが、
+    #             via のパッドが効くので 3.1 が拘束）
+    # 実測値: `REG8x16` の左端は M1 0.00 / M2 1.00 / V1 2.00 / GC 2.50。
+    # 余り 5.4 なら「行側 3.7 / マクロ側 5.4」で両側とも足りる。
+    SIDE_BUS_SLACK = float(os.environ.get("TD4_SIDE_BUS_SLACK", "5.4"))
+    MACRO_SIDE_GAP = round(SIDE_BUS_SLACK + SIDE_BUS_TRACKS * SITE_UM, 3)
     # **コア幅 1600 を超えるとフレーム開口が 1840 → 1600 に落ちる**ので、
     # 行幅は残り全部（`frame_opening()` で実測した崖）。
     ROW_WIDTH_UM = round(CORE_WIDTH_UM - MACRO_W - MACRO_SIDE_GAP, 3)
@@ -320,12 +333,15 @@ def check():
             msg.append(f"TD4_MACRO_ROW {MACRO_ALIGN_ROW} が行の範囲外（0…{N_ROWS-1}）")
         _bus = side_bus_x()
         if _bus:
-            if _bus[0] - 1.7 < ROW_WIDTH_UM + 2.0 - 1e-9:
-                msg.append(f"縦バスの左端 {_bus[0]-1.7} が行スタックの右端 "
-                           f"{ROW_WIDTH_UM} に近すぎる（M2 最小間隔 2.0）")
-            if _bus[-1] + 1.7 > mx0 + 2.8 - 2.0 + 1e-9:
-                msg.append(f"縦バスの右端 {_bus[-1]+1.7} がマクロの金属 "
-                           f"{mx0+2.8} に近すぎる（M2 最小間隔 2.0）")
+            # 拘束は **via の M1 パッド**（半幅 1.7 + M1 最小間隔 1.4 = 3.1）。
+            # `REG8x16` の M1 は prBoundary の左端そのもの（実測 x=0.00）。
+            if _bus[0] - 3.1 < ROW_WIDTH_UM - 1e-9:
+                msg.append(f"縦バスの左端 {_bus[0]} が行スタックの右端 "
+                           f"{ROW_WIDTH_UM} に近すぎる（via パッド 1.7 + "
+                           f"M1 最小間隔 1.4 = 3.1 要る）")
+            if _bus[-1] + 3.1 > mx0 + 1e-9:
+                msg.append(f"縦バスの右端 {_bus[-1]} がマクロの M1 左端 "
+                           f"{mx0} に近すぎる（3.1 要る）")
         if not (0 <= MACRO_ALIGN_ROW < N_ROWS):
             pass
         elif abs(my0 - _ys[MACRO_ALIGN_ROW]) > 1e-6:
