@@ -147,6 +147,17 @@ $YS -p "read_verilog $RTL; blackbox td4_mem; hierarchy -check -top td4_soc_arr; 
 python3 scripts/syn_report.py td4_soc_arr_bb -n out/td4_soc_arr_bb.v
 
 echo
+echo "##################### 6.5 REG8x16 マクロへの差し替え（P&R 入力）"
+# RTL の td4_mem と実物の REG8x16 はピン互換ではない。グルーを入れて差し替える。
+python3 scripts/mem_wrap.py out/td4_soc_arr_bb.v -o out/td4_soc_arr_pnr.v
+python3 scripts/syn_report.py td4_soc_arr -n out/td4_soc_arr_pnr.v --brief
+if command -v iverilog >/dev/null 2>&1; then
+  iverilog -g2012 -o /tmp/g_pnr.vvp hdl/tb/tb_td4_soc_arr.v out/td4_soc_arr_pnr.v \
+           $CELLS hdl/rtl/reg8x16.v
+  echo "  差し替え後の TB: $(vvp /tmp/g_pnr.vvp | grep -E 'PASSED|FAIL' | tail -1)"
+fi
+
+echo
 echo "##################### 7. 命令メモリ カスタムアレイ化の効果"
 python3 scripts/mem_array_estimate.py
 
@@ -156,6 +167,10 @@ if command -v "${STA:-sta}" >/dev/null 2>&1; then
   for T in $TOPS; do
     sh scripts/sta/sta.sh out/$T.v $T 100 2>&1 | grep -vE "Warning (1210|503)"
   done
+  # P&R に入れるのはこれ。REG8x16 を通るパスが見える唯一の版
+  [ -f out/td4_soc_arr_pnr.v ] && \
+    sh scripts/sta/sta.sh out/td4_soc_arr_pnr.v td4_soc_arr 100 2>&1 \
+      | grep -vE "Warning (1210|503)"
 else
   echo "  OpenSTA が無いので飛ばす（scripts/sta/README.md にビルド手順）"
 fi

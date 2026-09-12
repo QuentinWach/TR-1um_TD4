@@ -261,46 +261,69 @@ def emit_macro(cell, d, o):
     """メモリマクロ（`REG8x16`）。
 
     クロックを持たないラッチアレイなので、Liberty では
-      ADD[j] -> Q[i]  を **組合せアーク**（non_unate）として書く。
+      ADD[j] -> Q  を **組合せアーク**（non_unate）として書く。
     これが P&R の本命 `td4_soc_arr_bb` のクリティカルパスの主成分になる。
 
+    **ピンは `bus` グループで宣言する。** `pin (ADD[0])` を並べただけだと
+    OpenSTA が Verilog 側の `.ADD({...})` をバスとして解決できず
+    「instance u_mem port ADD not found」で接続が落ちる。
+
+    `timing` は `bus (Q)` の中に置く（全ビットに効く）。ビット間の差は
+    測定でも 0.0% だったので、4 本のアドレスビットぶんだけ書けば足りる。
+
     **まだ入っていないもの**（`char_mem.py` が測っていない）:
-      * `D[i]` / `ADD[j]` の `WEB` 立上りに対する setup / hold
-      * `WEB` -> `Q[i]`（書込み中に Q が追従する経路）
+      * `D` / `ADD` の `WEB` 立上りに対する setup / hold
+      * `WEB` -> `Q`（書込み中に Q が追従する経路）
       * `WEB` の最小ローパルス幅
     書込みタイミングを STA で見るにはこれらが要る。読出しパスだけなら足りる。
     """
     area = AREAS[cell]["area"]
-    nq = len(d["cap"]) and 8
+    caps = d["cap"]
+    adds = sorted(d["read"], key=lambda k: int(k.strip("ADD[]")))
+    nadd, nd = len(adds), 8
+    cap_add = max(caps[a] for a in adds)
+    cap_d = max(v for k, v in caps.items() if k.startswith("D["))
     o.append(f'{IND}cell ({cell}) {{')
     o.append(f'{IND*2}area : {area:.1f};')
     o.append(f'{IND*2}dont_use : true;   /* 座標指定で置くマクロ。合成が挿してはいけない */')
     o.append(f'{IND*2}dont_touch : true;')
     o.append(f'{IND*2}is_macro_cell : true;')
     o.append(f'{IND*2}/* 測定: {d.get("netlist", "?")} / 書込み後に ADD を振って読出し */')
-    for pin, cap in sorted(d["cap"].items()):
-        o.append(f'{IND*2}pin ({pin}) {{')
-        o.append(f'{IND*3}direction : input;')
-        o.append(f'{IND*3}capacitance : {cap:.3f};')
-        o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
-        o.append(f'{IND*2}}}')
-    adds = sorted(d["read"], key=lambda k: int(k.strip("ADD[]")))
-    for i in range(nq):
-        o.append(f'{IND*2}pin (Q[{i}]) {{')
-        o.append(f'{IND*3}direction : output;')
-        o.append(f'{IND*3}max_capacitance : {d["loads"][-1]:g};')
-        for ad in adds:
-            arc = d["read"][ad]
-            o.append(f'{IND*3}timing () {{')
-            o.append(f'{IND*4}related_pin : "{ad}";')
-            o.append(f'{IND*4}timing_sense : non_unate;')
-            o.append(f'{IND*4}timing_type : combinational;')
-            for key in ("cell_rise", "rise_transition", "cell_fall", "fall_transition"):
-                o.append(f'{IND*4}{key} (mem_template_7x7) {{')
-                o.append(values_block(arc[key], IND * 5))
-                o.append(f'{IND*4}}}')
-            o.append(f'{IND*3}}}')
-        o.append(f'{IND*2}}}')
+    o.append(f'{IND*2}/* ADD のビット間は {min(caps[a] for a in adds):.1f}-'
+             f'{cap_add:.1f} fF。大きい方を採った */')
+    o.append(f'{IND*2}bus (ADD) {{')
+    o.append(f'{IND*3}bus_type : bus{nadd};')
+    o.append(f'{IND*3}direction : input;')
+    o.append(f'{IND*3}capacitance : {cap_add:.3f};')
+    o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
+    o.append(f'{IND*2}}}')
+    o.append(f'{IND*2}pin (WEB) {{')
+    o.append(f'{IND*3}direction : input;')
+    o.append(f'{IND*3}capacitance : {caps["WEB"]:.3f};')
+    o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
+    o.append(f'{IND*2}}}')
+    o.append(f'{IND*2}bus (D) {{')
+    o.append(f'{IND*3}bus_type : bus{nd};')
+    o.append(f'{IND*3}direction : input;')
+    o.append(f'{IND*3}capacitance : {cap_d:.3f};')
+    o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
+    o.append(f'{IND*2}}}')
+    o.append(f'{IND*2}bus (Q) {{')
+    o.append(f'{IND*3}bus_type : bus{nd};')
+    o.append(f'{IND*3}direction : output;')
+    o.append(f'{IND*3}max_capacitance : {d["loads"][-1]:g};')
+    for ad in adds:
+        arc = d["read"][ad]
+        o.append(f'{IND*3}timing () {{')
+        o.append(f'{IND*4}related_pin : "{ad}";')
+        o.append(f'{IND*4}timing_sense : non_unate;')
+        o.append(f'{IND*4}timing_type : combinational;')
+        for key in ("cell_rise", "rise_transition", "cell_fall", "fall_transition"):
+            o.append(f'{IND*4}{key} (mem_template_7x7) {{')
+            o.append(values_block(arc[key], IND * 5))
+            o.append(f'{IND*4}}}')
+        o.append(f'{IND*3}}}')
+    o.append(f'{IND*2}}}')
     o.append(f'{IND}}}')
 
 
@@ -356,6 +379,7 @@ def main():
     o.append("library (tr1um_typ_5v0_25c) {")
     o.append(f"{IND}technology (cmos);")
     o.append(f"{IND}delay_model : table_lookup;")
+    o.append(f'{IND}bus_naming_style : "%s[%d]";')
     o.append(f'{IND}time_unit : "1ns";')
     o.append(f'{IND}voltage_unit : "1V";')
     o.append(f'{IND}current_unit : "1mA";')
@@ -446,6 +470,15 @@ def main():
             o.append(f'{IND*2}index_1 ("{idx(mem["slews"])}");')
             o.append(f'{IND*2}index_2 ("{idx(mem["loads"])}");')
             o.append(f"{IND}}}")
+            for n in (4, 8):
+                o.append(f"{IND}type (bus{n}) {{")
+                o.append(f"{IND*2}base_type : array;")
+                o.append(f"{IND*2}data_type : bit;")
+                o.append(f"{IND*2}bit_width : {n};")
+                o.append(f"{IND*2}bit_from : {n-1};")
+                o.append(f"{IND*2}bit_to : 0;")
+                o.append(f"{IND*2}downto : true;")
+                o.append(f"{IND}}}")
     o.append(f"{IND}lu_table_template (constraint_template_3x3) {{")
     o.append(f"{IND*2}variable_1 : constrained_pin_transition;")
     o.append(f"{IND*2}variable_2 : related_pin_transition;")
