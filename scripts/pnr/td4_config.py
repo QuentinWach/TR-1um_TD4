@@ -105,7 +105,7 @@ ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横�
 
 MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
 MACRO_CELL = "MEMPORT"         # 実際に置く物理セル（R90 + 中継）
-MACRO_W, MACRO_H = 1598.4, 399.6
+MACRO_W, MACRO_H = 1598.4, 550.8   # mkmemport.py の出力と一致させること
 # 帯の上端と ch[0] の下端 (y=0) の間に空ける隙間。
 # **0 にしてはいけない。** ルータは ch[0] の最初のトラックを y=2.0 に置き、
 # TAP の M2 電源メッシュを y=0 から立てるので、帯の上辺の金属と 1.4/2.0 µm を
@@ -113,7 +113,7 @@ MACRO_W, MACRO_H = 1598.4, 399.6
 MACRO_GAP_UM = 10.8
 MACRO_Y0 = -(MACRO_H + MACRO_GAP_UM)   # ルータ座標での帯の下端
 
-CH_HEIGHTS = [400.0, 600.0, 600.0, 600.0, 250.0]
+CH_HEIGHTS = [600.0, 600.0, 600.0, 600.0, 250.0]
 
 TAP_X = [0.0, 534.6, 1069.2, 1587.6]         # 行ローカル。tap_positions() と一致
 

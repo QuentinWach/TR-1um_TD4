@@ -99,7 +99,10 @@ def main(gds=cfg.SQUEEZED_GDS, placement=cfg.PLACEMENT_JSON, net_path=cfg.NET_PA
     # PCell instances scattered through the channels, and taking every
     # instance's Y makes the rows unrecoverable.
     import lef_parser
-    macros = set(lef_parser.parse_lef(cfg.LEF_PATH))
+    # --- TD4 移植 (9): ハードマクロの帯は「行」ではない ------------------------
+    # `MEMPORT` は row0 の下の帯（ルータ座標で y<0）に 1 個だけ置いてある。
+    # セル種で数えると**行が 1 本多く見えて**ここで落ちる。除く。
+    macros = set(lef_parser.parse_lef(cfg.LEF_PATH)) - {cfg.MACRO_CELL}
     ys = sorted({round(r.trans.disp.y * ly.dbu, 3) for r in top.each_inst()
                  if r.cell.name in macros})
     row_y0 = []

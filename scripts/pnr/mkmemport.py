@@ -21,12 +21,20 @@
 帯の上辺に水平なパッド列を作る。
 
     ピン(M2) ─V1─ M1 を右へ（各ピン自身の y。21 本とも別の y）
-                 └─V1─ M2 を上へ（21 本とも別の x、5.4 ピッチ）
-                        └─ 上辺の M2 パッド + ラベル
+                 └─V1─ M2 を上へ（ライザ列。21 本とも別の x、5.4 ピッチ）
+                        └─V1─ **M1 をマクロの上で左右へ**（21 本とも別の y）
+                               └─V1─ M2 を上へ
+                                      └─ 上辺の M2 パッド + ラベル
 
 M1 は水平・M2 は垂直で、`lef/TR-1um_tech.lef` の方向規則どおり。
-中継はマクロの**上**ではなく**横**に置くので、**帯の高さは 399.6 µm ちょうど**、
-高さの持ち出しはゼロ。
+
+**マクロの上に M1 の段を作る理由**: 中継をマクロの右だけで済ませると、
+パッドが x 945…1593（右 40%）にしか置けない。すると 21 本のネットが全部
+コアの右側から出発することになり、ch[0] に長いトランクが 21 本並んで
+行またぎが集中する（実測: 短絡 22 件のうち 12 件がマクロ絡みだった）。
+マクロの**上**に 1 本ずつ M1 の段を持てば、パッドを**コア幅いっぱい**に
+散らせる。帯は 21+4 段ぶん（約 150 µm）高くなるが、圧縮後のコア高に
+まだ余裕がある。
 
 ## 出力
 
@@ -69,11 +77,13 @@ M2_GAP = 2.0
 
 # --- 中継の配置 ------------------------------------------------------------
 VIA_X = 938.3              # マクロ右のピン引き出し V1 列（全ピン共通の x）
-SIG_X0 = 945.0             # 信号 M2 ライザの左端
-SIG_DX = 32.4              # 同ピッチ（6 サイト）。945.0…1593.0 に 21 本を最大限散らす
-# 電源ライザは信号の隙間へ挟む（信号を右端まで使い切るため）。
-PWR_X = [SIG_X0 + SIG_DX * k + SIG_DX / 2 for k in range(4)]
-PAD_Y0, PAD_Y1 = 395.1, 398.5   # 上辺のパッド（元セルの 1.1…4.5 と同じ作法）
+RISER_X0 = 943.7           # ライザ列の左端（ピンごとに 5.4 ずつずらす）
+RISER_DX = 5.4
+# ライザを避けてパッドを置く x の帯（左右 2 つ）。ライザ列は 943.7…1078.1。
+PAD_BANDS = [(27.0, 928.8), (1090.8, 1592.0)]
+TRACK_DY = 5.4             # マクロの上の M1 段のピッチ
+TRACK_Y0 = 405.0           # 最初の M1 段（マクロ上端 399.6 + 5.4）
+PAD_H = 3.4
 
 
 def r90(x, y, w_src, h_src):
@@ -95,7 +105,7 @@ def build(plot=None):
         raise SystemExit(f"{SRC_CELL} の prBoundary 原点が (0,0) でない。"
                          f"先に scripts/normalize_prboundary.py")
 
-    W, H = cfg.CORE_WIDTH_UM, w_src          # 回転後の高さ = 元の幅
+    W = cfg.CORE_WIDTH_UM                    # 帯の幅 = コア幅
     if h_src > W:
         raise SystemExit(f"回転後の幅 {h_src} がコア幅 {W} を超える")
 
@@ -128,7 +138,6 @@ def build(plot=None):
     add_deep(src)
     top = out.new_cell(CELL)
     top.add(gdstk.Reference(src, (h_src, 0.0), rotation=math.pi / 2))
-    top.add(gdstk.rectangle((0, 0), (W, H), layer=BOUND[0], datatype=BOUND[1]))
 
     def box(ld, x0, y0, x1, y1):
         top.add(gdstk.rectangle((x0, y0), (x1, y1), layer=ld[0], datatype=ld[1]))
@@ -140,39 +149,70 @@ def build(plot=None):
         box(M1, cx - HALF, cy - HALF, cx + HALF, cy + HALF)
         box(M2, cx - HALF, cy - HALF, cx + HALF, cy + HALF)
 
-    def fanout(name, use, px0, py0, px1, py1, rx):
-        """1 本ぶんの中継。ピン(M2) → M1 で右 → M2 で上 → 上辺パッド。"""
+    def fanout(name, use, px0, py0, px1, py1, k, rx, ty):
+        """1 本ぶんの中継。
+
+          ピン(M2) → M1 右 → M2 上（ライザ） → M1 左右（マクロの上の段）
+                                              → M2 上 → 上辺パッド
+        """
         cy = round((py0 + py1) / 2.0, 3)
-        # ピンから V1 列まで M2 を伸ばす（マクロの外へ出すぶんだけ）
+        ax = round(RISER_X0 + k * RISER_DX, 3)
+        # 1) ピンから V1 列まで M2 を伸ばす（マクロの外へ出すぶんだけ）
         box(M2, px0, cy - HALF, VIA_X + HALF, cy + HALF)
         via(VIA_X, cy)
-        # M1 を右へ
-        box(M1, VIA_X - HALF, cy - HALF, rx + HALF, cy + HALF)
-        via(rx, cy)
-        # M2 を上辺まで
-        box(M2, rx - HALF, cy - HALF, rx + HALF, PAD_Y1)
-        # パッド本体 + ピンマーカ + ラベル
-        box(M2PIN, rx - HALF, PAD_Y0, rx + HALF, PAD_Y1)
-        top.add(gdstk.Label(name, (rx, (PAD_Y0 + PAD_Y1) / 2.0),
+        # 2) M1 を右へ、ライザ列まで
+        box(M1, VIA_X - HALF, cy - HALF, ax + HALF, cy + HALF)
+        via(ax, cy)
+        # 3) M2 でマクロの上の段まで上げる
+        box(M2, ax - HALF, cy - HALF, ax + HALF, ty + HALF)
+        via(ax, ty)
+        # 4) M1 でその段を左右に走り、パッドの x まで
+        box(M1, min(ax, rx) - HALF, ty - HALF, max(ax, rx) + HALF, ty + HALF)
+        via(rx, ty)
+        # 5) M2 で上辺パッドまで
+        box(M2, rx - HALF, ty - HALF, rx + HALF, pad_y1)
+        box(M2PIN, rx - HALF, pad_y0, rx + HALF, pad_y1)
+        top.add(gdstk.Label(name, (rx, (pad_y0 + pad_y1) / 2.0),
                             layer=M2LBL[0], texttype=M2LBL[1], magnification=2.0))
-        return dict(name=name, use=use, x0=round(rx - HALF, 3), y0=PAD_Y0,
-                    x1=round(rx + HALF, 3), y1=PAD_Y1)
+        return dict(name=name, use=use, x0=round(rx - HALF, 3), y0=pad_y0,
+                    x1=round(rx + HALF, 3), y1=pad_y1)
+
+    allpins = sig + pwr_r
+    n = len(allpins)
+    ty_last = TRACK_Y0 + (n - 1) * TRACK_DY
+    pad_y0 = round(ty_last + TRACK_DY + HALF, 3)
+    pad_y1 = round(pad_y0 + PAD_H, 3)
+    H = round(pad_y1 + 1.1, 3)
+    H = round(math.ceil(H / GRID) * GRID, 3)     # サイトグリッドに丸める
+
+    # パッドの x を**コア幅いっぱい**に散らす（ライザ列の帯は避ける）
+    span = sum(b - a for a, b in PAD_BANDS)
+    pad_xs, acc = [], 0.0
+    for i in range(n):
+        want = span * i / max(n - 1, 1)
+        s = 0.0
+        for a, b in PAD_BANDS:
+            if want <= s + (b - a) + 1e-9:
+                x = a + (want - s)
+                break
+            s += b - a
+        pad_xs.append(round(round(x / GRID) * GRID, 3))
+    if len(set(pad_xs)) != n:
+        raise SystemExit(f"パッドの x が重複した: {pad_xs}")
 
     pins = []
-    for k, (name, use, x0, y0, x1, y1) in enumerate(sig):
-        rx = round(SIG_X0 + k * SIG_DX, 3)
-        if rx + HALF > W - 1e-6:
-            raise SystemExit(f"信号パッド {name} の x={rx} がコア幅を超える")
-        pins.append(fanout(name, use, x0, y0, x1, y1, rx))
-    for k, (name, use, x0, y0, x1, y1) in enumerate(pwr_r):
-        pins.append(fanout(name, use, x0, y0, x1, y1, PWR_X[k]))
+    for k, ((name, use, x0, y0, x1, y1), rx) in enumerate(zip(allpins, pad_xs)):
+        ty = round(TRACK_Y0 + k * TRACK_DY, 3)
+        pins.append(fanout(name, use, x0, y0, x1, y1, k, rx, ty))
+
+    top.add(gdstk.rectangle((0, 0), (W, H), layer=BOUND[0], datatype=BOUND[1]))
 
     # 干渉チェック: 同一レイヤの M2 ライザ同士が 2.0 µm 以上離れているか
     xs = sorted(p["x0"] + HALF for p in pins)
     tight = [(a, b) for a, b in zip(xs, xs[1:]) if b - a < PAD + M2_GAP - 1e-6]
     if tight:
         raise SystemExit(f"M2 ライザの間隔が足りない: {tight[:3]}")
-    ys = sorted(round((r[3] + r[5]) / 2.0, 3) for r in sig + pwr_r)
+    ys = sorted(round((r[3] + r[5]) / 2.0, 3) for r in allpins)
     tighty = [(a, b) for a, b in zip(ys, ys[1:]) if b - a < PAD + 1.4 - 1e-6]
     if tighty:
         raise SystemExit(f"M1 引き出しの y 間隔が足りない: {tighty[:3]}")
@@ -189,11 +229,17 @@ def build(plot=None):
     L = [f"MACRO {CELL}", "  CLASS BLOCK ;", f"  FOREIGN {CELL} 0.000 0.000 ;",
          "  ORIGIN 0.000 0.000 ;", f"  SIZE {W:.3f} BY {H:.3f} ;",
          "  SYMMETRY X Y ;"]
+    # 同名のピン（vdd/vss は 2 枚ずつ）は **1 つの PIN にまとめる**。
+    # 別々に書くと LEF 読み手の dict で後勝ちになり、片方が見えなくなる。
+    byname = {}
     for p in pins:
-        L += [f"  PIN {p['name']}", "    DIRECTION INOUT ;",
-              f"    USE {p['use']} ;", "    PORT", "      LAYER METAL2 ;",
-              f"        RECT {p['x0']:.3f} {p['y0']:.3f} {p['x1']:.3f} {p['y1']:.3f} ;",
-              "    END", f"  END {p['name']}"]
+        byname.setdefault(p["name"], (p["use"], []))[1].append(p)
+    for name, (use, ps) in byname.items():
+        L += [f"  PIN {name}", "    DIRECTION INOUT ;",
+              f"    USE {use} ;", "    PORT", "      LAYER METAL2 ;"]
+        L += [f"        RECT {q['x0']:.3f} {q['y0']:.3f} {q['x1']:.3f} {q['y1']:.3f} ;"
+              for q in ps]
+        L += ["    END", f"  END {name}"]
     L += ["  OBS", "    LAYER METAL1 ;",
           f"      RECT 0.000 0.000 {W:.3f} {H:.3f} ;",
           "    LAYER METAL2 ;",
@@ -207,17 +253,17 @@ def build(plot=None):
     print(f"wrote {os.path.relpath(leff, cfg.ROOT)}")
     print(f"  {CELL} {W} x {H} um   （{SRC_CELL} を R90 して {h_src} x {w_src}、"
           f"右の空き地 {W - h_src:.1f} um に中継）")
-    print(f"  上辺パッド: 信号 {len(sig)} 本 x {SIG_X0}…"
-          f"{SIG_X0 + (len(sig)-1)*SIG_DX:.1f}（{SIG_DX} µm ピッチ）")
-    print(f"              電源 {len(pwr_r)} 本 x {PWR_X[:len(pwr_r)]}")
+    print(f"  上辺パッド {n} 本（信号 {len(sig)} + 電源 {len(pwr_r)}）"
+          f" x {min(pad_xs)}…{max(pad_xs)}（コア幅いっぱいに分散）")
+    print(f"  マクロの上に M1 の段 {n} 本（y {TRACK_Y0}…{ty_last}）")
     print(f"  ** 電源はマクロ右辺の 2 本ずつだけを引き出している"
           f"（左辺はマクロの真上を通れない）。チップ側で太く受けること")
     if plot:
-        draw(plot, W, H, h_src, sig, pwr_r, pins)
+        draw(plot, W, H, h_src, allpins, pins)
     return gds, leff
 
 
-def draw(path, W, H, mw, sig, pwr, pins):
+def draw(path, W, H, mw, allpins, pins):
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -227,13 +273,17 @@ def draw(path, W, H, mw, sig, pwr, pins):
     ax.add_patch(Rectangle((0, 0), mw, H, fc="#f8c471", ec="#ca6f1e", lw=1.0))
     ax.text(mw / 2, H / 2, f"{SRC_CELL} (R90)  {mw} x {H}", ha="center",
             va="center", fontsize=9)
-    for name, use, x0, y0, x1, y1 in sig + pwr:
+    for name, use, x0, y0, x1, y1 in allpins:
         ax.add_patch(Rectangle((x0, y0), x1 - x0, y1 - y0, fc="#8e44ad", ec="none"))
-    for p, (name, use, x0, y0, x1, y1) in zip(pins, sig + pwr):
+    for k, (p, (name, use, x0, y0, x1, y1)) in enumerate(zip(pins, allpins)):
         cy = (y0 + y1) / 2
+        ax_ = RISER_X0 + k * RISER_DX
+        ty = TRACK_Y0 + k * TRACK_DY
         rx = p["x0"] + 1.7
-        ax.plot([x0, rx], [cy, cy], color="#2980b9", lw=0.8)
-        ax.plot([rx, rx], [cy, p["y1"]], color="#e67e22", lw=0.8)
+        ax.plot([x0, ax_], [cy, cy], color="#2980b9", lw=0.7)
+        ax.plot([ax_, ax_], [cy, ty], color="#e67e22", lw=0.7)
+        ax.plot([ax_, rx], [ty, ty], color="#2980b9", lw=0.7)
+        ax.plot([rx, rx], [ty, p["y1"]], color="#e67e22", lw=0.7)
         ax.add_patch(Rectangle((p["x0"], p["y0"]), 3.4, 3.4, fc="#8e44ad", ec="none"))
     ax.set_xlim(-20, W + 20)
     ax.set_ylim(-20, H + 20)
