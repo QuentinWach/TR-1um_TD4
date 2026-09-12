@@ -379,7 +379,31 @@ def interleave(cells, fills):
     return out
 
 
-def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="distributed"):
+def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="alternate"):
+    """行を組む。戻りは ([(セル名, インスタンス名 or None, x, w), ...], 右端)。
+
+    **FILL の置き方がルータの成否を左右する。** 行を跨ぐ配線は「その行で M2 の
+    無い x」を探すので、FILL がどこにどう固まっているかで空き列の数が決まる。
+
+    区画への詰め方（`quota`）:
+      素直に左から貪欲に詰めると**手前の区画が満杯になり、余りが右端の区画に
+      まとめて落ちる**。実際そうなっていて、どの行も右 1/3 が FILL の塊だった。
+      ここでは「残りのセル幅 : 残りの容量」の比で区画ごとの目標量を決めるので、
+      FILL は全区画に均等に散る。
+
+    区画内の並べ方（`mode`）:
+      alternate    区画ごとに FILL を左右へ振る（偶数区画は右寄せ、奇数区画は
+                   左寄せ）。**全行で同じ振り方**にするので、区画の境目に
+                   幅の広い空き列が縦一直線に揃う。行を跨ぐ配線はここを通る。
+                   `TR-1um_Async_I2C` の anchor-left/right と同じ考え方。
+      distributed  FILL を論理セルの間に散らす（幅 10.8 の隙間が多数）。
+                   via パッド (3.4) + 間隔 (2.0) が両側に要るので、10.8 の
+                   隙間からは**行またぎ用の x が 1 本しか取れない**。
+      end          区画の右端にまとめる（旧挙動）。
+
+    TAP の左右に置いた優先コリドー (`PRI_MODE="both"`) は区画に含めない。
+    **あれはグローバル配線用の予約**で、通常の FILL では埋めない。
+    """
     if not with_tap:
         out, x = [], 0.0
         for c in seq:
@@ -389,36 +413,46 @@ def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="distributed")
 
     fx, segs = row_segments(row_w)
     out, todo = [], list(seq)
-    # 固定ブロック（TAP と優先コリドー）はまず置く。step3（FILL 前）では
-    # コリドーはまだ置かない — 空きがどこにあるか図で見えるようにするため。
     for x, w, kind in fx:
         if kind == "tap":
             out.append((cfg.TAP_CELL, None, x, w))
         elif with_fill:
             out.append(("__PRI__", None, x, w))
-    for x0, cap in segs:
-        picked, left = [], cap
+
+    left_cells = sum(width[c] for c in todo)
+    left_cap = sum(c for _x, c in segs)
+    for si, (x0, cap) in enumerate(segs):
+        # 残りのセルと残りの容量の比で、この区画に入れる量を決める
+        quota = cap if left_cap <= 1e-9 else min(cap, left_cells * cap / left_cap)
+        picked, used = [], 0.0
         while todo:
-            # 先頭が入らないときは少し先まで見て、入るものを 1 つ繰り上げる。
-            # 優先コリドーを等間隔で挟むと 1 区画が 97.2 um と短くなり、
-            # 先頭固定だと端数で詰まって「行に入りきらない」が出る
-            # （実際に u_bufth_d_1 が溢れた）。行内順序は HPWL で決めた
-            # ものなので、**見る範囲を LOOKAHEAD に限って**大きく崩さない。
             take = None
             for j in range(min(LOOKAHEAD, len(todo))):
-                rest = round(left - width[todo[j]], 3)
+                w = width[todo[j]]
+                rest = round(cap - used - w, 3)
                 if rest < -1e-6 or (1e-6 < rest < 10.8 - 1e-6):
                     continue
+                if used + w > quota + 1e-6 and picked:
+                    continue          # 目標を超える。次の区画へ回す
                 take = j
                 break
             if take is None:
                 break
             c = todo.pop(take)
             picked.append((cellof[c], c, width[c]))
-            left = round(left - width[c], 3)
+            used = round(used + width[c], 3)
+        left_cells = round(left_cells - used, 3)
+        left_cap = round(left_cap - cap, 3)
+
+        gap = round(cap - used, 3)
         fills = [(fn, None, fw) for fn, fw in
-                 (pad(left) if (with_fill and left > 1e-6) else [])]
-        items = interleave(picked, fills) if mode == "distributed" else picked + fills
+                 (pad(gap) if (with_fill and gap > 1e-6) else [])]
+        if mode == "distributed":
+            items = interleave(picked, fills)
+        elif mode == "alternate":
+            items = (picked + fills) if si % 2 == 0 else (fills + picked)
+        else:
+            items = picked + fills
         x = x0
         for name, inst, w in items:
             out.append((name, inst, x, w))
@@ -503,7 +537,7 @@ def dump(step, tag, rows, rows_y, macro_inst, info, extra, verbose=True):
 
 # ---------------------------------------------------------------------- main
 def main(net_path=None, info_path=None, restarts=800, order_passes=40,
-         seed=7, fill_mode="distributed", tol=0.02):
+         seed=7, fill_mode="alternate", tol=0.02):
     net_path = net_path or cfg.NET_PATH
     info_path = info_path or cfg.CELL_INFO
     if not os.path.exists(info_path):
@@ -595,8 +629,8 @@ if __name__ == "__main__":
     ap.add_argument("--restarts", type=int, default=800)
     ap.add_argument("--order-passes", type=int, default=40)
     ap.add_argument("--seed", type=int, default=7)
-    ap.add_argument("--fill-mode", choices=("distributed", "end"),
-                    default="distributed")
+    ap.add_argument("--fill-mode", choices=("alternate", "distributed", "end"),
+                    default="alternate")
     ap.add_argument("--balance-tol", type=float, default=0.02,
                     help="行幅の許容ばらつき（平均比）。緩めるとカットは減るが"
                          "行が凸凹になる")

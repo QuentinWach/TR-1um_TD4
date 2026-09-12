@@ -173,15 +173,22 @@ def gather_pins(placement, ch_heights, row_h, resolver=None):
     # row2_list must exclude every port that's ALSO in row0_ports or
     # row3_ports_all, not just the row0/row3 duplication between
     # themselves.
+    # --- TD4 移植 (8): 下辺をポートに使わない ---------------------------------
+    # TD4 はコアの下に `MEMPORT`（横倒しメモリ）の帯を敷くので、**BBOX の下辺
+    # (Y=0) はチップから見るとコアの内側**になる。そこにピンマーカを打つと
+    # フレームから届かない。`NO_BOTTOM_PORTS` が立っているときは row0 も
+    # 中間行と同じ扱いにして、左右へ逃がす（上辺は従来どおり使う）。
+    # チップ側で下辺のパッド 3 本 (D[0]/RSTN/OUT[0]) は回り込みになる。
+    _no_bottom = bool(getattr(_cfg, "NO_BOTTOM_PORTS", False))
     _top = n_rows - 1
-    _mids = list(range(1, _top))
+    _mids = list(range(0 if _no_bottom else 1, _top))
     _half = (len(_mids) + 1) // 2
     _right = [it for r in _mids[:_half] for it in by_row[r]]
     _left = [it for r in _mids[_half:] for it in by_row[r]]
-    row0_ports = {item[0] for item in by_row[0]}
+    row0_ports = set() if _no_bottom else {item[0] for item in by_row[0]}
     row3_ports_all = {item[0] for item in by_row[_top]} if _top > 0 else set()
     vertical_ports = row0_ports | row3_ports_all
-    row0_list = dedup_min_x(by_row[0])
+    row0_list = [] if _no_bottom else dedup_min_x(by_row[0])
     row3_list = dedup_min_x([item for item in by_row[_top]
                              if item[0] not in row0_ports]) if _top > 0 else []
     row1_list = dedup_min_x([item for item in _right if item[0] not in vertical_ports])

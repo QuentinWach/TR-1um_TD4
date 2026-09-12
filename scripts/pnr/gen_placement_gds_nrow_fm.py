@@ -80,7 +80,12 @@ def main(placement_json=PLACEMENT_JSON, out_gds=OUT_GDS, ch_heights=None):
                 missing.add(gds_name)
                 continue
             x_dbu = int(round(inst["x"] / dbu))
-            y_dbu = int(round(y_off / dbu))
+            # TD4 移植: ハードマクロの帯は row0 の下（負の y）に置く。
+            # 行の y オフセットではなく placement JSON の macro.box を使う。
+            y_use = y_off
+            if inst["type"] == placement.get("macro", {}).get("cell"):
+                y_use = placement["macro"]["box"][1]
+            y_dbu = int(round(y_use / dbu))
             top.insert(db.CellInstArray(src.cell_index(), db.Trans(db.Vector(x_dbu, y_dbu))))
     if missing:
         raise SystemExit(f"cells missing from {CELL_GDS}: {missing}")

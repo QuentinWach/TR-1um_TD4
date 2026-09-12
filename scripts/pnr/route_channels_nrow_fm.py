@@ -428,13 +428,13 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
         print(f"priority M2 corridors: {len(priority_corridor_x)} track(s) at x="
               f"{sorted(round(x, 1) for x in priority_corridor_x)}")
     # --- TD4 移植 (2): 行幅の照合はマクロを除いて行う -------------------------
-    # REG8x16 は row0 のインスタンス列の末尾に、x = 1198.8 (= 行スタックの右端
-    # より右) で入っている。ピンが下辺 1 列にあり、その y が row0 の下端と面一
-    # なので、**ルータから見ると「933 um 高い row0 のセル」**として素直に扱える
-    # （ピンの絶対 y は row_y0[0] + 1.1 で正しく出る）。行の右端を数えるときだけ
-    # 行スタックからはみ出す分を除く。
+    # ハードマクロ (`MEMPORT`) は row0 のインスタンス列の末尾に入っているが、
+    # 実体は**行スタックの下の帯**（ルータ座標で y < 0）で、幅はコア幅そのもの。
+    # 行の右端を数えるときはこれを除く。
+    macro_cell = placement.get("macro", {}).get("cell")
     for r, row_insts in enumerate(rows):
-        inrow = [i for i in row_insts if i["x"] < ROW_WIDTH_UM - 1e-6]
+        inrow = sorted([i for i in row_insts if i["type"] != macro_cell],
+                       key=lambda i: i["x"])
         last = inrow[-1]
         w = round(last["x"] + last["width"], 3)
         assert abs(w - ROW_WIDTH_UM) < 1e-6, f"row {r} width {w} != ROW_WIDTH_UM {ROW_WIDTH_UM}"

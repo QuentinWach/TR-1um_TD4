@@ -106,11 +106,30 @@ ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横�
 MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
 MACRO_CELL = "MEMPORT"         # 実際に置く物理セル（R90 + 中継）
 MACRO_W, MACRO_H = 1598.4, 399.6
-MACRO_Y0 = -MACRO_H            # ルータ座標での帯の下端
+# 帯の上端と ch[0] の下端 (y=0) の間に空ける隙間。
+# **0 にしてはいけない。** ルータは ch[0] の最初のトラックを y=2.0 に置き、
+# TAP の M2 電源メッシュを y=0 から立てるので、帯の上辺の金属と 1.4/2.0 µm を
+# 割る（実測: M1 間隔違反 17 件・M2 間隔違反 13 件が全部 y≈0、x<933 に出た）。
+MACRO_GAP_UM = 10.8
+MACRO_Y0 = -(MACRO_H + MACRO_GAP_UM)   # ルータ座標での帯の下端
 
-CH_HEIGHTS = [150.0, 400.0, 400.0, 400.0, 200.0]
+CH_HEIGHTS = [400.0, 600.0, 600.0, 600.0, 250.0]
 
 TAP_X = [0.0, 534.6, 1069.2, 1587.6]         # 行ローカル。tap_positions() と一致
+
+# 配線で使うチャネル予算。配置と同じでなければならない（行の y が変わるため）。
+ROUTE_CH_HEIGHTS = list(CH_HEIGHTS)
+
+# 信号ピンが 1 辺にしか出ていないインスタンス。`MEMPORT` のパッドは帯の上辺
+# （ルータ座標では row0 の下）にしか無いので、**ch[0] からしか出られない**。
+# ルータが行だけ見て上の ch に割り振らないよう名指しする
+# （`route_channels_nrow_fm.py` の「TD4 移植 (3)」）。
+DOWN_FACING_INSTS = {"u_mem"}
+
+# コアの下に `MEMPORT` の帯を敷くので、**BBOX の下辺はチップから見るとコアの
+# 内側**になる。トップピンを下辺に出さない（`route_top_pins_nrow_fm.py` の
+# 「TD4 移植 (8)」）。下辺のパッド 3 本 (D[0]/RSTN/OUT[0]) はチップ側で回り込む。
+NO_BOTTOM_PORTS = True
 
 # ---- 派生値 --------------------------------------------------------------
 def row_y():
@@ -124,8 +143,9 @@ def row_y():
 
 
 def macro_box():
-    """`MEMPORT` の prBoundary (x0, y0, x1, y1)。**ルータ座標では y が負**。"""
-    return (0.0, MACRO_Y0, MACRO_W, MACRO_Y0 + MACRO_H)
+    """`MEMPORT` の prBoundary (x0, y0, x1, y1)。**ルータ座標では y が負**で、
+    上端は 0 ではなく -MACRO_GAP_UM。"""
+    return (0.0, MACRO_Y0, MACRO_W, round(MACRO_Y0 + MACRO_H, 3))
 
 
 def core_size():

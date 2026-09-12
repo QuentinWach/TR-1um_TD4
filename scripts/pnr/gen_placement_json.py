@@ -25,11 +25,13 @@ SCLK_SPI 版との違いは 2 つ:
      使うため）が、ルータは `"M2"` と文字列比較している。ここで直さないと
      **ピンが 1 本も見つからないまま静かに通る**。
 
-  2. **マクロ `REG8x16` を row0 の末尾に入れる。** 信号ピン 21 本は下辺 1 列
-     (y 1.1…4.5) にあり、マクロの底面は row0 の底面と面一に置いてある
-     （`td4_config.macro_box()`）。したがってピンの絶対 y は
-     `row_y0[0] + 1.1` で正しく出て、ルータからは「933 µm 高い row0 のセル」
-     に見える。行の右端の照合だけはマクロを除いて行う
+  2. **マクロ `MEMPORT` を row0 の末尾に入れる。** 帯はルータ座標の下
+     （y -399.6…0）にあり、パッド 21 本はその上辺 (y -4.5…-1.1)。
+     ルータはピンの y に `row_y0[0]` を足すので、ここで
+     **row0 からの相対 y**（= 負の値）に直して渡す。ルータからは
+     「row0 のセルのピンが下に飛び出している」ように見える。
+     ストラブは min/max で描かれるので向きは問題にならない。
+     行の右端の照合だけはマクロを除いて行う
      （`route_channels_nrow_fm.py` の「TD4 移植 (2)」）。
 """
 from __future__ import annotations
@@ -105,10 +107,12 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
         rows.append(out)
 
     # ---- マクロを row0 の末尾に ------------------------------------------
-    mx0, my0, _, _ = cfg.macro_box()
-    if abs(my0 - pl["ch_heights"][0]) > 1e-6:
-        raise SystemExit(f"マクロの y0 {my0} が ch[0] {pl['ch_heights'][0]} と"
-                         f"違う。ルータは行の y しか足さないので合わせること")
+    mx0, my0, _, my1 = cfg.macro_box()
+    if my1 > 1e-6:
+        raise SystemExit(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の"
+                         f"下に置くこと")
+    row0_y0 = cfg.row_y()[0][0]
+    mcell, minst = pl["macro"]["cell"], pl["macro"].get("net_cell", cfg.MACRO_NET_CELL)
     mcell, minst = pl["macro"]["cell"], pl["macro"]["inst"]
     # **バス接続を開く。** `netlist_parser` はピンごとに 1 ネットしか持たず、
     # `.ADD({ _004_, _003_, _002_, _001_ })` を丸ごと 1 本として返す。
@@ -129,9 +133,14 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
             netname = mconn.get(pname)
             if netname:
                 nmac += 1
+        # ピンの y は**帯ローカル**。ルータは row_y0[0] を足すので、
+        # (帯の y0 + ローカル y) - row_y0[0] に直しておく。
         mpins[pname] = {"net": netname, "use": pinfo["use"],
                         "direction": pinfo["direction"],
-                        "rects": conv_rects(pinfo["rects"], mx0)}
+                        "rects": [[l, x0, round(my0 + y0 - row0_y0, 4),
+                                   x1, round(my0 + y1 - row0_y0, 4)]
+                                  for l, x0, y0, x1, y1
+                                  in conv_rects(pinfo["rects"], mx0)]}
     rows[0].append({"type": mcell, "name": minst, "row": 0, "x": mx0,
                     "width": cfg.MACRO_W, "pins": mpins})
 
@@ -147,7 +156,10 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
           f"コア {data['core_w']} x {data['core_h']}")
     print(f"  ch_heights {data['ch_heights']}")
     print(f"  優先コリドー {npri} 本 / ネットの付いた信号ピン {nsig} 本")
-    print(f"  マクロ {mcell} {minst} @ x={mx0}（row0 の末尾）、信号ピン {nmac} 本")
+    pad_y = [r[2] for p in mpins.values() for r in p["rects"]]
+    print(f"  マクロ {mcell} {minst} @ ({mx0}, {my0})、信号パッド {nmac} 本 "
+          f"（row0 相対 y {min(pad_y):.1f}…{max(pad_y):.1f}、絶対 y "
+          f"{min(pad_y)+row0_y0:.1f}）")
     want = sum(1 for pn, pi in macros[mcell]["pins"].items()
                if pi["use"] not in ("POWER", "GROUND"))
     if nmac != want:
