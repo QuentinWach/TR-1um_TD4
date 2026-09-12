@@ -102,6 +102,18 @@ def main(placement_json=PLACEMENT_JSON, out_gds=OUT_GDS, ch_heights=None):
     for i in range(n_rows + 1):
         top.shapes(ann).insert(box(0, ch_y0[i], row_w, ch_y0[i] + CH_HEIGHTS[i]))
 
+    # TD4 移植 (15): 帯の上辺と ch[0] の間に確保した M1 電源バスバーの枠。
+    # ルータはここに何も描かない（予約枠）。(250,1) に出すので KLayout で
+    # チャネル注釈 (250,0) と区別できる。
+    import td4_config as _cfg
+    bar_ann = layout.layer(250, 1)
+    txt = layout.layer(250, 2)
+    for name, y0, y1 in _cfg.power_bars():
+        top.shapes(bar_ann).insert(box(0, y0, core_w, y1))
+        top.shapes(txt).insert(db.Text(f"{name} bus bar (M1 {y1 - y0:.0f}um, reserved)",
+                                       db.Trans(db.Vector(int(round(10.8 / dbu)),
+                                                          int(round((y0 + y1) / 2 / dbu))))))
+
     layout.write(out_gds)
     print(f"wrote {out_gds}")
     print(f"core bbox: (0,0)-({row_w:.1f},{core_h:.1f})")

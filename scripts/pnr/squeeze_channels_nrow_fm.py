@@ -230,6 +230,18 @@ def build_y_map(ch_y0, ch_heights, row_y0, row_h, n_rows, n_ch,
     breakpoints = dedup
 
     def y_map(y):
+        # --- TD4 移植 (14) -------------------------------------------
+        # **最初のブレークポイント (0,0) より下は恒等**。
+        #
+        # 移植元にはルータ座標の y<0 に置くものが無かったので、下限の
+        # ケースが無く、最後の `return y + (ny_last - oy_last)` に落ちて
+        # いた。つまりマクロ帯（y -567.9…-10.8）に**圧縮量そのもの**
+        # (-1749.8 µm) が足されて、コアの 1766 µm 下へ飛んでいた。
+        # KLayout で見ると帯とコアの間に長い縦 M2 だけの空白が空く。
+        # （ユーザ指摘のスクリーンショットがこれ。）
+        oy_first, ny_first = breakpoints[0]
+        if y < oy_first - 1e-6:
+            return y + (ny_first - oy_first)
         # binary search would be nicer; linear is plenty fast here (few
         # hundred breakpoints, thousands of calls)
         for i in range(len(breakpoints) - 1):

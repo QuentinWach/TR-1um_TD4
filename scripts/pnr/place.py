@@ -32,6 +32,7 @@ STEP:
   step3  TAP 挿入      固定ピッチのセグメント分割
   step4  FILL 挿入     行幅を厳密に揃える（最終）
 """
+
 from __future__ import annotations
 import argparse, json, os, random, re, sys
 from collections import defaultdict
@@ -622,6 +623,15 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
 
 
 if __name__ == "__main__":
+    # --- 決定性: PYTHONHASHSEED を固定して自分を起動し直す ----------------
+    # ルータのどこかで**集合を反復している**（未特定）。集合の反復順は
+    # PYTHONHASHSEED で毎回変わるので、**同じ配置 JSON から走らせても結果が
+    # 変わる**。実測: seed=1 の同一配置 (md5 31d6cb77…) で step6 が
+    # 3 短絡 → 0 短絡と揺れた。ここで固定して、再現しない結果を掴まされない
+    # ようにする。
+    if os.environ.get("PYTHONHASHSEED") != "0":
+        os.environ["PYTHONHASHSEED"] = "0"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--netlist", default=None)

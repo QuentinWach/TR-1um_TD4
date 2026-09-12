@@ -24,6 +24,7 @@ Stages, each leaving its own GDS:
     scripts/route.py --to 6          # stop after channel routing
     scripts/route.py --from 7        # resume
 """
+
 import argparse
 import json
 import os
@@ -288,6 +289,15 @@ def main(first=5, last=10, ch=None):
 
 
 if __name__ == "__main__":
+    # --- 決定性: PYTHONHASHSEED を固定して自分を起動し直す ----------------
+    # ルータのどこかで**集合を反復している**（未特定）。集合の反復順は
+    # PYTHONHASHSEED で毎回変わるので、**同じ配置 JSON から走らせても結果が
+    # 変わる**。実測: seed=1 の同一配置 (md5 31d6cb77…) で step6 が
+    # 3 短絡 → 0 短絡と揺れた。ここで固定して、再現しない結果を掴まされない
+    # ようにする。
+    if os.environ.get("PYTHONHASHSEED") != "0":
+        os.environ["PYTHONHASHSEED"] = "0"
+        os.execv(sys.executable, [sys.executable] + sys.argv)
     ap_ = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap_.add_argument("--from", dest="first", type=int, default=5)

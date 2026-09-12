@@ -110,7 +110,14 @@ MACRO_W, MACRO_H = 1598.4, 550.8   # mkmemport.py の出力と一致させるこ
 # **0 にしてはいけない。** ルータは ch[0] の最初のトラックを y=2.0 に置き、
 # TAP の M2 電源メッシュを y=0 から立てるので、帯の上辺の金属と 1.4/2.0 µm を
 # 割る（実測: M1 間隔違反 17 件・M2 間隔違反 13 件が全部 y≈0、x<933 に出た）。
-MACRO_GAP_UM = 10.8
+#
+# ここには **VDD/VSS の電源バスバー 2 本（M1・幅 10 µm）** を通す
+# （ユーザ指示）。帯の上辺と ch[0] の間は M2 のライザが縦に抜けるだけで
+# M1 は 1 本も無いので、横向きの M1 バーを通すのに都合がよい。
+# 必要量: 1.4 + 10 + 1.4 + 10 + 1.4 = 24.2 µm → サイト grid に丸めて 27.0。
+POWER_BAR_W = 10.0             # バー 1 本の M1 幅
+POWER_BAR_GAP = 2.0            # バー間 / 帯とバーの間（M1 最小 1.4 に余裕）
+MACRO_GAP_UM = 27.0
 MACRO_Y0 = -(MACRO_H + MACRO_GAP_UM)   # ルータ座標での帯の下端
 
 CH_HEIGHTS = [600.0, 600.0, 600.0, 600.0, 250.0]
@@ -148,6 +155,23 @@ def macro_box():
     return (0.0, MACRO_Y0, MACRO_W, round(MACRO_Y0 + MACRO_H, 3))
 
 
+def power_bars():
+    """帯の上辺と ch[0] の間に確保した **M1 電源バスバー 2 本**の
+    (name, y0, y1)。下が VSS、上が VDD（帯側が GND なのはマクロの
+    電源が帯の右端から出るため。チップ側で受けるときに合わせること）。
+
+    ルータはここに何も描かない（ch[0] は y>=0 から始まる）。実際の
+    バーはチップ組み立てで TAP の M2 柱とマクロ右端の電源に繋ぐ。
+    """
+    top_of_band = MACRO_Y0 + MACRO_H          # = -MACRO_GAP_UM
+    y = top_of_band + POWER_BAR_GAP
+    out = []
+    for name in ("GND", "VDD"):
+        out.append((name, round(y, 3), round(y + POWER_BAR_W, 3)))
+        y += POWER_BAR_W + POWER_BAR_GAP
+    return out
+
+
 def core_size():
     """ルータが扱う領域（行 + チャネル）の幅・高さ。帯は含まない。"""
     _, stack_h = row_y()
@@ -174,6 +198,16 @@ def check():
         msg.append(f"マクロ幅 {MACRO_W} がコア幅 {CORE_WIDTH_UM} を超える")
     if MACRO_Y0 >= 0:
         msg.append(f"マクロ帯はルータ座標の下（y<0）に置くこと（今 {MACRO_Y0}）")
+    # 電源バスバーが帯の上辺と ch[0] の間に収まるか
+    _need = 2 * POWER_BAR_W + 3 * POWER_BAR_GAP
+    if MACRO_GAP_UM + 1e-9 < _need:
+        msg.append(f"MACRO_GAP_UM {MACRO_GAP_UM} では M1 電源バー 2 本 "
+                   f"({POWER_BAR_W} µm x2 + 間隔 {POWER_BAR_GAP} x3 = {_need}) が入らない")
+    if power_bars()[-1][2] > -1.4:
+        msg.append(f"電源バーの上端 {power_bars()[-1][2]} が ch[0] (y=0) に近すぎる"
+                   f"（M1 最小間隔 1.4 µm）")
+    if abs(MACRO_GAP_UM / SITE_UM - round(MACRO_GAP_UM / SITE_UM)) > 1e-9:
+        msg.append(f"MACRO_GAP_UM {MACRO_GAP_UM} がサイトグリッド {SITE_UM} に乗っていない")
     if any(abs(t / SITE_UM - round(t / SITE_UM)) > 1e-9 for t in TAP_X):
         msg.append("TAP_X がサイトグリッドに乗っていない")
     if msg:

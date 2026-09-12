@@ -44,10 +44,17 @@ def one(seed, restarts, passes, tol):
 
     r2 = run([os.path.join(HERE, "route.py"), "--from", "5", "--to", "6"])
     log = r2.stdout + r2.stderr
-    if "PROBLEM(S) FOUND" not in log:
+    # **短絡 0 のときは "PROBLEM(S) FOUND" が出ない。** 以前はそれを
+    # 「配線が落ちた」と誤判定して、一番良いシードを捨てていた
+    # （実測: seed 1 と 9 が 0 件なのに `---` 表示、seed 8 の 1 件を最良と
+    #  報告していた）。
+    if "NO SHORTS DETECTED" in log:
+        n = 0
+    elif "PROBLEM(S) FOUND" in log:
+        n = int(re.search(r"(\d+) PROBLEM\(S\) FOUND", log).group(1))
+    else:
         return dict(seed=seed, ok=False, cross=cross,
                     why=(log.strip().split("\n")[-1][:90] or "配線が落ちた"))
-    n = int(re.search(r"(\d+) PROBLEM\(S\) FOUND", log).group(1))
     nomac = len([l for l in log.splitlines()
                  if "SHORT SUSPECTED" in l and "u_mem" not in l])
     warn = len(re.findall(r"no clear X found for row", log))
