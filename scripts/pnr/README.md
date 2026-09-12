@@ -41,7 +41,27 @@ python3 scripts/pnr/mkcellinfo.py        # セル寸法表
 python3 scripts/pnr/place.py             # step1..step4
 python3 scripts/pnr/verify_placement.py  # 配置の検証
 python3 scripts/pnr/plot_placement.py    # layout/placement_steps.png
+
+export TR1UM_PDK=<PDK>/libs.tech/klayout/tech   # via_1 PCell（必須）
+python3 scripts/pnr/route.py             # step5..step10 + DRC/接続性
+python3 scripts/pnr/route.py --from 6 --to 6    # 配線だけやり直す
+python3 scripts/pnr/plot_layout.py layout/step10/route_step_6_squeezed.gds \
+        -o layout/routed.png
 ```
+
+## 移植でルータに入れた変更（6 箇所）
+
+原本（`TR-1um_SCLK_SPI` 経由で `TR-1um_Async_I2C`）は**アルゴリズムを触らない**
+方針。入れた変更は全部「TD4 移植 (n)」のコメント付きで、内容は次のとおり。
+
+| # | 場所 | 内容 |
+|---|---|---|
+| 1 | `route_channels_nrow_fm.py` | 行幅 1620 の直書きを `cfg.ROW_WIDTH_UM` に。TD4 は行スタック 1177.2 とコア幅 1598.4 が別物 |
+| 2 | 同上 | 行の右端の照合からマクロを除く（`x >= ROW_WIDTH_UM` のインスタンス） |
+| 3 | 同上 | **下辺にしかピンが無いマクロのネットを ch[0] に固定**。既定の分類は「ピンのある行」しか見ないので、マクロと row1 を繋ぐネットが ch[1]（マクロ本体の中）へ割り振られて詰まる |
+| 4 | 同上 | 優先コリドーのセル種を `FILL2` 限定から `FILL*` に |
+| 5 | `highlight_top_pins_nrow_fm.py` | `assign out_port = \u_core.reg_out ;` の**エスケープ識別子**を別名として拾う。拾えないと step8 が out_port[0..3] と cflag_o を見失う |
+| 6 | `squeeze_channels_nrow_fm.py` | **マクロの y 範囲を identity 写像で保護**。マクロは参照なので中身が縮まらず、中で潰すとマクロだけ下がって配線がピンから外れる |
 
 ## フロアプラン
 

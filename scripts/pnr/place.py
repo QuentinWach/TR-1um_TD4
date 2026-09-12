@@ -47,6 +47,7 @@ SUPPLY = {"VDD", "VSS", "GND", "vdd", "vss", "gnd",
           "1'b0", "1'b1", "1'h0", "1'h1"}
 MACRO = cfg.MACRO_CELL
 MACRO_ROW = -1                 # 擬似行。row0 の下 = ch[0] を向く
+LOOKAHEAD = 6                  # 区画詰めで先を見る本数（行内順序を崩さない範囲）
 
 
 # ---------------------------------------------------------------- ネット展開
@@ -311,13 +312,42 @@ def pad(width_um):
     return out
 
 
+def fixed_blocks(row_w):
+    """行の中で**全行同じ x に固定で置くもの**を返す。[(x, w, kind)]。
+
+      kind='tap'  TAP2。縦 M2 電源メッシュの柱
+      kind='pri'  優先 M2 コリドー（FILL2）。**行またぎ用の空き列**
+
+    優先コリドーを TAP 直後の 1 枠だけでなく `cfg.PRI_PITCH` ごとに置く。
+
+    理由: ルータは行を跨ぐたびに「その行で M2 が無い x」を探すが、配置率が
+    79% あると M2 の無い x は 216 トラック中 48 本しかなく、しかも FILL の
+    位置が行ごとにばらばらなので**同じ x で上下に抜けられない**。
+    実測で 155 回の行またぎのうち 63 回が「clear な x が見つからない」と言って
+    遠くへ逃げ、それが短絡の主因になっていた。
+
+    全行同じ x に 10.8 µm（2 トラック）を予約すると、ルータはそこを
+    優先的に使う（`route_channels_nrow_fm.py` が `FILLPRI_*` を自動検出する）。
+    """
+    taps = tap_positions(row_w)
+    out = [(t, cfg.TAP_W, "tap") for t in taps]
+    for a, b in zip(taps, taps[1:]):
+        x, end = round(a + cfg.TAP_W, 3), b
+        while x + cfg.PRI_W <= end - 1e-6:
+            out.append((x, cfg.PRI_W, "pri"))
+            x = round(x + cfg.PRI_PITCH, 3)
+    return sorted(out)
+
+
 def row_segments(row_w):
-    taps, segs, prev = tap_positions(row_w), [], None
-    for t in taps:
-        if prev is not None:
-            segs.append((round(prev + cfg.TAP_W, 3), round(t - prev - cfg.TAP_W, 3)))
-        prev = t
-    return taps, segs
+    """固定ブロックの間の空き [(x0, 容量)] と、固定ブロックそのもの。"""
+    fx = fixed_blocks(row_w)
+    segs = []
+    for (x0, w0, _k), (x1, _w1, _k1) in zip(fx, fx[1:]):
+        cap = round(x1 - x0 - w0, 3)
+        if cap > 1e-6:
+            segs.append((round(x0 + w0, 3), cap))
+    return fx, segs
 
 
 def interleave(cells, fills):
@@ -347,23 +377,35 @@ def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="distributed")
             x = round(x + width[c], 3)
         return out, x
 
-    taps, segs = row_segments(row_w)
+    fx, segs = row_segments(row_w)
     out, todo = [], list(seq)
-    for si, (x0, cap) in enumerate(segs):
-        out.append((cfg.TAP_CELL, None, taps[si], cfg.TAP_W))
-        if with_fill:
-            out.append(("__PRI__", None, x0, cfg.PRI_W))
-            x0 = round(x0 + cfg.PRI_W, 3)
-            cap = round(cap - cfg.PRI_W, 3)
+    # 固定ブロック（TAP と優先コリドー）はまず置く。step3（FILL 前）では
+    # コリドーはまだ置かない — 空きがどこにあるか図で見えるようにするため。
+    for x, w, kind in fx:
+        if kind == "tap":
+            out.append((cfg.TAP_CELL, None, x, w))
+        elif with_fill:
+            out.append(("__PRI__", None, x, w))
+    for x0, cap in segs:
         picked, left = [], cap
         while todo:
-            w = width[todo[0]]
-            rest = round(left - w, 3)
-            if rest < -1e-6 or (1e-6 < rest < 10.8 - 1e-6):
+            # 先頭が入らないときは少し先まで見て、入るものを 1 つ繰り上げる。
+            # 優先コリドーを等間隔で挟むと 1 区画が 97.2 um と短くなり、
+            # 先頭固定だと端数で詰まって「行に入りきらない」が出る
+            # （実際に u_bufth_d_1 が溢れた）。行内順序は HPWL で決めた
+            # ものなので、**見る範囲を LOOKAHEAD に限って**大きく崩さない。
+            take = None
+            for j in range(min(LOOKAHEAD, len(todo))):
+                rest = round(left - width[todo[j]], 3)
+                if rest < -1e-6 or (1e-6 < rest < 10.8 - 1e-6):
+                    continue
+                take = j
                 break
-            c = todo.pop(0)
-            picked.append((cellof[c], c, w))
-            left = rest
+            if take is None:
+                break
+            c = todo.pop(take)
+            picked.append((cellof[c], c, width[c]))
+            left = round(left - width[c], 3)
         fills = [(fn, None, fw) for fn, fw in
                  (pad(left) if (with_fill and left > 1e-6) else [])]
         items = interleave(picked, fills) if mode == "distributed" else picked + fills
@@ -371,7 +413,6 @@ def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="distributed")
         for name, inst, w in items:
             out.append((name, inst, x, w))
             x = round(x + w, 3)
-    out.append((cfg.TAP_CELL, None, taps[-1], cfg.TAP_W))
     if todo:
         raise SystemExit(f"!! {len(todo)} 個が行に入りきらない: {todo[:5]}")
     end = round(row_w, 3) if with_fill else max(x + w for _, _, x, w in out)
@@ -465,14 +506,17 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
     names = [c.name for c in cells]
     n, row_w = cfg.N_ROWS, cfg.ROW_WIDTH_UM
 
-    taps = len(tap_positions(row_w))
-    usable = row_w - taps * cfg.TAP_W - (taps - 1) * cfg.PRI_W
+    fx = fixed_blocks(row_w)
+    taps = sum(1 for _x, _w, k in fx if k == "tap")
+    pris = sum(1 for _x, _w, k in fx if k == "pri")
+    usable = row_w - sum(w for _x, w, _k in fx)
     total = sum(width.values())
     print(f"配置: 標準セル {len(cells)} 個 / 幅合計 {total:.1f} um")
     print(f"      + マクロ {MACRO} {macro.name} "
           f"{cfg.MACRO_W} x {cfg.MACRO_H} um @ {cfg.macro_box()}")
-    print(f"      {n} 行 x {row_w:.1f} um（TAP {taps} + 優先コリドー {taps-1} を"
-          f"引いて実効 {usable:.1f} um/行、計 {n*usable:.1f} um）")
+    print(f"      {n} 行 x {row_w:.1f} um（TAP {taps} + 優先コリドー {pris}"
+          f"（{cfg.PRI_PITCH} um ごと）を引いて実効 {usable:.1f} um/行、"
+          f"計 {n*usable:.1f} um）")
     if total > n * usable:
         raise SystemExit(f"!! 入らない: {total:.1f} um 必要、{n*usable:.1f} um しかない")
     print(f"      マクロのピン {len(mpin)} 本は ch[0] (y 0…{cfg.CH_HEIGHTS[0]}) を向く")
@@ -512,6 +556,7 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
     rows = [pack_row(s, width, cellof, row_w, True, False)[0] for s in order]
     dump(3, "tap", rows, rows_y, macro.name, info,
          dict(assign=assign, tap_x=tap_positions(row_w),
+              pri_x=[x for x, _w, k in fixed_blocks(row_w) if k == "pri"],
               segments=row_segments(row_w)[1]))
 
     # ---- step4: FILL（最終）
@@ -520,6 +565,7 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
     rows = [p[0] for p in packed]
     gds = dump(4, "fill", rows, rows_y, macro.name, info,
                dict(assign=assign, tap_x=tap_positions(row_w),
+                    pri_x=[x for x, _w, k in fixed_blocks(row_w) if k == "pri"],
                     channel_crossings=cross, hpwl_um=round(hp2, 1),
                     row_end_x=[p[1] for p in packed]))
 
