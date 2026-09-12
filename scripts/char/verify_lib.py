@@ -20,12 +20,21 @@
 from __future__ import annotations
 import json, os, re, subprocess, sys
 import cellspec
-from charlib import HERE, VDD, SLEWS, LOADS, run_ngspice, header, ports_of, full_ramp
+from charlib import (HERE, VDD, SLEWS, LOADS, run_ngspice, header, ports_of,
+                     all_ports_of, full_ramp)
 
 SLEW_V = 0.6        # 検算に使う入力遷移（20-80%）
 import char_comb
 
 TOL = 0.15          # 補間との許容ずれ
+
+# collect.py が置いていく実測値。**これがあれば ngspice は回さない**。
+# 特性化を手元の機械（18 コア）で流した場合、検算だけこちらで回すと
+# 測定条件がずれるので、同じ実行の結果を使う。
+VFY = None
+_vp = f"{HERE}/char/_verify.json"
+if os.path.exists(_vp):
+    VFY = json.load(open(_vp))
 
 
 def interp2(x_idx, y_idx, table, x, y):
@@ -49,12 +58,19 @@ def check_tables():
     print("--- 1. 表の健全性 ---")
     ng = 0
     for f in sorted(os.listdir(f"{HERE}/char")):
-        if not f.endswith(".json"):
+        if not f.endswith(".json") or f.startswith("_"):
             continue
         d = json.load(open(f"{HERE}/char/{f}"))
         name = d["cell"]
         groups = []
-        if d.get("seq"):
+        sl = d.get("slews", SLEWS)          # パッドセルは格子が違う
+        if d.get("pad"):
+            for k, t in d["arc"].items():
+                groups.append((f"OUT->PAD {k}", t))
+            for mode in ("enable", "disable"):
+                for k, t in d[mode].items():
+                    groups.append((f"HIZ {mode} {k}", t))
+        elif d.get("seq"):
             for k, t in d["ckq"].items():
                 groups.append((f"CK->Q {k}", t))
         else:
@@ -68,24 +84,47 @@ def check_tables():
             if any(v is None for v in flat):
                 n = sum(1 for v in flat if v is None)
                 print(f"  ! {name} {label}: 測定できていない点が {n} 個"); ng += 1
-            if any(v is not None and v <= 0 for v in flat):
-                print(f"  ! {name} {label}: 0 以下の値がある"); ng += 1
+            # **遅延が負になるのは異常ではない。**
+            # 入力を鈍らせて負荷を軽くすると、入力が 50% を通る前に
+            # 出力が 50% を通ることがある（NAND3/NAND4 の 16ns/10fF で実際に起きる）。
+            # 出力は入力が動き出す前には動けないので、物理的な下限は
+            # 「入力の 50% 通過時刻 - 傾斜の開始時刻」= フルスイング傾斜の半分。
+            # 遷移時間（*_transition）は常に正。
+            neg = []
+            for ri, r in enumerate(tbl):
+                idx1 = sl if len(sl) == len(tbl) else d.get("slews_t", sl)
+                lim = 0.0 if "transition" in label else -full_ramp(idx1[ri]) * 1e-9 / 2
+                for v in r:
+                    if v is None or v > 0:
+                        continue
+                    if v <= lim:
+                        print(f"  ! {name} {label}: 物理的にあり得ない値 {v*1e9:.3f}ns "
+                              f"(入力遷移 {idx1[ri]}ns 行, 下限 {lim*1e9:.1f}ns)"); ng += 1
+                    else:
+                        neg.append((SLEWS[ri], v))
+            if neg:
+                w = min(v for _, v in neg)
+                print(f"    {name} {label}: 負の遅延 {len(neg)} 点（最小 {w*1e9:.3f}ns / "
+                      f"入力遷移 {max(s for s, _ in neg)}ns 側）— 鈍い入力・軽負荷では正常")
             # 負荷を増やすと必ず遅くなるはず
             for ri, r in enumerate(tbl):
                 vv = [v for v in r if v is not None]
                 if len(vv) > 1 and any(b < a * 0.98 for a, b in zip(vv, vv[1:])):
+                    idx1 = sl if len(sl) == len(tbl) else d.get("slews_t", sl)
                     print(f"  ! {name} {label}: 負荷に対して単調でない "
-                          f"(入力遷移 {SLEWS[ri]}ns 行)"); ng += 1
+                          f"(入力遷移 {idx1[ri]}ns 行)"); ng += 1
     print("  逸脱なし" if ng == 0 else f"  ** {ng} 件")
     return ng
 
 
 def check_offgrid(cells=("INV_X1", "NAND2", "NOR2", "MUX2", "XOR2", "AND2_X1")):
     """格子の間で ngspice と .lib 補間を突き合わせる"""
-    print("\n--- 2. 格子の外（入力遷移 1.0ns / 負荷 150fF）で照合 ---")
+    slew, cl = (VFY["slew"], VFY["cl"]) if VFY else (1.0, 150.0)
+    src = "collect.py が回収した実測値" if VFY else "この場で ngspice を実行"
+    print(f"\n--- 2. 格子の外（入力遷移 {slew}ns / 負荷 {cl:g}fF）で照合 ---")
+    print(f"  ({src})")
     print(f"  {'cell':<10}{'arc':<10}{'向き':<5}{'ngspice':>9}{'.lib 補間':>10}{'ずれ':>8}")
     ng = 0
-    slew, cl = 1.0, 150.0
     for cell in cells:
         p = f"{HERE}/char/{cell}.json"
         if not os.path.exists(p):
@@ -98,11 +137,16 @@ def check_offgrid(cells=("INV_X1", "NAND2", "NOR2", "MUX2", "XOR2", "AND2_X1")):
                     __import__("charlib").arcs_of(cell, outs) if o == opin and i == ipin)
         for out_rise in (True, False):
             rise_in = (not out_rise) if sense == "negative_unate" else out_rise
-            deck = char_comb.build_delay(cell, opin, ipin, side, slew, rise_in, set(outs))
-            # 負荷 7 点のうち 1 点を 150fF に差し替える（先頭を使う）
-            deck = deck.replace(f"C0 o0_{opin} 0 {LOADS[0]}f", f"C0 o0_{opin} 0 {cl:g}f")
-            vals, _ = run_ngspice(deck, f"vfy_{cell}_{'r' if out_rise else 'f'}")
-            got = vals.get(("dr0" if out_rise else "df0"))
+            # 負荷 7 点のうち 1 点を格子外の値に差し替える（先頭を使う）
+            if VFY is not None:
+                got = VFY["offgrid"].get(cell, {}).get("r" if out_rise else "f")
+            else:
+                deck = char_comb.build_delay(cell, opin, ipin, side, slew,
+                                             rise_in, set(outs))
+                deck = deck.replace(f"C0 o0_{opin} 0 {LOADS[0]}f",
+                                    f"C0 o0_{opin} 0 {cl:g}f")
+                vals, _ = run_ngspice(deck, f"vfy_{cell}_{'r' if out_rise else 'f'}")
+                got = vals.get(("dr0" if out_rise else "df0"))
             tbl = a["cell_rise"] if out_rise else a["cell_fall"]
             exp = interp2(SLEWS, LOADS, tbl, slew, cl)
             if got is None or exp is None:
@@ -128,14 +172,29 @@ def check_cap():
     print(f"  {'ファンアウト':>10}{'ngspice':>10}{'.lib(N x Cin)':>14}{'ずれ':>8}")
     ng = 0
     for n in (1, 2, 4, 8):
+        if VFY is not None:
+            got = VFY["fanout"].get(str(n))
+            exp = interp2(SLEWS, LOADS, tbl, SLEW_V, cin * n)
+            if got is None:
+                print(f"  ! ファンアウト {n}: 測定できず"); ng += 1; continue
+            err = abs(got - exp) / exp
+            if err >= 0.20: ng += 1
+            print(f"  {n:>10}{got*1e9:9.3f}ns{exp*1e9:13.3f}ns{err:7.1%}"
+                  f"{'  ** ずれが大きい' if err >= 0.20 else ''}")
+            continue
         L = [f"* INV_X1 -> INV_X1 x{n} 実負荷での遅延"]
         L += header("INV_X1")
         # 入力は 20-80% が SLEW_V になる傾斜（表の index_1 と同じ定義）
         L.append(f"Vin src 0 PWL(0 0 100n 0 {100+full_ramp(SLEW_V):g}n 5)")
         L.append("Rin src A 0.001")
-        L.append("XU A Y vdd gnd INV_X1")
+        # ポート順はネットリストの宣言順に従う（KLayout の抽出は ... gnd vdd）
+        pp = all_ports_of("INV_X1")
+        L.append("XU " + " ".join("A" if p == "A" else ("Y" if p == "Y" else p)
+                                  for p in pp) + " INV_X1")
         for k in range(n):
-            L.append(f"XL{k} Y nc{k} vdd gnd INV_X1")
+            L.append(f"XL{k} " + " ".join("Y" if p == "A" else
+                                          (f"nc{k}" if p == "Y" else p)
+                                          for p in pp) + " INV_X1")
             L.append(f"Cn{k} nc{k} 0 20f")   # 次段の出力にも軽い負荷
         L.append(".tran 0.02n 260n")
         L.append(".meas tran d TRIG v(A) VAL=2.5 RISE=1 TARG v(Y) VAL=2.5 FALL=1")

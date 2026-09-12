@@ -16,7 +16,8 @@ import json, os, sys
 from concurrent.futures import ProcessPoolExecutor
 import cellspec
 from charlib import (HERE, VDD, SLEWS, LOADS, TH_DELAY, TH_SLEW_LO, TH_SLEW_HI,
-                     header, ports_of, run_ngspice, arcs_of, pwl_ramp, NPROC, full_ramp)
+                     header, ports_of, all_ports_of, run_ngspice, arcs_of, pwl_ramp,
+                     NPROC, full_ramp, slews_of)
 
 T0 = 100.0            # 入力を振り始める時刻 [ns]
 SETTLE = 150.0        # 遷移後に落ち着かせる時間 [ns]
@@ -39,7 +40,8 @@ def build_delay(cell, opin, ipin, side, slew, rise_in, opins):
     L.append("")
     for k, cl in enumerate(LOADS):
         pl = {p: (f"o{k}_{p}" if p == opin else p) for p in ports}
-        L.append("X{0} ".format(k) + " ".join(pl[p] for p in ports) + f" vdd gnd {cell}")
+        L.append("X{0} ".format(k) + " ".join(pl.get(p, p) for p in all_ports_of(cell))
+                 + f" {cell}")
         L.append(f"C{k} o{k}_{opin} 0 {cl}f")
     L.append("")
     L.append(f".tran {max(min(slew, 0.5) / 20, 0.02):g}n {T0+full_ramp(slew)+SETTLE:g}n")
@@ -70,7 +72,7 @@ def build_cap(cell, ipin, side, opins):
     for p in ports:
         if p != ipin and p not in side and p not in opins:
             L.append(f"V_{p} {p} 0 0")     # 未使用の入力ピン
-    L.append("XU " + " ".join(ports) + f" vdd gnd {cell}")
+    L.append("XU " + " ".join(all_ports_of(cell)) + f" {cell}")
     # 出力を素のままにすると出力が速く振れて Miller 帰還が最大になり、
     # 入力容量が過大に出る。代表負荷（50fF）を付けて測る。
     for p_ in opins:
@@ -106,9 +108,10 @@ def characterize(cell, pool=None):
     outs = cellspec.COMB[cell]
     opins = set(outs)
     arclist = arcs_of(cell, outs)
+    slews = slews_of(cell)          # BUFTH だけ 1000ns まで（charlib.CELL_SLEWS）
     jobs, capjobs, seen = [], [], set()
     for opin, ipin, side, sense in arclist:
-        for si, slew in enumerate(SLEWS):
+        for si, slew in enumerate(slews):
             for out_rise in (True, False):
                 jobs.append((cell, opin, ipin, side, sense, si, slew, out_rise, opins))
         if ipin not in seen:
@@ -117,9 +120,10 @@ def characterize(cell, pool=None):
 
     mapper = pool.map if pool else map
     got = list(mapper(_one, jobs))
-    res = {"cell": cell, "arcs": [], "cap": dict(mapper(_cap, capjobs))}
+    res = {"cell": cell, "slews": slews, "arcs": [],
+           "cap": dict(mapper(_cap, capjobs))}
     for opin, ipin, side, sense in arclist:
-        n = len(SLEWS)
+        n = len(slews)
         arc = {"related_pin": ipin, "pin": opin, "sense": sense,
                "cell_rise": [None]*n, "cell_fall": [None]*n,
                "rise_transition": [None]*n, "fall_transition": [None]*n}
@@ -139,6 +143,12 @@ def main():
     # ADDBUF / REGBUF はアレイ内部の CLASS BLOCK なので特性化しない（機能確認は済み）。
     want = sys.argv[1:] or [c for c in sorted(cellspec.COMB)
                             if c not in cellspec.BLOCK_ONLY]
+    miss = [c for c in want if not os.path.exists(f"{HERE}/{os.environ.get('TR1UM_CELLDIR','cells').split('/')[-1]}/{c}{os.environ.get('TR1UM_CELLEXT','.spi')}")]
+    from check_comb import CELLDIR, CELLEXT
+    miss = [c for c in want if not os.path.exists(f"{CELLDIR}/{c}{CELLEXT}")]
+    if miss:
+        print(f"** ネットリストが無いので特性化しない: {', '.join(miss)}", flush=True)
+    want = [c for c in want if c not in miss]
     os.makedirs(f"{HERE}/char", exist_ok=True)
     print(f"{'cell':<10}{'アーク':>5}  {'Cin [fF]':<28} 代表遅延(slew0.6/CL50) [ns]", flush=True)
     pool = ProcessPoolExecutor(max_workers=NPROC)
@@ -146,7 +156,8 @@ def main():
         r = characterize(cell, pool)
         json.dump(r, open(f"{HERE}/char/{cell}.json", "w"), indent=1)
         caps = " ".join(f"{k}:{v:.1f}" for k, v in r["cap"].items() if v is not None)
-        si, li = SLEWS.index(0.6), LOADS.index(50)
+        # **格子はセルごとに違う**（BUFTH）。既定の SLEWS で添字を引くと別の行を読む。
+        si, li = r["slews"].index(0.6), LOADS.index(50)
         a = r["arcs"][0]
         dr, df = a["cell_rise"][si][li], a["cell_fall"][si][li]
         sdr = f"{dr*1e9:.2f}" if dr is not None else "-"

@@ -46,8 +46,21 @@ def idx(vals):
     return ", ".join(f"{v:g}" for v in vals)
 
 
+# 既定と違う入力遷移の格子を持つセル（charlib.CELL_SLEWS）。
+# **BUFTH はシュミットトリガで外部入力を受けるので 1000ns まで測ってある。**
+# 既定の 16ns までのテンプレートに押し込むと遅い縁の遅延が 45% 過大になる。
+def tmpl_of(cell, data):
+    return ("delay_template_7x7" if data.get("slews", SLEWS) == SLEWS
+            else f"delay_template_{cell}")
+
+
+# シュミットトリガの入出力レベル。DC で往復させて測った実測値。
+SCHMITT = {"BUFTH": {"vt_rise": 3.709, "vt_fall": 1.201}}
+
+
 def emit_comb(cell, data, o):
     fns = cellspec.LIBFUNC.get(cell, {})
+    tmpl = tmpl_of(cell, data)
     # cap_cal（遅延が合うように較正した等価容量）があればそちらを使う。
     # 電荷から出した cap はミラー分を含むので遅延計算には過大。
     caps = data.get("cap_cal") or data.get("cap", {})
@@ -65,7 +78,15 @@ def emit_comb(cell, data, o):
         o.append(f'{IND*3}direction : input;')
         if c:
             o.append(f'{IND*3}capacitance : {c:.3f};')
-        o.append(f'{IND*3}max_transition : {SLEWS[-1]:g};')
+        o.append(f'{IND*3}max_transition : {data.get("slews", SLEWS)[-1]:g};')
+        if cell in SCHMITT:
+            v = SCHMITT[cell]
+            o.append(f'{IND*3}/* シュミットトリガ。立上りは {v["vt_rise"]:.2f}V で、')
+            o.append(f'{IND*3}   立下りは {v["vt_fall"]:.2f}V で切り替わる（ヒステリシス '
+                     f'{v["vt_rise"]-v["vt_fall"]:.2f}V）。')
+            o.append(f'{IND*3}   ライブラリ共通の input_threshold_pct 50 とは一致しないので、')
+            o.append(f'{IND*3}   遅延はその分を含めて入力遷移の軸で吸収させている。 */')
+            o.append(f'{IND*3}input_signal_level : "{cell}_in";')
         o.append(f'{IND*2}}}')
     for p in outs:
         o.append(f'{IND*2}pin ({p}) {{')
@@ -81,7 +102,7 @@ def emit_comb(cell, data, o):
             o.append(f'{IND*4}timing_sense : {a["sense"]};')
             for key, tbl in (("cell_rise", a["cell_rise"]), ("rise_transition", a["rise_transition"]),
                              ("cell_fall", a["cell_fall"]), ("fall_transition", a["fall_transition"])):
-                o.append(f'{IND*4}{key} (delay_template_7x7) {{')
+                o.append(f'{IND*4}{key} ({tmpl}) {{')
                 o.append(values_block(tbl, IND * 5))
                 o.append(f'{IND*4}}}')
             o.append(f'{IND*3}}}')
@@ -166,6 +187,55 @@ def emit_seq(cell, data, o):
     o.append(f'{IND}}}')
 
 
+def emit_pad(cell, d, o):
+    """パッドセル（3 ステートの双方向 IO）。
+
+    標準セルと**格子が違う**ので専用のテンプレートを使う（負荷が pF 台）。
+    `function` + `three_state` で 3 ステート出力を表し、HIZ->PAD に
+    `three_state_enable` / `three_state_disable` のアークを持たせる。
+    """
+    caps = d.get("cap_cal") or d.get("cap", {})
+    o.append(f'{IND}cell ({cell}) {{')
+    o.append(f'{IND*2}area : {d["area"]:.1f};')
+    o.append(f'{IND*2}pad_cell : true;')
+    o.append(f'{IND*2}dont_use : true;    /* フレームに固定配置。合成が勝手に挿さないように */')
+    o.append(f'{IND*2}dont_touch : true;')
+    for p in ("OUT", "HIZ"):
+        o.append(f'{IND*2}pin ({p}) {{')
+        o.append(f'{IND*3}direction : input;')
+        o.append(f'{IND*3}capacitance : {caps[p]:.3f};')
+        o.append(f'{IND*3}max_transition : {d["slews"][-1]:g};')
+        o.append(f'{IND*2}}}')
+    o.append(f'{IND*2}pin (PAD) {{')
+    o.append(f'{IND*3}direction : inout;')
+    o.append(f'{IND*3}is_pad : true;')
+    o.append(f'{IND*3}/* 高Z のとき PAD が外に見せる容量（パッド + ESD 素子） */')
+    o.append(f'{IND*3}capacitance : {d["cap"]["PAD"]:.1f};')
+    o.append(f'{IND*3}function : "OUT";')
+    o.append(f'{IND*3}three_state : "HIZ";')
+    o.append(f'{IND*3}max_capacitance : {d["loads"][-1]:g};')
+    o.append(f'{IND*3}timing () {{')
+    o.append(f'{IND*4}related_pin : "OUT";')
+    o.append(f'{IND*4}timing_sense : positive_unate;')
+    for key in ("cell_rise", "rise_transition", "cell_fall", "fall_transition"):
+        o.append(f'{IND*4}{key} (pad_template_7x7) {{')
+        o.append(values_block(d["arc"][key], IND * 5))
+        o.append(f'{IND*4}}}')
+    o.append(f'{IND*3}}}')
+    for mode, tt in (("enable", "three_state_enable"), ("disable", "three_state_disable")):
+        o.append(f'{IND*3}timing () {{')
+        o.append(f'{IND*4}related_pin : "HIZ";')
+        o.append(f'{IND*4}timing_type : {tt};')
+        o.append(f'{IND*4}timing_sense : non_unate;')
+        for k, key in (("rise", "cell_rise"), ("fall", "cell_fall")):
+            o.append(f'{IND*4}{key} (pad_tri_template_3x7) {{')
+            o.append(values_block(d[mode][k], IND * 5))
+            o.append(f'{IND*4}}}')
+        o.append(f'{IND*3}}}')
+    o.append(f'{IND*2}}}')
+    o.append(f'{IND}}}')
+
+
 def emit_plain(cell, o, kind):
     """論理も遅延も持たないセル（TAP / FILL）"""
     area = AREAS[cell]["area"]
@@ -188,8 +258,14 @@ def main():
     o.append("/* TR-1um (IP62) 標準セルライブラリ — Liberty")
     o.append(" *")
     o.append(" * scripts/char/mklib.py が char/*.json から自動生成。手で編集しないこと。")
-    o.append(" * 元データは GDS から抽出したネットリストを ngspice (BSIM3 level49) で")
-    o.append(" * 特性化したもの。回路の正しさは真理値表 436 点 / 順序 87 点で確認済み。")
+    o.append(" * 元データは KLayout が DRC/LVS クリーンなレイアウトから抽出した")
+    o.append(" * ネットリスト (lef/extracted/*.extracted) を ngspice (BSIM3 level49) で")
+    o.append(" * 特性化したもの。拡散の実面積・周長 (AS/AD/PS/PD) を含む。")
+    o.append(" * 回路の正しさは真理値表 140 点 / 順序 79 点 / TAP・FILL 全数で確認済み。")
+    o.append(" *")
+    o.append(" * 遅延が負の升目が 2 つある (NAND3 C->Y / NAND4 D->Y の 16ns 入力・10fF)。")
+    o.append(" * 鈍い入力を軽い負荷で受けると、入力が 50% を通る前に出力が 50% を通る。")
+    o.append(" * 測定どおりの物理的な値なので、丸めていない。")
     o.append(" *")
     o.append(f" * コーナー: typical / {VDD}V / {TEMP}degC （PDK に ss/ff のモデルが無いので 1 本のみ）")
     o.append(f" * 遅延の測定点: 入力 {TH_DELAY}% -> 出力 {TH_DELAY}%")
@@ -238,6 +314,48 @@ def main():
     o.append(f'{IND*2}index_1 ("{idx(SLEWS)}");')
     o.append(f'{IND*2}index_2 ("{idx(LOADS)}");')
     o.append(f"{IND}}}")
+    # 既定と違う格子を持つセルのテンプレートと、シュミットの入出力レベル
+    for f in sorted(os.listdir(f"{HERE}/char")):
+        if not f.endswith(".json") or f.startswith("_"):
+            continue
+        dd = json.load(open(f"{HERE}/char/{f}"))
+        sl = dd.get("slews", SLEWS)
+        if sl == SLEWS or dd.get("pad"):
+            continue
+        nm = f[:-5]
+        o.append(f"{IND}/* {nm} は入力遷移の格子が違う（外部入力を受けるので遅い縁まで） */")
+        o.append(f"{IND}lu_table_template (delay_template_{nm}) {{")
+        o.append(f"{IND*2}variable_1 : input_net_transition;")
+        o.append(f"{IND*2}variable_2 : total_output_net_capacitance;")
+        o.append(f'{IND*2}index_1 ("{idx(sl)}");')
+        o.append(f'{IND*2}index_2 ("{idx(LOADS)}");')
+        o.append(f"{IND}}}")
+    for nm, v in sorted(SCHMITT.items()):
+        o.append(f"{IND}input_voltage ({nm}_in) {{")
+        o.append(f"{IND*2}vil : {v['vt_fall']:.3f};   /* 立下りのしきい値 VT- */")
+        o.append(f"{IND*2}vih : {v['vt_rise']:.3f};   /* 立上りのしきい値 VT+ */")
+        o.append(f"{IND*2}vimin : -0.3;")
+        o.append(f"{IND*2}vimax : {VDD + 0.3:g};")
+        o.append(f"{IND}}}")
+    o.append("")
+
+    pad = None
+    pp = f"{HERE}/char/OSS_ESD_5V_DIO.json"
+    if os.path.exists(pp):
+        pad = json.load(open(pp))
+        o.append(f"{IND}/* パッドセル用。負荷が pF 台なので標準セルとは別の格子 */")
+        o.append(f"{IND}lu_table_template (pad_template_7x7) {{")
+        o.append(f"{IND*2}variable_1 : input_net_transition;")
+        o.append(f"{IND*2}variable_2 : total_output_net_capacitance;")
+        o.append(f'{IND*2}index_1 ("{idx(pad["slews"])}");')
+        o.append(f'{IND*2}index_2 ("{idx(pad["loads"])}");')
+        o.append(f"{IND}}}")
+        o.append(f"{IND}lu_table_template (pad_tri_template_3x7) {{")
+        o.append(f"{IND*2}variable_1 : input_net_transition;")
+        o.append(f"{IND*2}variable_2 : total_output_net_capacitance;")
+        o.append(f'{IND*2}index_1 ("{idx(pad["slews_t"])}");')
+        o.append(f'{IND*2}index_2 ("{idx(pad["loads"])}");')
+        o.append(f"{IND}}}")
     o.append(f"{IND}lu_table_template (constraint_template_3x3) {{")
     o.append(f"{IND*2}variable_1 : constrained_pin_transition;")
     o.append(f"{IND*2}variable_2 : related_pin_transition;")
@@ -248,11 +366,13 @@ def main():
 
     ncell = 0
     for cell in sorted(os.listdir(f"{HERE}/char")):
-        if not cell.endswith(".json"):
+        if not cell.endswith(".json") or cell.startswith("_"):
             continue
         name = cell[:-5]
         d = json.load(open(f"{HERE}/char/{cell}"))
-        if d.get("seq"):
+        if d.get("pad"):
+            emit_pad(name, d, o)
+        elif d.get("seq"):
             emit_seq(name, d, o)
         else:
             emit_comb(name, d, o)

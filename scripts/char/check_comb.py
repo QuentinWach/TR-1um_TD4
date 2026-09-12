@@ -23,12 +23,42 @@ MEAS_BACK = 1.0    # ステップ末尾から何 ns 手前で測るか
 CL = "20f"         # 出力にぶら下げる負荷
 RAIL_TOL = 0.25    # フルレール判定 [V]
 HERE = os.path.dirname(os.path.abspath(__file__))
+# 既定は GDS から抽出した cells/*.spi。環境変数で lef/simulation/*.spice に
+# 切り替えられる（生成した LVS ソースそのものを検証するため）。
+CELLDIR = os.environ.get("TR1UM_CELLDIR", f"{HERE}/cells")
+CELLEXT = os.environ.get("TR1UM_CELLEXT", ".spi")
+
+
+def all_ports_of(cell):
+    """`.subckt` 行のポートを**宣言順のまま**返す。
+
+    **電源の並び順はネットリストによって違う。**
+    こちらの簡易抽出は `... vdd gnd`、KLayout の抽出は `... gnd vdd`。
+    インスタンス行は必ずこの順に合わせること（入れ替えると電源が逆になり、
+    真理値表が壊れる）。
+    """
+    for s in open(f"{CELLDIR}/{cell}{CELLEXT}"):
+        t = s.split()
+        if t and t[0].lower() == ".subckt":
+            return t[2:]
+    raise SystemExit(f"{cell}: .subckt 行が見つからない")
 
 
 def ports_of(cell):
-    """信号ピンだけ返す（vdd / gnd は呼び出し側で付ける）"""
-    ln = open(f"{HERE}/cells/{cell}.spi").readline().split()
-    return [p for p in ln[2:] if p not in ("vdd", "gnd")]
+    """信号ピンだけ返す（電源は除く）"""
+    return [p for p in all_ports_of(cell) if p not in ("vdd", "gnd", "vss")]
+
+
+def classify(cell, ports, ins, outs):
+    """ポートを「駆動する入力 / 負荷を付ける出力 / 触らないもの」に分ける。
+
+    **KLayout の抽出は内部ネットもピンに昇格させる。**
+    DFF なら CKB / CKP / QM / QS が .SUBCKT のポートに出てくる。
+    これを 0V 電源で駆動すると回路が壊れるので、
+    cellspec が知っている入出力だけを扱い、残りは開放のまま結線する。
+    """
+    known = set(ins) | set(outs)
+    return [p for p in ports if p not in known]
 
 
 def to_xm(path):
@@ -36,7 +66,7 @@ def to_xm(path):
     out = []
     for ln in open(path):
         t = ln.split()
-        if t and re.match(r"^M\d", t[0]):
+        if t and re.match(r"^M\w", t[0]) and len(t) >= 6:
             d, g, s, b, model = t[1:6]
             pars = " ".join(x.lower() if "=" in x else x for x in t[6:])
             out.append(f"X{t[0]} {d} {g} {s} {b} {model.upper()} {pars}")
@@ -53,7 +83,7 @@ def build(cell, outs):
 
     L = [f"* {cell} 真理値表 全網羅 ({len(combos)} 通り) -- check_comb.py 生成",
          f".include {HERE}/models/ip62_models", ""]
-    L.append(to_xm(f"{HERE}/cells/{cell}.spi"))
+    L.append(to_xm(f"{CELLDIR}/{cell}{CELLEXT}"))
     # ngspice は `gnd` を節点 0 の別名として扱うので、Vgnd は置かない（置くと短絡 VSRC）
     L += ["", ".temp 25", f"Vvdd vdd 0 {VDD}"]
 
@@ -69,16 +99,19 @@ def build(cell, outs):
                 pts.append(f"{t0+EDGE:g}n {v:g}")
         L.append(f"V{k} {p} 0 PWL({' '.join(pts)})")
 
-    # 出力以外のピンは開放にせず、使わない入力ピンは 0 に留める
+    # 使わない**入力**ピンだけ 0 に留める。
+    # KLayout の抽出は内部ネットもピンに昇格させる（DFF の CKB/CKP/QM/QS など）ので、
+    # そこを 0V 電源で駆動すると回路が壊れる。cellspec が知っている入出力だけ扱う。
+    known_in = {q for _, (ips, _) in cellspec.COMB.get(cell, {}).items() for q in ips}
     driven = set(ins) | set(outs)
     for p in ports:
-        if p not in driven:
+        if p not in driven and p in known_in:
             L.append(f"V_{p} {p} 0 0   $ このチェックでは使わない入力")
     for p in outs:
         L.append(f"C{p} {p} 0 {CL}")
 
     L.append("")
-    L.append("XU " + " ".join(ports + ["vdd", "gnd"]) + f" {cell}")
+    L.append("XU " + " ".join(all_ports_of(cell)) + f" {cell}")
     L.append("")
     tstop = len(combos) * STEP
     L.append(f".tran 0.1n {tstop:g}n")
@@ -134,6 +167,8 @@ def run(cell, outs, verbose=False):
 
 def main():
     want = sys.argv[1:] or sorted(cellspec.COMB)
+    missing = [c for c in want if not os.path.exists(f"{CELLDIR}/{c}{CELLEXT}")]
+    want = [c for c in want if c not in missing]
     tp = tf = 0
     print("=" * 76)
     print(" 組合せセル 真理値表チェック (ngspice / TR-1um IP62 BSIM3 / 5V)")
@@ -150,7 +185,9 @@ def main():
             sv = f"{v:.3f}V" if v is not None else "-"
             print(f"           ! {env} -> {pin} 期待 {exp} / 実測 {sv} : {why}")
     print("-" * 76)
-    print(f"合計 PASS {tp} / FAIL {tf}")
+    if missing:
+        print(f"ネットリストが無くて飛ばしたセル: {', '.join(missing)}")
+    print(f"合計 PASS {tp} / FAIL {tf}   （{len(want)} セル）")
     return 1 if tf else 0
 
 

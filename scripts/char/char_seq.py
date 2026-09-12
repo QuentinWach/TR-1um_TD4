@@ -14,7 +14,8 @@ from __future__ import annotations
 import json, os, sys
 import cellspec
 from charlib import (HERE, VDD, SLEWS, LOADS, SLEWS_C, TH_DELAY, TH_SLEW_LO,
-                     TH_SLEW_HI, header, ports_of, run_ngspice, pwl_ramp, full_ramp)
+                     TH_SLEW_HI, header, ports_of, all_ports_of, run_ngspice, pwl_ramp,
+                     full_ramp)
 
 T_CK = 200.0        # クロック立上りの 50% 通過時刻 [ns]
 SETTLE = 150.0
@@ -57,8 +58,13 @@ def build_ckq(cell, spec, ck_slew, d_rise):
     L.append(f"Vd {spec['d']} 0 PWL(0 {v0:g} {T_DSW:g}n {v0:g} {T_DSW+1:g}n {v1:g})")
     for p, v in spec["idle"].items():
         L.append(f"V_{p} {p} 0 {v*VDD:g}")
+    # **KLayout の抽出は内部ネットもピンに昇格させる**（DFF の CKB/CKP/QM/QS）。
+    # 0V で駆動するとフリップフロップが壊れるので、本当の入力ピンだけ固定する。
+    real_in = (set(cellspec.SEQ_PINS[cell]["data"])
+               | set(cellspec.SEQ_PINS[cell]["async"]) | {"CK"})
     for p in ports:
-        if p not in ("CK", spec["d"]) and p not in spec["idle"] and p not in outs:
+        if (p in real_in and p not in ("CK", spec["d"])
+                and p not in spec["idle"] and p not in outs):
             L.append(f"V_{p} {p} 0 0")
     # 1 発目（T_PRE）で逆の値を取り込み、2 発目（T_CK）が測定対象
     tf = full_ramp(ck_slew)
@@ -70,7 +76,7 @@ def build_ckq(cell, spec, ck_slew, d_rise):
     L.append("")
     for k, cl in enumerate(LOADS):
         pl = {p: (f"o{k}_{p}" if p in outs else p) for p in ports}
-        L.append(f"X{k} " + " ".join(pl[p] for p in ports) + f" vdd gnd {cell}")
+        L.append(f"X{k} " + " ".join(pl.get(p, p) for p in all_ports_of(cell)) + f" {cell}")
         L.append(f"C{k} o{k}_{q} 0 {cl}f")
         L.append(f"Cb{k} o{k}_{qb} 0 {cl}f")
     L.append("")
@@ -123,8 +129,13 @@ def build_constraint(cell, spec, ck_slew, d_slew, d_rise, dt, mode="setup"):
                  f"{t_out-d_slew/2:g}n {v_new:g} {t_out+d_slew/2:g}n {v_old:g})")
     for p, v in spec["idle"].items():
         L.append(f"V_{p} {p} 0 {v*VDD:g}")
+    # **KLayout の抽出は内部ネットもピンに昇格させる**（DFF の CKB/CKP/QM/QS）。
+    # 0V で駆動するとフリップフロップが壊れるので、本当の入力ピンだけ固定する。
+    real_in = (set(cellspec.SEQ_PINS[cell]["data"])
+               | set(cellspec.SEQ_PINS[cell]["async"]) | {"CK"})
     for p in ports:
-        if p not in ("CK", spec["d"]) and p not in spec["idle"] and p not in outs:
+        if (p in real_in and p not in ("CK", spec["d"])
+                and p not in spec["idle"] and p not in outs):
             L.append(f"V_{p} {p} 0 0")
     # 取り込み前に Q を逆の値にしておく（1 発目のクロックで下地を作る）
     t_pre = T_CK - 120
@@ -134,7 +145,7 @@ def build_constraint(cell, spec, ck_slew, d_slew, d_rise, dt, mode="setup"):
              f"{T_CK-tf/2:g}n 0 {T_CK+tf/2:g}n {VDD:g})")
     L.append("Rck CK_src CK 0.001")
     L.append("")
-    L.append(f"XU " + " ".join(ports) + f" vdd gnd {cell}")
+    L.append("XU " + " ".join(all_ports_of(cell)) + f" {cell}")
     L.append(f"C0 {q} 0 {LOADS[2]}f")
     L.append(f"C1 {qb} 0 {LOADS[2]}f")
     L.append(f".tran 0.05n {T_CK+120:g}n")
@@ -219,6 +230,11 @@ def characterize(cell):
 
 def main():
     want = sys.argv[1:] or list(SEQ)
+    from check_comb import CELLDIR, CELLEXT
+    miss = [c for c in want if not os.path.exists(f"{CELLDIR}/{c}{CELLEXT}")]
+    if miss:
+        print(f"** ネットリストが無いので特性化しない: {', '.join(miss)}", flush=True)
+    want = [c for c in want if c not in miss]
     os.makedirs(f"{HERE}/char", exist_ok=True)
     print(f"{'cell':<10}  CK->Q(slew0.6/CL50) [ns]      setup [ns]        hold [ns]", flush=True)
     for cell in want:

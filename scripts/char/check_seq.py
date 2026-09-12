@@ -28,7 +28,7 @@ RAIL_TOL = 0.25
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 sys.path.insert(0, HERE)
-from check_comb import ports_of, to_xm          # noqa: E402
+from check_comb import ports_of, all_ports_of, to_xm, CELLDIR, CELLEXT          # noqa: E402
 
 CK = "CK"
 T = 40          # クロック 1 周期の半分 [ns]
@@ -193,7 +193,11 @@ def pwl(points, tstop):
 def build(cell, stim, chk, tstop):
     ports = ports_of(cell)
     outs = [p for p in ports if p in ("Q", "QB")]
-    ins = [p for p in ports if p not in outs]
+    # **KLayout の抽出は内部ネットもピンに昇格させる**（DFF なら CKB/CKP/QM/QS）。
+    # ここを駆動するとフリップフロップが壊れるので、本当の入力だけ動かし、
+    # 残りは結線せず開放のままにする。IDLE に名前があるものを入力とみなす。
+    ins = [p for p in ports if p not in outs and p in IDLE]
+    floating = [p for p in ports if p not in outs and p not in ins]
 
     wave = {p: [(0, IDLE.get(p, 0))] for p in ins}
     for t, d in stim:
@@ -206,14 +210,16 @@ def build(cell, stim, chk, tstop):
                 wave[p].append((t, v))
 
     L = [f"* {cell} 順序動作チェック -- check_seq.py 生成",
+         (f"* 抽出がピンに昇格させた内部ネット（開放にする）: {' '.join(floating)}"
+          if floating else "*"),
          f".include {HERE}/models/ip62_models", "",
-         to_xm(f"{HERE}/cells/{cell}.spi"), "",
+         to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
          ".temp 25", f"Vvdd vdd 0 {VDD}"]
     for i, p in enumerate(ins):
         L.append(f"V{i} {p} 0 {pwl(wave[p], tstop)}")
     for p in outs:
         L.append(f"C{p} {p} 0 {CL}")
-    L += ["", "XU " + " ".join(ports + ["vdd", "gnd"]) + f" {cell}", ""]
+    L += ["", "XU " + " ".join(all_ports_of(cell)) + f" {cell}", ""]
     L.append(f".tran 0.1n {tstop}n")
     for i, (t, p, exp, why) in enumerate(chk):
         L.append(f".meas tran c{i:03d} FIND v({p}) AT={t}n   $ {why}")
@@ -258,6 +264,8 @@ def run(cell):
 
 def main():
     want = sys.argv[1:] or list(SCEN)
+    missing = [c for c in want if not os.path.exists(f"{CELLDIR}/{c}{CELLEXT}")]
+    want = [c for c in want if c not in missing]
     tp = tf = 0
     print("=" * 76)
     print(" 順序セル 動作チェック (ngspice / TR-1um IP62 BSIM3 / 5V / 25degC)")
@@ -271,7 +279,9 @@ def main():
             sv = f"{v:.3f}V" if v is not None else "-"
             print(f"           ! {why} : {pin} 期待 {exp} / 実測 {sv} ({msg})")
     print("-" * 76)
-    print(f"合計 PASS {tp} / FAIL {tf}")
+    if missing:
+        print(f"ネットリストが無くて飛ばしたセル: {', '.join(missing)}")
+    print(f"合計 PASS {tp} / FAIL {tf}   （{len(want)} セル）")
     return 1 if tf else 0
 
 

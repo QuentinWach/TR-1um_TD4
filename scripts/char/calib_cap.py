@@ -46,38 +46,46 @@ def invert_row(idx_load, row, target):
     return idx_load[-1] + (target - vv[-1]) / s
 
 
-def measure(cell, pin, side, n, tag):
-    """INV_X1 -> (cell の pin) x n。ドライバ INV_X1 の出力遅延を測る。"""
-    ports_c = [p for p in open(f"{HERE}/cells/{cell}.spi").readline().split()[2:]
-               if p not in ("vdd", "gnd")]
+def build_deck(cell, pin, side, n):
+    """INV_X1 -> (cell の pin) x n のデッキを組む（実行はしない）。"""
+    from check_comb import to_xm, all_ports_of, CELLDIR, CELLEXT
     L = [f"* {DRV} -> {cell}.{pin} x{n} 等価容量の較正"]
     L.append(f".include {HERE}/models/ip62_models")
     L.append("")
-    from check_comb import to_xm
-    L.append(to_xm(f"{HERE}/cells/{DRV}.spi"))
+    L.append(to_xm(f"{CELLDIR}/{DRV}{CELLEXT}"))
     if cell != DRV:
-        L.append(to_xm(f"{HERE}/cells/{cell}.spi"))
+        L.append(to_xm(f"{CELLDIR}/{cell}{CELLEXT}"))
     L += ["", f".temp 25", f"Vvdd vdd 0 {VDD}"]
     tf = full_ramp(SLEW_IN)
     L.append(f"Vin src 0 PWL(0 0 {T0:g}n 0 {T0+tf:g}n {VDD:g})")
     L.append("Rin src A 0.001")
-    L.append(f"XD A NET vdd gnd {DRV}")
+    # ポート順はネットリストの宣言順に従う（KLayout は ... gnd vdd の順）
+    drv_ports = ["A" if p == "A" else ("NET" if p == "Y" else p) for p in all_ports_of(DRV)]
+    L.append("XD " + " ".join(drv_ports) + f" {DRV}")
     for k in range(n):
         pl = []
-        for p in ports_c:
+        for p in all_ports_of(cell):
             if p == pin:
                 pl.append("NET")
+            elif p in ("vdd", "gnd", "vss"):
+                pl.append(p)
             elif p in side:
                 pl.append(f"sv{'H' if side[p] else 'L'}")
             else:
+                # 出力や、抽出がピンに昇格させた内部ネットは各インスタンス固有にする
                 pl.append(f"nc{k}_{p}")
-        L.append(f"XL{k} " + " ".join(pl) + f" vdd gnd {cell}")
+        L.append(f"XL{k} " + " ".join(pl) + f" {cell}")
     L.append(f"VsvH svH 0 {VDD}")
     L.append("VsvL svL 0 0")
     L.append(f".tran 0.02n {T0+tf+200:g}n")
     L.append(f".meas tran d TRIG v(A) VAL={VDD/2:g} RISE=1 TARG v(NET) VAL={VDD/2:g} FALL=1")
     L += ["", ".end", ""]
-    vals, _ = run_ngspice("\n".join(L), tag)
+    return "\n".join(L)
+
+
+def measure(cell, pin, side, n, tag):
+    """デッキを組んでその場で走らせる（逐次実行用）。"""
+    vals, _ = run_ngspice(build_deck(cell, pin, side, n), tag)
     return vals.get("d")
 
 
@@ -86,11 +94,14 @@ def main():
     row = drv["arcs"][0]["cell_fall"][SLEWS.index(SLEW_IN)]     # 入力立上り -> 出力立下り
     print(f"基準ドライバ {DRV} / 入力遷移 {SLEW_IN}ns の cell_fall 行を逆引きに使う")
     print(f"{'cell':<10}{'pin':<10}{'電荷から':>9}{'較正後':>9}{'比':>7}  N=2/N=4 のばらつき")
+    from check_comb import CELLDIR, CELLEXT
     for f in sorted(os.listdir(f"{HERE}/char")):
-        if not f.endswith(".json"):
+        if not f.endswith(".json") or f.startswith("_"):
             continue
         d = json.load(open(f"{HERE}/char/{f}"))
         cell = d["cell"]
+        if not os.path.exists(f"{CELLDIR}/{cell}{CELLEXT}"):
+            continue
         if d.get("seq"):
             # 順序セルは char_seq.py が容量を測っていないので、ここで全入力ピンを測る。
             # 非同期ピンは非アクティブ側に固定する。

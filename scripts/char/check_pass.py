@@ -19,7 +19,7 @@ import cellspec
 VDD = 5.0
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from check_comb import to_xm, ports_of    # noqa: E402
+from check_comb import to_xm, ports_of, all_ports_of, CELLDIR, CELLEXT    # noqa: E402
 
 COX = 1.77          # fF/µm²
 GDS = f"{HERE}/TR-1um_STDCELL.gds"
@@ -59,6 +59,15 @@ def gate_area(cell):
     return tot
 
 
+def ntr_of(cell):
+    """素子数。素子を持たないセルは LVS ソース (.spice) を作らないので、
+    そちらを見ているときはファイルが無い = 素子なし として扱う。"""
+    p = f"{CELLDIR}/{cell}{CELLEXT}"
+    if not os.path.exists(p):
+        return 0
+    return sum(1 for ln in open(p) if re.match(r"^X?M\w", ln))
+
+
 DVDD = 0.1        # 容量測定で vdd に重ねる電圧 [V]
 TRAMP = 10.0      # その傾斜時間 [ns]  -> dV/dt = DVDD/TRAMP
 
@@ -71,19 +80,18 @@ def leak_and_cap(cell):
       後半: vdd を DVDD だけ傾斜させる -> I = I_leak + C * dV/dt
     差を dV/dt で割れば容量。1MHz 相当の実効周波数になる。
     """
-    ports = ports_of(cell)
-    ntr = sum(1 for ln in open(f"{HERE}/cells/{cell}.spi") if ln.startswith("M"))
-    if ntr == 0:
+    if ntr_of(cell) == 0:
         return None, None, "デバイス無し（タップ／純フィラー）。短絡も容量も測るものが無い。"
+    ports = ports_of(cell)
     t0, t1 = 200.0, 200.0 + TRAMP
     L = [f"* {cell} 電源チェック -- check_pass.py 生成",
          f".include {HERE}/models/ip62_models", "",
-         to_xm(f"{HERE}/cells/{cell}.spi"), "",
+         to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
          ".temp 25",
          f"Vvdd vdd 0 PWL(0 {VDD} {t0}n {VDD} {t1}n {VDD+DVDD})"]
     for p in ports:
         L.append(f"V_{p} {p} 0 0")
-    L += ["", "XU " + " ".join(ports + ["vdd", "gnd"]) + f" {cell}", "",
+    L += ["", "XU " + " ".join(all_ports_of(cell)) + f" {cell}", "",
           f".tran 0.05n {t1+20:g}n",
           f".meas tran i_leak AVG i(Vvdd) FROM={t0-50:g}n TO={t0-1:g}n",
           f".meas tran i_ramp AVG i(Vvdd) FROM={t0+1:g}n TO={t1-1:g}n",
@@ -113,7 +121,7 @@ def main():
           f"{'レール':>7}  判定")
     ng = 0
     for cell in sorted(cellspec.PASS):
-        ntr = sum(1 for ln in open(f"{HERE}/cells/{cell}.spi") if ln.startswith("M"))
+        ntr = ntr_of(cell)
         idc, cap, log = leak_and_cap(cell)
         nodev = isinstance(log, str) and log.startswith("デバイス無し")
         ga = gate_area(cell)

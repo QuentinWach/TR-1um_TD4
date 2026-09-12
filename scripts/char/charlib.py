@@ -5,7 +5,7 @@ import itertools, os, re, subprocess, sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
-from check_comb import to_xm, ports_of      # noqa: E402
+from check_comb import to_xm, ports_of, all_ports_of, CELLDIR, CELLEXT      # noqa: E402
 
 VDD = 5.0
 TEMP = 25
@@ -18,6 +18,22 @@ SLEWS = [0.1, 0.25, 0.6, 1.5, 4.0, 8.0, 16.0]
 LOADS = [10, 25, 50, 100, 200, 400, 800]
 # 制約（setup/hold）は格子を粗くする。1 点ごとに二分探索が要るため。
 SLEWS_C = [0.25, 1.5, 8.0]
+
+# --- セルごとに入力遷移の格子を変える ------------------------------------
+# **BUFTH はシュミットトリガ**（ヒステリシス VT+ 3.71V / VT- 1.20V、幅 2.51V）。
+# 外部入力を受けるためのセルなので、数百 ns の鈍い縁が来る。
+# 既定の 16ns までの表から線形外挿すると**大きく外れる**:
+#   遅延/遷移 の比は 16ns で 0.738 だが 1000ns では 0.392 に漸近する
+#   （50% から VT+=74% まで travel するだけになるので 0.242/0.6 = 0.40 が下限）。
+#   16ns の傾きで 1000ns を外挿すると 570ns、実測は 392ns。45% 過大。
+# なので BUFTH だけ 1000ns まで測る。
+CELL_SLEWS = {
+    "BUFTH": [0.1, 0.6, 1.5, 4.0, 8.0, 16.0, 50.0, 150.0, 400.0, 1000.0],
+}
+
+
+def slews_of(cell):
+    return CELL_SLEWS.get(cell, SLEWS)
 
 # 測定しきい値 [%]
 TH_DELAY = 50
@@ -71,7 +87,7 @@ def run_ngspice(deck, tag, timeout=600):
 
 def header(cell):
     return [f".include {HERE}/models/ip62_models", "",
-            to_xm(f"{HERE}/cells/{cell}.spi"), "",
+            to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
             f".temp {TEMP}", f"Vvdd vdd 0 {VDD}"]
 
 
