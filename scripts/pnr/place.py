@@ -319,16 +319,26 @@ def tap_positions(row_w):
     return xs
 
 
+MIN_FILL_W = min(w for _n, w in cfg.FILLS)
+
+
 def pad(width_um):
+    """隙間を FILL で埋める。`cfg.FILLS` は広い順。
+
+    残りが「0 か、いちばん狭い FILL 以上」でなければ次のセルに進まない。
+    `FILLS` に `FILL1` (5.4) を入れておくと**サイトグリッドの倍数なら
+    どんな隙間も埋まる**ので、区画への詰め込みが一気に楽になる
+    （優先コリドーを増やすと区画が細かくなり、10.8 刻みでは詰め切れない）。
+    """
     out, w = [], round(width_um, 3)
     if w < -1e-6:
         raise ValueError(f"負の隙間 {w}")
     for name, cw in cfg.FILLS:
-        while w - cw >= -1e-6 and (abs(w - cw) < 1e-6 or w - cw >= 10.8 - 1e-6):
+        while w - cw >= -1e-6 and (abs(w - cw) < 1e-6 or w - cw >= MIN_FILL_W - 1e-6):
             out.append((name, cw))
             w = round(w - cw, 3)
     if abs(w) > 1e-6:
-        raise ValueError(f"{w} um の隙間は FILL2/FILL3 で埋められない")
+        raise ValueError(f"{w} um の隙間は {[n for n, _ in cfg.FILLS]} で埋められない")
     return out
 
 
@@ -440,16 +450,18 @@ def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="alternate"):
 
     left_cells = sum(width[c] for c in todo)
     left_cap = sum(c for _x, c in segs)
+    picked_by = [[] for _ in segs]
+    used_by = [0.0] * len(segs)
     for si, (x0, cap) in enumerate(segs):
         # 残りのセルと残りの容量の比で、この区画に入れる量を決める
         quota = cap if left_cap <= 1e-9 else min(cap, left_cells * cap / left_cap)
-        picked, used = [], 0.0
+        picked, used = picked_by[si], 0.0
         while todo:
             take = None
             for j in range(min(LOOKAHEAD, len(todo))):
                 w = width[todo[j]]
                 rest = round(cap - used - w, 3)
-                if rest < -1e-6 or (1e-6 < rest < 10.8 - 1e-6):
+                if rest < -1e-6 or (1e-6 < rest < MIN_FILL_W - 1e-6):
                     continue
                 if used + w > quota + 1e-6 and picked:
                     continue          # 目標を超える。次の区画へ回す
@@ -460,9 +472,33 @@ def pack_row(seq, width, cellof, row_w, with_tap, with_fill, mode="alternate"):
             c = todo.pop(take)
             picked.append((cellof[c], c, width[c]))
             used = round(used + width[c], 3)
+        used_by[si] = used
         left_cells = round(left_cells - used, 3)
         left_cap = round(left_cap - cap, 3)
 
+    # --- 取りこぼしの回収 --------------------------------------------------
+    # 上は「区画を左から 1 回だけ見る貪欲割り当て」なので、区画が細かいと
+    # （= 優先コリドーを増やすと）最後に数個あぶれて step3 が落ちる。
+    # 実測: 縦置き・`PRI_PITCH=108` で 2 個あぶれた。
+    # **容量の残っている区画へ best-fit で入れ直す**と、行全体に空きがある
+    # 限り落ちない。詰め方の性格（quota で均等に散らす）は変えない。
+    for c in list(todo):
+        w = width[c]
+        best, best_rest = None, None
+        for si, (x0, cap) in enumerate(segs):
+            rest = round(cap - used_by[si] - w, 3)
+            if rest < -1e-6 or (1e-6 < rest < MIN_FILL_W - 1e-6):
+                continue
+            if best is None or rest < best_rest:
+                best, best_rest = si, rest
+        if best is None:
+            continue
+        picked_by[best].append((cellof[c], c, w))
+        used_by[best] = round(used_by[best] + w, 3)
+        todo.remove(c)
+
+    for si, (x0, cap) in enumerate(segs):
+        picked, used = picked_by[si], used_by[si]
         gap = round(cap - used, 3)
         fills = [(fn, None, fw) for fn, fw in
                  (pad(gap) if (with_fill and gap > 1e-6) else [])]

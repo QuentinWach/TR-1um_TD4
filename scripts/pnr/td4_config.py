@@ -60,9 +60,27 @@ TRACK_PITCH = float(os.environ.get("TD4_TRACK_PITCH", "5.4"))   # チャネル�
 TAP_CELL = "TAP2"
 TAP_W = 10.8
 TAP_PITCH = 534.6              # I2C 実チップ実測。SCLK_SPI から踏襲
+# 隙間埋めに使う FILL（広い順）。**FILL1 (5.4) を入れておく。**
+# FILL2/FILL3 だけだと隙間が 10.8 の倍数系に限られ、優先コリドーを増やして
+# 区画が細かくなると詰め切れずに step3 が落ちる。FILL1 は容量ゼロの純フィラー
+# なので、デキャップとしては FILL2/FILL3 が先に使われるこの順で問題ない。
+# `TD4_USE_FILL1=1` で FILL1 (5.4) も使う。既定は入れない（入れると隙間の
+# 刻みが変わって**配置が丸ごと変わる**ので、確定した横倒しの結果を壊さない）。
 FILLS = [("FILL3", 16.2), ("FILL2", 10.8)]
-PRI_CELL = "FILL2"             # 優先 M2 コリドーに使うセル
-PRI_W = 10.8                   # = 2 トラック
+if os.environ.get("TD4_USE_FILL1") == "1":
+    FILLS = FILLS + [("FILL1", 5.4)]
+# 優先 M2 コリドーに使うセル。`TD4_PRI_CELL` で振れる。
+# FILL2 (10.8 = 2 トラック) だと上側トラックの via パッド（半幅 1.7 + 隙間 2.0）
+# が隣のセルへ 1.0 µm はみ出すので、隣に M2 があると実質 1 本しか使えない。
+# **FILL3 (16.2 = 3 トラック) なら真ん中の 1 本が必ず両側とも空く。**
+_PRI_W = {"FILL1": 5.4, "FILL2": 10.8, "FILL3": 16.2}
+# 実測（横倒し・seed 1、step10 の実 BBOX / 短絡 / DRC）:
+#   FILL2  1655.8 / 0 / 0   行またぎジョグ 28、コリドー 12 track
+#   FILL3  1645.0 / 0 / 0   行またぎジョグ 26、コリドー 18 track   <- 既定
+PRI_CELL = os.environ.get("TD4_PRI_CELL", "FILL3")
+if PRI_CELL not in _PRI_W:
+    raise SystemExit(f"TD4_PRI_CELL は {sorted(_PRI_W)} のどれか（今 {PRI_CELL}）")
+PRI_W = _PRI_W[PRI_CELL]
 # 優先 M2 コリドーのピッチ。TAP 直後の 1 枠だけでは行またぎの空き列が足りない
 # （実測: 155 回の行またぎのうち 63 回が clear な x を見つけられず遠くへ逃げ、
 #  短絡の主因になっていた）。全行同じ x に 2 トラック分を等間隔で予約する。
@@ -71,7 +89,7 @@ PRI_W = 10.8                   # = 2 トラック
 #   TAP 直後のみ (3 本/行)          短絡 32   <- いまはこちら
 # コリドーを増やしても**同じ x に集まりすぎて互いに衝突する**ので効かなかった。
 # 効くのは配置率そのもの。1e9 にすると「TAP 直後の 1 枠だけ」= 移植元と同じ。
-PRI_PITCH = 1e9
+PRI_PITCH = float(os.environ.get("TD4_PRI_PITCH", "1e9"))
 # コリドーの置き方。"after" = TAP 直後だけ（移植元と同じ）、
 # "both" = **TAP の両側**。行末の TAP の手前にも 1 枠できるので、
 # 行の右端にも縦に抜ける列ができる（ユーザ指摘）。
