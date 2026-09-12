@@ -30,7 +30,7 @@ def main(path=None):
 
     # ---- 1. インスタンスの被覆
     insts = nu.parse(open(cfg.NET_PATH).read())
-    want = {i.name for i in insts if i.cell != cfg.MACRO_CELL}
+    want = {i.name for i in insts if i.cell != cfg.MACRO_NET_CELL}
     got = [c["inst"] for row in d["rows"] for c in row if c["inst"]]
     dup = {x for x in got if got.count(x) > 1}
     got_s = set(got)
@@ -66,21 +66,24 @@ def main(path=None):
     mx0, my0, mx1, my1 = cfg.macro_box()
     if [round(v, 3) for v in d["macro"]["box"]] != [round(v, 3) for v in (mx0, my0, mx1, my1)]:
         bad.append(f"マクロ枠 {d['macro']['box']} が設定 {(mx0,my0,mx1,my1)} と違う")
-    if mx0 < d["row_width"] - EPS:
-        bad.append(f"マクロ左端 {mx0} が行スタック右端 {d['row_width']} に食い込む")
+    if my1 > EPS:
+        bad.append(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の下に"
+                   f"置くこと（そうしないと ch[0] のトラックが帯に食い込む）")
     ys, stack = cfg.row_y()
     for r, y in enumerate(ys):
-        if not (y + cfg.ROW_HEIGHT_UM <= my0 + EPS or y >= my1 - EPS):
-            note.append(f"row{r} (y {y}…{y+cfg.ROW_HEIGHT_UM}) はマクロと y が"
-                        f"重なる — x で離れているので可、ただし ch はマクロ左で切れる")
+        if y < my1 - EPS:
+            bad.append(f"row{r} (y {y}) がマクロ帯 (…{my1}) と重なる")
+    note.append(f"マクロ帯は y {my0}…{my1}（ルータ座標の下）。"
+                f"チップに落とすときのコア外形は {cfg.chip_core_box()}、"
+                f"高さ {cfg.chip_core_height()} µm")
 
     # ---- 6. コア枠 / 開口
     cw, ch = cfg.core_size()
     if d["core_w"] != cw or d["core_h"] != ch:
         bad.append(f"コア {d['core_w']}x{d['core_h']} が設定 {cw}x{ch} と違う")
-    lo, hi = cfg.frame_opening(cw)
-    if ch > hi - lo:
-        bad.append(f"コア高 {ch} > 開口 {hi-lo}")
+    h, op, marg = cfg.check_opening()
+    note.append(f"圧縮前のコア高 {h} / 開口 {op} → 余り {marg:+.1f} µm"
+                + ("（圧縮前なので負で当たり前）" if marg < 0 else ""))
 
     # ---- 7. GDS の実体
     gds = path.replace(".json", ".gds")
@@ -113,14 +116,16 @@ def main(path=None):
                        f"{(mx0,my0,mx1,my1)} と違う")
 
     # ---- レポート
+    import place as _p
+    usable = d["row_width"] - sum(w for _x, w, _k in _p.fixed_blocks(d["row_width"]))
     used = [sum(c["w"] for c in row if c["inst"]) for row in d["rows"]]
     fills = [sum(c["w"] for c in row if not c["inst"] and c["cell"] != cfg.TAP_CELL)
              for row in d["rows"]]
     print(f"配置検証: {os.path.relpath(path, cfg.ROOT)}")
-    print(f"  コア {cw} x {ch} um（開口 {hi-lo} に対し余裕 {hi-lo-ch:.1f}）")
+    print(f"  ルータ領域 {cw} x {ch} um   チップ側コア高 {cfg.chip_core_height()} um")
     print(f"  行 {d['row_width']} um x {len(d['rows'])}   "
-          f"充填率 " + ", ".join(f"{u/(d['row_width']-4*cfg.TAP_W-3*cfg.PRI_W)*100:.0f}%"
-                                 for u in used))
+          f"充填率 " + ", ".join(f"{u/usable*100:.0f}%" for u in used)
+          + f"（実効 {usable:.1f} um/行）")
     print(f"  論理セル幅 {sum(used):.1f} um / FILL {sum(fills):.1f} um")
     print(f"  マクロ {cfg.MACRO_CELL} @ ({mx0}, {my0}) - ({mx1}, {my1})")
     for n in note:

@@ -45,7 +45,8 @@ import lef_parser                                           # noqa: E402
 EPOCH = __import__("datetime").datetime(2026, 1, 1)   # GDS ヘッダの固定日付
 SUPPLY = {"VDD", "VSS", "GND", "vdd", "vss", "gnd",
           "1'b0", "1'b1", "1'h0", "1'h1"}
-MACRO = cfg.MACRO_CELL
+MACRO = cfg.MACRO_NET_CELL     # ネットリスト上の名前
+MACRO_PHYS = cfg.MACRO_CELL    # 置く物理セル
 MACRO_ROW = -1                 # 擬似行。row0 の下 = ch[0] を向く
 LOOKAHEAD = 6                  # 区画詰めで先を見る本数（行内順序を崩さない範囲）
 
@@ -101,7 +102,7 @@ def load(net_path, info_path):
 
 def macro_pin_x(macro_pin):
     """net -> マクロのピン中心 x（コアローカル）。LEF から実測。"""
-    lef = lef_parser.parse_lef(cfg.LEF_PATH)[MACRO]["pins"]
+    lef = lef_parser.parse_lef(cfg.LEF_PATH)[MACRO_PHYS]["pins"]
     mx0, my0, _, _ = cfg.macro_box()
     out = {}
     for net, pn in macro_pin.items():
@@ -332,10 +333,19 @@ def fixed_blocks(row_w):
     taps = tap_positions(row_w)
     out = [(t, cfg.TAP_W, "tap") for t in taps]
     for a, b in zip(taps, taps[1:]):
-        x, end = round(a + cfg.TAP_W, 3), b
-        while x + cfg.PRI_W <= end - 1e-6:
-            out.append((x, cfg.PRI_W, "pri"))
+        lo, hi = round(a + cfg.TAP_W, 3), b
+        xs = []
+        x = lo
+        while x + cfg.PRI_W <= hi - 1e-6:
+            xs.append(x)
             x = round(x + cfg.PRI_PITCH, 3)
+        if getattr(cfg, "PRI_MODE", "after") == "both":
+            # 次の TAP の**手前**にも 1 枠。これで行末の TAP の左にも
+            # 縦に抜ける列ができる（"after" だと行の右端に列が無い）。
+            xb = round(hi - cfg.PRI_W, 3)
+            if xb - (xs[-1] if xs else lo - cfg.PRI_W) >= cfg.PRI_W - 1e-6:
+                xs.append(xb)
+        out += [(x, cfg.PRI_W, "pri") for x in xs]
     return sorted(out)
 
 
@@ -428,7 +438,7 @@ def write_gds(path, rows, rows_y, macro_inst, info, top=None):
     src = {c.name: c for c in lib.cells}
     out = gdstk.Library(name=top, unit=1e-6, precision=1e-9)
 
-    keep = {MACRO}
+    keep = {MACRO_PHYS}
     for row in rows:
         for cname, _, _, _ in row:
             keep.add(cfg.PRI_CELL if cname == "__PRI__" else cname)
@@ -452,8 +462,8 @@ def write_gds(path, rows, rows_y, macro_inst, info, top=None):
                 src[cfg.PRI_CELL if cname == "__PRI__" else cname], (x, rows_y[r])))
     # マクロ。GDS のセル原点は prBoundary 左下ではないので実測オフセットを足す。
     mx0, my0, _, _ = cfg.macro_box()
-    ox, oy = info[MACRO]["origin"]
-    core.add(gdstk.Reference(src[MACRO], (mx0 - ox, my0 - oy)))
+    ox, oy = info[MACRO_PHYS]["origin"]
+    core.add(gdstk.Reference(src[MACRO_PHYS], (mx0 - ox, my0 - oy)))
 
     cw, ch = cfg.core_size()
     core.add(gdstk.rectangle((0, 0), (cw, ch), layer=235, datatype=0))
@@ -477,7 +487,7 @@ def dump(step, tag, rows, rows_y, macro_inst, info, extra, verbose=True):
                 row_h=cfg.ROW_HEIGHT_UM, row_y=rows_y,
                 row_width=cfg.ROW_WIDTH_UM,
                 ch_heights=cfg.CH_HEIGHTS,
-                macro=dict(cell=MACRO, inst=macro_inst,
+                macro=dict(cell=MACRO_PHYS, net_cell=MACRO, inst=macro_inst,
                            box=[mx0, my0, mx1, my1]),
                 rows=[[dict(cell=(cfg.PRI_CELL if c == "__PRI__" else c),
                             inst=i, x=x, w=w, pri=(c == "__PRI__"))
@@ -512,14 +522,15 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
     usable = row_w - sum(w for _x, w, _k in fx)
     total = sum(width.values())
     print(f"配置: 標準セル {len(cells)} 個 / 幅合計 {total:.1f} um")
-    print(f"      + マクロ {MACRO} {macro.name} "
+    print(f"      + マクロ {MACRO_PHYS}（ネットリストでは {MACRO}）{macro.name} "
           f"{cfg.MACRO_W} x {cfg.MACRO_H} um @ {cfg.macro_box()}")
     print(f"      {n} 行 x {row_w:.1f} um（TAP {taps} + 優先コリドー {pris}"
           f"（{cfg.PRI_PITCH} um ごと）を引いて実効 {usable:.1f} um/行、"
           f"計 {n*usable:.1f} um）")
     if total > n * usable:
         raise SystemExit(f"!! 入らない: {total:.1f} um 必要、{n*usable:.1f} um しかない")
-    print(f"      マクロのピン {len(mpin)} 本は ch[0] (y 0…{cfg.CH_HEIGHTS[0]}) を向く")
+    print(f"      マクロのパッド {len(mpin)} 本は y {cfg.macro_box()[3]-4.5:.1f}…"
+          f"{cfg.macro_box()[3]-1.1:.1f}（ルータ座標の下）から ch[0] を向く")
 
     rows_y, _ = cfg.row_y()
 

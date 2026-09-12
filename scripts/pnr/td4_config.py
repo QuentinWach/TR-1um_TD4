@@ -18,8 +18,12 @@ TOP_CELL_NAME = "td4_soc_arr_nrow_fm"        # 配置配線したコアセル
 CHIP_TOP_CELL = "tr_1um_TD4"                 # info.yaml の gds.top_cell
 
 # ---- 入力 ----------------------------------------------------------------
-LEF_PATH = os.path.join(ROOT, "lef", "TR-1um_cells.lef")
-CELL_GDS = os.path.join(ROOT, "lef", "TR-1um_STDCELL.gds")
+# ライブラリ本体（`scripts/mklef.py` が作る。P&R は直接読まない）
+LIB_LEF = os.path.join(ROOT, "lef", "TR-1um_cells.lef")
+LIB_GDS = os.path.join(ROOT, "lef", "TR-1um_STDCELL.gds")
+# P&R が読むもの = ライブラリ + `MEMPORT`。`scripts/pnr/mkmemport.py` が作る。
+LEF_PATH = os.path.join(ROOT, "lef", "TR-1um_PNR.lef")
+CELL_GDS = os.path.join(ROOT, "lef", "TR-1um_PNR.gds")
 NET_PATH = os.path.join(ROOT, "out", "td4_soc_arr_pnr.v")
 FRAME_GDS = os.path.join(ROOT, "lef", "TR-1um_frame_25x25.gds")
 FRAME_LEF = os.path.join(ROOT, "lef", "TR-1um_frame.lef")
@@ -68,56 +72,45 @@ PRI_W = 10.8                   # = 2 トラック
 # コリドーを増やしても**同じ x に集まりすぎて互いに衝突する**ので効かなかった。
 # 効くのは配置率そのもの。1e9 にすると「TAP 直後の 1 枠だけ」= 移植元と同じ。
 PRI_PITCH = 1e9
+# コリドーの置き方。"after" = TAP 直後だけ（移植元と同じ）、
+# "both" = **TAP の両側**。行末の TAP の手前にも 1 枠できるので、
+# 行の右端にも縦に抜ける列ができる（ユーザ指摘）。
+PRI_MODE = "both"
 
 # ---- フロアプラン --------------------------------------------------------
-# `reference/05_pin_io_plan.md` と `claude/TD4_floorplan.md` の案を、
-# **マクロのピンが全部下辺にある**という実測に合わせて直したもの。
+# **メモリは横倒しにして行スタックの下に敷く。**
 #
-#   REG8x16 の信号ピン 21 本 (ADD/WEB/D/Q) は全部 M2、y 1.1…4.5 の下辺 1 列。
-#   OBS は M1/M2 とも全面。したがって**ピンの真下に配線チャネルが要る**。
-#   旧案はマクロ底面 = コア底面だったのでピンに到達できなかった。
+# `REG8x16` は 399.6 x 933.0 で信号ピン 21 本が下辺の水平 1 列。縦置きで行の
+# 横に並べるとコア幅 1598.4 のうち 421.2 µm を食い、行幅が 1177.2 にしかならず
+# **配置率が 79% まで上がって行またぎの空き x が枯れる**（M2 の無い x が
+# 216 トラック中 48 本しかない）。これが短絡 31 件の直接の原因だった。
 #
-# 直し方: マクロを ch[0] ぶん持ち上げ、**マクロの底面を row0 の底面と面一**に
-# する。マクロのピン列と row0 のセルのピン列が同じ ch[0] を向くので、
-# チャネルルータから見ると「マクロは 933 µm 高い row0 のセル」に見える。
-# **コア幅は 1600 µm 以下に収める。** フレーム開口は幅 1600 を 0.1 µm でも
-# 超えると四隅セルに当たって 1840 → 1600 µm に縮む（`frame_opening()` で実測）。
-# 旧案の 1620 はこの崖の向こう側だった。行幅を 1198.8 → 1177.2（222 → 218
-# サイト）に 21.6 µm 削るだけで**チャネル予算が 240 µm 増える**。
-# 行の実効幅は 1123.2 → 1101.6 で、必要な 4,012 µm に対し 5 行で 5,508 µm。
-N_ROWS = 5
-ROW_WIDTH_UM = 1177.2          # 218 サイト。コア幅とは独立（マクロが右に来る）
-CORE_WIDTH_UM = 1598.4         # = ROW_WIDTH_UM + MACRO_GAP + MACRO_W
-
-MACRO_CELL = "REG8x16"
-MACRO_W, MACRO_H = 399.6, 933.0
-MACRO_GAP = 21.6               # 行スタックとマクロの隙間（M2 4 トラック）
-# セル原点と prBoundary 左下は一致している（`scripts/normalize_prboundary.py`
-# で揃えた）。place.py は決め打ちせず cell_info.json の `origin` を見る。
-
-# チャネル高（下から）。ch[0] がマクロのピン面で、**ch[0] = マクロの y0**。
-# 拘束はこれ 1 本だけ。行スタックがマクロより高くなってもよい（マクロの上に
-# 空きができるが、**ダイは 2500 x 2500 で固定**なのでコアが開口に収まる限り
-# 面積の損は無い）。
+# R90 して 933.0 x 399.6 にすると行はコア幅いっぱい使える。回すとピン列は
+# 垂直になってチャネルルータが扱えないので、`scripts/pnr/mkmemport.py` が
+# マクロ右の空き地で M1/M2 に振り替え、**上辺に水平なパッド列を持つ
+# ハードマクロ `MEMPORT` (1598.4 x 399.6)** にまとめる。中継はマクロの横に
+# 置くので高さの持ち出しはゼロ。
 #
-# place.py の見積り（ネット交差数 x 5.4 µm）は [146, 189, 221, 151, 70, 16]。
-# ルータのジョグは行またぎ 1 本ごとに新しいトラックを取るので見積りでは足りない
-# （SCLK_SPI は見積りの数倍を積んで最後に圧縮した）。ここでは約 1.3 倍 + 余白。
-# 開口 1840 − 行 297 = 1543 µm がチャネルに使える上限で、下の合計は 1300。
-# **足りなければここを増やす**（243 µm 残してある）。
-CH_HEIGHTS = [200.0, 290.0, 330.0, 250.0, 250.0, 90.0]
+# 帯は**ルータの座標系の下**（y -399.6 … 0）に置く。こうするとルータの ch[0]
+# はマクロの上から始まり、トラック割当が帯の中に食い込まない。パッドは
+# y -4.5 … -1.1 にあり、ルータからは「row0 のセルのピンが下に飛び出している」
+# ように見える（ストラブは min/max で描かれるので向きは問題にならない）。
+#
+# **チャネル予算は多めでよい。** 帯がチャネルの y 範囲にかからないので、
+# step10 の圧縮が全チャネルに効く（縦置きのときはマクロが y 200…1133 を
+# 塞いで 507.6 µm のうち 249.8 µm しか削れなかった）。実測の必要量は 891 µm。
+N_ROWS = 4
+CORE_WIDTH_UM = 1598.4
+ROW_WIDTH_UM = CORE_WIDTH_UM   # 行はコア幅いっぱい（マクロが横に無いので）
 
-TAP_X = [0.0, 534.6, 1069.2, 1166.4]         # 行ローカル。tap_positions() と一致
+MACRO_NET_CELL = "REG8x16"     # ネットリストに出てくる名前
+MACRO_CELL = "MEMPORT"         # 実際に置く物理セル（R90 + 中継）
+MACRO_W, MACRO_H = 1598.4, 399.6
+MACRO_Y0 = -MACRO_H            # ルータ座標での帯の下端
 
-# 配線で使うチャネル予算。**配置と同じでなければならない。**
-# マクロの y0 = ch[0] なので、ここがずれるとルータの中でマクロが浮く
-# （SCLK_SPI は配置の見積りと配線の予算を別にできたが、TD4 は繋がっている）。
-ROUTE_CH_HEIGHTS = list(CH_HEIGHTS)
+CH_HEIGHTS = [150.0, 400.0, 400.0, 400.0, 200.0]
 
-# 信号ピンが 1 辺（下辺）にしか出ていないインスタンス。ここにピンを持つネットは
-# ch[0] からしか出られないので、ルータが行だけ見て上の ch に割り振らないよう
-# 名指しする（`route_channels_nrow_fm.py` の「TD4 移植 (3)」）。
-DOWN_FACING_INSTS = {"u_mem"}
+TAP_X = [0.0, 534.6, 1069.2, 1587.6]         # 行ローカル。tap_positions() と一致
 
 # ---- 派生値 --------------------------------------------------------------
 def row_y():
@@ -131,16 +124,25 @@ def row_y():
 
 
 def macro_box():
-    """マクロ prBoundary の (x0, y0, x1, y1)（コアローカル）。"""
-    x0 = ROW_WIDTH_UM + MACRO_GAP
-    y0 = CH_HEIGHTS[0]
-    return (x0, y0, round(x0 + MACRO_W, 3), round(y0 + MACRO_H, 3))
+    """`MEMPORT` の prBoundary (x0, y0, x1, y1)。**ルータ座標では y が負**。"""
+    return (0.0, MACRO_Y0, MACRO_W, MACRO_Y0 + MACRO_H)
 
 
 def core_size():
+    """ルータが扱う領域（行 + チャネル）の幅・高さ。帯は含まない。"""
     _, stack_h = row_y()
-    mx0, my0, mx1, my1 = macro_box()
-    return CORE_WIDTH_UM, round(max(stack_h, my1), 3)
+    return CORE_WIDTH_UM, stack_h
+
+
+def chip_core_box():
+    """チップに落とすときのコア外形。**帯を含む**ので下端が負。"""
+    w, h = core_size()
+    return (0.0, MACRO_Y0, w, h)
+
+
+def chip_core_height():
+    _, _, _, t = chip_core_box()
+    return round(t - MACRO_Y0, 3)
 
 
 def check():
@@ -148,21 +150,23 @@ def check():
     msg = []
     if len(CH_HEIGHTS) != N_ROWS + 1:
         msg.append(f"CH_HEIGHTS は {N_ROWS+1} 本要る（今 {len(CH_HEIGHTS)}）")
-    if sum(CH_HEIGHTS[1:]) < MACRO_H - N_ROWS * ROW_HEIGHT_UM - 1e-6:
-        msg.append(f"sum(ch[1:]) = {sum(CH_HEIGHTS[1:])} だと行スタックが"
-                   f"マクロより低くなり、マクロの上がコアの外に出る")
-    mx0, _, mx1, _ = macro_box()
-    if abs(mx1 - CORE_WIDTH_UM) > 1e-6:
-        msg.append(f"マクロ右端 {mx1} とコア幅 {CORE_WIDTH_UM} が合わない")
-    lo, hi = frame_opening(CORE_WIDTH_UM)
-    _, ch = core_size()
-    if ch > hi - lo + 1e-6:
-        msg.append(f"コア高 {ch} がフレーム開口 {hi-lo} を超える")
+    if MACRO_W > CORE_WIDTH_UM + 1e-6:
+        msg.append(f"マクロ幅 {MACRO_W} がコア幅 {CORE_WIDTH_UM} を超える")
+    if MACRO_Y0 >= 0:
+        msg.append(f"マクロ帯はルータ座標の下（y<0）に置くこと（今 {MACRO_Y0}）")
     if any(abs(t / SITE_UM - round(t / SITE_UM)) > 1e-9 for t in TAP_X):
         msg.append("TAP_X がサイトグリッドに乗っていない")
     if msg:
         raise SystemExit("td4_config: フロアプランが矛盾している\n  - "
                          + "\n  - ".join(msg))
+
+
+def check_opening():
+    """圧縮後のコア高がフレーム開口に収まるか。**配線が終わってから**使う
+    （配線中は予算を多めに積むので、この時点では超えていて当たり前）。"""
+    lo, hi = frame_opening(CORE_WIDTH_UM)
+    h = chip_core_height()
+    return h, hi - lo, (hi - lo) - h
 
 
 # ---- チップ統合（コアを GIO パッドリングに落とす） -----------------------

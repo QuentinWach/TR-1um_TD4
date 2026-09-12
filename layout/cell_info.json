@@ -169,6 +169,16 @@
   "sites": 2.0,
   "width_um": 10.8
  },
+ "MEMPORT": {
+  "cls": "BLOCK",
+  "height_um": 399.6,
+  "origin": [
+   0.0,
+   0.0
+  ],
+  "sites": 296.0,
+  "width_um": 1598.4
+ },
  "MUX2": {
   "cls": "CORE",
   "height_um": 59.4,
