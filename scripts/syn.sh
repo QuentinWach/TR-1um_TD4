@@ -149,7 +149,13 @@ python3 scripts/syn_report.py td4_soc_arr_bb -n out/td4_soc_arr_bb.v
 echo
 echo "##################### 6.5 REG8x16 マクロへの差し替え（P&R 入力）"
 # RTL の td4_mem と実物の REG8x16 はピン互換ではない。グルーを入れて差し替える。
-python3 scripts/mem_wrap.py out/td4_soc_arr_bb.v -o out/td4_soc_arr_pnr.v
+python3 scripts/mem_wrap.py out/td4_soc_arr_bb.v -o out/td4_soc_arr_mw.v
+
+# 外部入力 9 本をシュミット (BUFTH) で受ける。OSS_ESD_5V_DIO には入力バッファが
+# 入っておらず、PAD の 4.8 pF を外部ドライバが直接振る。鈍った波形をそのまま
+# 各段に配ると貫通電流が増え、CLK/RSTN にチャタリングが乗れば誤動作する。
+# BUFTH は立上り 3.71V / 立下り 1.20V（ヒステリシス 2.51V）。
+python3 scripts/insert_bufth.py out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
 python3 scripts/syn_report.py td4_soc_arr -n out/td4_soc_arr_pnr.v --brief
 if command -v iverilog >/dev/null 2>&1; then
   iverilog -g2012 -o /tmp/g_pnr.vvp hdl/tb/tb_td4_soc_arr.v out/td4_soc_arr_pnr.v \

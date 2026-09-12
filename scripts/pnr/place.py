@@ -42,6 +42,7 @@ import td4_config as cfg                                    # noqa: E402
 import netlist_util as nu                                   # noqa: E402
 import lef_parser                                           # noqa: E402
 
+EPOCH = __import__("datetime").datetime(2026, 1, 1)   # GDS ヘッダの固定日付
 SUPPLY = {"VDD", "VSS", "GND", "vdd", "vss", "gnd",
           "1'b0", "1'b1", "1'h0", "1'h1"}
 MACRO = cfg.MACRO_CELL
@@ -90,6 +91,10 @@ def load(net_path, info_path):
                 net_cells[n].add(i.name)
                 if i is macro:
                     macro_pin[n] = pn
+    # **set のままにしない。** 集合の反復順は PYTHONHASHSEED で毎回変わり、
+    # バリセンタの sum(xs)/len(xs) が丸めの最下位で揺れて順序が入れ替わる。
+    # 同じ seed でも GDS が一致しなくなるので、ここで順序を固定する。
+    net_cells = {k: sorted(v) for k, v in sorted(net_cells.items())}
     return cells, macro, width, cellof, net_cells, ports, macro_pin
 
 
@@ -164,11 +169,22 @@ def refine(assign, width, net_cells, n, cap, fixed, passes=60):
 
 
 def partition(names, width, net_cells, n, cap, macro_name, restarts, seed,
-              tol=0.15):
+              tol=0.02):
     """行を**均す**。上限を実効行幅そのものにすると、カット最小化が働いて
     セルが下の行に寄り、最後の行が空になる（充填率が上がりすぎて
     フィードスルーの隙間が無くなるうえ、TAP セグメントの端数で
-    step3 が詰まる）。上限は「平均 x (1+tol)」と実効行幅の小さい方。"""
+    step3 が詰まる）。上限は「平均 x (1+tol)」と実効行幅の小さい方。
+
+    tol は締める方が良い。実測（BUFTH 込み 140 セル / 4,303.8 µm）:
+
+      tol   行の充填率                 カット
+      0.10  85, 85, 80, 69, 72 %       137
+      0.05  78, 77, 81, 82, 72 %       152
+      0.02  79, 79, 79, 74, 79 %       148   <- 既定
+
+    緩めるとカットは 7% ほど減るが行の凸凹が 16 ポイントに広がる。
+    チャネル予算には余裕があるのでカットより**均一な充填**を取る。
+    混んだ行はフィードスルーの隙間が無くなって配線で詰まる。"""
     cap = min(cap, sum(width.values()) / n * (1.0 + tol))
     rng = random.Random(seed)
     fixed = {macro_name}
@@ -401,7 +417,10 @@ def write_gds(path, rows, rows_y, macro_inst, info, top=None):
     cw, ch = cfg.core_size()
     core.add(gdstk.rectangle((0, 0), (cw, ch), layer=235, datatype=0))
     os.makedirs(os.path.dirname(path), exist_ok=True)
-    out.write_gds(path)
+    # **タイムスタンプを固定する。** 既定では書き出し時刻が GDS のヘッダに
+    # 入るので、同じ配置でもファイルの md5 が毎回変わって「配置が変わったのか
+    # 書き直しただけか」が区別できない。日付を捨てて再現性を取る。
+    out.write_gds(path, timestamp=EPOCH)
     return path
 
 
@@ -433,7 +452,7 @@ def dump(step, tag, rows, rows_y, macro_inst, info, extra, verbose=True):
 
 # ---------------------------------------------------------------------- main
 def main(net_path=None, info_path=None, restarts=800, order_passes=40,
-         seed=7, fill_mode="distributed"):
+         seed=7, fill_mode="distributed", tol=0.02):
     net_path = net_path or cfg.NET_PATH
     info_path = info_path or cfg.CELL_INFO
     if not os.path.exists(info_path):
@@ -462,7 +481,7 @@ def main(net_path=None, info_path=None, restarts=800, order_passes=40,
 
     # ---- step1: 行割当
     assign, cut = partition(names, width, net_cells, n, usable, macro.name,
-                            restarts, seed)
+                            restarts, seed, tol=tol)
     cross = crossings(assign, net_cells, ports, n)
     need = [c * cfg.TRACK_PITCH for c in cross]
     print(f"  行割当: チャネル交差 {cross} → 必要 "
@@ -521,5 +540,9 @@ if __name__ == "__main__":
     ap.add_argument("--seed", type=int, default=7)
     ap.add_argument("--fill-mode", choices=("distributed", "end"),
                     default="distributed")
+    ap.add_argument("--balance-tol", type=float, default=0.02,
+                    help="行幅の許容ばらつき（平均比）。緩めるとカットは減るが"
+                         "行が凸凹になる")
     a = ap.parse_args()
-    main(a.netlist, a.cell_info, a.restarts, a.order_passes, a.seed, a.fill_mode)
+    main(a.netlist, a.cell_info, a.restarts, a.order_passes, a.seed, a.fill_mode,
+         a.balance_tol)

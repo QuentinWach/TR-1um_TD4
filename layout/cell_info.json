@@ -283,8 +283,8 @@
   "cls": "BLOCK",
   "height_um": 933.0,
   "origin": [
-   -86.4,
-   -54.6
+   0.0,
+   0.0
   ],
   "sites": 46.0,
   "width_um": 248.4
@@ -293,8 +293,8 @@
   "cls": "BLOCK",
   "height_um": 933.0,
   "origin": [
-   -86.4,
-   -54.6
+   0.0,
+   0.0
   ],
   "sites": 74.0,
   "width_um": 399.6
