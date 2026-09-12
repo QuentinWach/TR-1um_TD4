@@ -40,7 +40,49 @@ import spi_config as cfg  # noqa: E402
 # rip-up pass cannot clear (see run_v10_pipeline.py's own note).
 # TD4: clk_buf は 25 個の DFF の CK を、rst_n_buf は同じ 25 個の RSTB を叩く。
 # どちらも全行にシンクがあるので、行ごとにローカルなスパインへ分けさせる。
-PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf"}
+def _macro_nets():
+    """`MEMPORT` につながる 21 本。配置 JSON のマクロのピンから取る。"""
+    import json as _j
+    try:
+        pl = _j.load(open(cfg.PLACEMENT_JSON))
+    except Exception:
+        return set()
+    for i in pl["rows"][0]:
+        if i["type"] == cfg.MACRO_CELL:
+            return {p["net"] for p in i["pins"].values() if p["net"]}
+    return set()
+
+
+# clk_buf / rst_n_buf に加えて**マクロの 21 本も per-row-local にする**。
+#
+# これらはパッドが帯の上辺（= ch[0] の下）にしか無いので spine は ch[0] 固定。
+# そこから row1..row3 のシンクへ登るたびに draw_jog が新しいトラックを取り、
+# x が 5.4 ずつずれる階段になる。実測（普通の spanning 扱い）:
+#   縦 M2 セグメント  マクロ系 15.2 本/ネット vs その他 5.2 本/ネット
+#   rom_data[4] は 41 本・15 列（623.7…683.1 に 10 列連続）
+# per-row-local は行ごとに専用の guarded トラックを持つので、同じ扇形でも
+# clk_buf は 2.6 本/ピンで済んでいる（rom_data[4] は 8 本/ピン）。
+# **どれを per-row-local にするかは実測で決めた。**
+#
+# マクロのパッドは帯の上辺（= ch[0] の下）にしか無いので spine は ch[0] 固定。
+# そこから row1..row3 のシンクへ登るたびに draw_jog が新しいトラックを取り、
+# x が 5.4 ずつずれる階段になる。実測（全部を普通の spanning 扱いにしたとき）:
+#
+#   縦 M2 セグメント  マクロ系 15.2 本/ネット vs その他 5.2 本/ネット
+#   rom_data[4] は 41 本・15 列（623.7…683.1 に 10 列連続）
+#
+# per-row-local は行ごとに専用の guarded トラックを持つので階段にならない。
+# ただし専用トラックはチャネルを太らせるので、入れすぎると逆効果:
+#
+#   per-row-local に入れる本数   行またぎジョグ   短絡   圧縮後コア高
+#   clk/rst のみ（2 本）              134          20    1097.5 µm
+#   + マクロ 8 本（下表の上位）        79          16    1131.1 µm   <- 採用
+#   + マクロ 21 本（全部）             62          22    1218.7 µm
+#
+# 上位 8 本 = 縦 M2 が多かった rom_data[4..7] と d_buf[0..3]。
+PER_ROW_LOCAL_NETS = {"clk_buf", "rst_n_buf",
+                      "rom_data[4]", "rom_data[5]", "rom_data[6]", "rom_data[7]",
+                      "d_buf[0]", "d_buf[1]", "d_buf[2]", "d_buf[3]"}
 FORCE_HIGH_FO_NETS = set()
 FORCE_JOG_NETS = set()
 
