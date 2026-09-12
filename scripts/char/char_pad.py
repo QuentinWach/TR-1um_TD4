@@ -30,6 +30,20 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 VDD, TEMP = 5.0, 25
 CELL = "OSS_ESD_5V_DIO"
 MODELS = os.environ.get("TR1UM_MODELS", f"{HERE}/models")
+# パッドセルの面積。標準セルの cell_area.json（STDCELL の GDS 実測）には
+# 入っていないので、フレームの LEF の MACRO ... SIZE から読む。
+FRAME_LEF = os.environ.get("TR1UM_FRAME_LEF",
+                           os.path.join(HERE, "..", "..", "lef", "TR-1um_frame.lef"))
+
+
+def pad_area(cell=None):
+    cell = cell or CELL
+    m = re.search(rf"^MACRO {cell}\b(.*?)^END {cell}\b", open(FRAME_LEF).read(),
+                  re.S | re.M)
+    if not m:
+        raise SystemExit(f"{FRAME_LEF} に MACRO {cell} が無い")
+    w, h = re.search(r"SIZE\s+([\d.]+)\s+BY\s+([\d.]+)", m.group(1)).groups()
+    return float(w) * float(h)
 
 # 入力遷移 [ns]（20-80%）— 標準セルと同じ
 SLEWS = [0.1, 0.25, 0.6, 1.5, 4.0, 8.0, 16.0]
@@ -147,7 +161,7 @@ def build_padcap(netlist):
     return "\n".join(L)
 
 
-def build_tristate(netlist, mode, slew, out_lvl, cl):
+def build_tristate(netlist, mode, slew, out_lvl, cl, i0=None):
     """HIZ -> PAD の enable / disable。
 
     enable  : HIZ を 1->0。PAD は 1Mohm で逆レールに置いてある。50% 通過まで。
@@ -172,6 +186,13 @@ def build_tristate(netlist, mode, slew, out_lvl, cl):
         L.append(f".tran {max(min(slew,0.5)/20, 0.02):g}n {tend:g}n")
         edge = "RISE=1" if out_lvl else "FALL=1"
         L.append(f".meas tran d TRIG v(HIZ) VAL={vt:g} FALL=1 TARG v(PAD) VAL={vt:g} {edge}")
+        # enable の遷移。PAD は逆レールから駆動レールまでフルスイングするので、
+        # 通常の出力遷移と同じ 20-80% で測れる。
+        lo, hi = VDD * TH_LO / 100, VDD * TH_HI / 100
+        if out_lvl:
+            L.append(f".meas tran t TRIG v(PAD) VAL={lo:g} RISE=1 TARG v(PAD) VAL={hi:g} RISE=1")
+        else:
+            L.append(f".meas tran t TRIG v(PAD) VAL={hi:g} FALL=1 TARG v(PAD) VAL={lo:g} FALL=1")
     else:
         L.append(f"Vpad PAD 0 {VDD/2:g}")
         L.append(f".tran {max(min(slew,0.5)/20, 0.02):g}n {tend:g}n")
@@ -181,24 +202,39 @@ def build_tristate(netlist, mode, slew, out_lvl, cl):
         L.append(f".meas tran d TRIG v(HIZ) VAL={vt:g} RISE=1 "
                  f"TARG i(Vpad) VAL={DIS_I if out_lvl else -DIS_I:g} "
                  f"{'FALL=1' if out_lvl else 'RISE=1'}")
+        # disable の「遷移」。放した瞬間は電圧が動かない（PAD を VDD/2 で
+        # 押さえているので当然）ので、**駆動電流が i0 の 80% から 20% まで
+        # 落ちる時間**を遷移とする。遅延を電流で定義したのと同じ理屈で、
+        # 負荷にも外付け抵抗にも依らない。OUT=1 は i0 が正で下がり、
+        # OUT=0 は負から 0 へ上がるので、どちらも同じ向きの通過になる。
+        #
+        # ngspice の .meas は他の .meas の結果を VAL の式に使えない
+        # （Undefined parameter [i0] で落ちる）ので 2 パスにする。
+        # 1 パス目で i0 を測り、2 パス目にその数値を渡す。
+        if i0 is not None:
+            ed = "FALL=1" if out_lvl else "RISE=1"
+            L.append(f".meas tran t TRIG i(Vpad) VAL={0.8*i0:.6g} {ed} "
+                     f"TARG i(Vpad) VAL={0.2*i0:.6g} {ed}")
     L += ["", ".end", ""]
     return "\n".join(L)
 
 
 def main():
     ap = argparse.ArgumentParser()
-    ap.add_argument("-n", "--netlist", default=f"{HERE}/gio_sim.spi")
+    ap.add_argument("-n", "--netlist", default=f"{HERE}/cells_pad/OSS_FRAME_GIO_sim.spi")
     ap.add_argument("-o", "--out", default=f"{HERE}/char/{CELL}.json")
     ap.add_argument("--only", choices=["delay", "tri", "cap"], help="一部だけ流す（確認用）")
     a = ap.parse_args()
     os.makedirs(os.path.dirname(a.out), exist_ok=True)
     n = len(LOADS)
+    PAD_AREA = pad_area()
     res = {"cell": CELL, "pad": True, "slews": SLEWS, "loads": LOADS,
            "slews_t": SLEWS_T, "dis_i": DIS_I,
            "arc": {"cell_rise": [], "cell_fall": [],
                    "rise_transition": [], "fall_transition": []},
-           "enable": {"rise": [], "fall": []},
-           "disable": {"rise": [], "fall": []}, "cap": {}}
+           "enable": {"rise": [], "fall": [], "rise_transition": [], "fall_transition": []},
+           "disable": {"rise": [], "fall": [], "rise_transition": [], "fall_transition": []},
+           "area": PAD_AREA, "cap": {}}
 
     print(f"{'入力遷移':>8}  {'CL=1pF':>18}  {'CL=10pF':>18}  {'CL=50pF':>18}")
     for si, sl in enumerate(SLEWS):
@@ -221,21 +257,29 @@ def main():
     print(f"\n{'':>8}  {'enable [ns]':>26}  {'disable [ns]':>26}")
     for mode in ("enable", "disable"):
         for lvl, key in ((1, "rise"), (0, "fall")):
-            tbl = []
+            tbl, ttbl = [], []
             for sl in SLEWS_T:
                 if mode == "enable":
-                    tbl.append([run(build_tristate(a.netlist, mode, sl, lvl, cl),
-                                    f"pad_{mode}_{key}_{sl}_{cl}", a.netlist).get("d")
-                                for cl in LOADS])
+                    vs = [run(build_tristate(a.netlist, mode, sl, lvl, cl),
+                              f"pad_{mode}_{key}_{sl}_{cl}", a.netlist) for cl in LOADS]
+                    tbl.append([v.get("d") for v in vs])
+                    ttbl.append([v.get("t") for v in vs])
                 else:
                     # disable は負荷に依らない（電流で判定するため）。
                     # Liberty の表は負荷軸を持つので同じ値を並べる。
                     v = run(build_tristate(a.netlist, mode, sl, lvl, 0),
                             f"pad_{mode}_{key}_{sl}", a.netlist)
+                    # 2 パス目: 1 パス目の i0 を閾値に入れて遷移を測る
+                    t = None
+                    if v.get("i0"):
+                        t = run(build_tristate(a.netlist, mode, sl, lvl, 0, v["i0"]),
+                                f"pad_{mode}_{key}_{sl}_t", a.netlist).get("t")
                     tbl.append([v.get("d")] * len(LOADS))
+                    ttbl.append([t] * len(LOADS))
                     if sl == SLEWS_T[0] and lvl == 1:
                         res["dis_i0"] = v.get("i0")
             res[mode][key] = tbl
+            res[mode][f"{key}_transition"] = ttbl
     g = lambda v: f"{v*1e9:.2f}" if v is not None else "-"
     for key in ("rise", "fall"):
         i = SLEWS_T.index(1.5)
@@ -253,6 +297,14 @@ def main():
     print("\n入力容量（電荷から）: " + " / ".join(
         f"{k} {v:.1f} fF" for k, v in res["cap"].items() if v))
 
+    # 既にある JSON は**上書きせず併合する**。calib_cap.py が後から書き足す
+    # cap_cal / cap_charge をここで消してしまわないように
+    # （一度消して .lib の capacitance が電荷ベースの値に戻った）。
+    if os.path.exists(a.out):
+        old = json.load(open(a.out))
+        for k, v in old.items():
+            if k not in res:
+                res[k] = v
     json.dump(res, open(a.out, "w"), indent=1)
     print(f"\nwrote {a.out}")
 

@@ -196,7 +196,14 @@ def emit_pad(cell, d, o):
     """
     caps = d.get("cap_cal") or d.get("cap", {})
     o.append(f'{IND}cell ({cell}) {{')
-    o.append(f'{IND*2}area : {d["area"]:.1f};')
+    # 面積は lef/TR-1um_frame.lef の MACRO ... SIZE が正（標準セルの
+    # cell_area.json は STDCELL の GDS から作るのでパッドセルが入っていない）。
+    # char_pad.py が JSON に書くが、古い JSON でも落ちないよう LEF を見に行く。
+    area = d.get("area")
+    if area is None:
+        from char_pad import pad_area
+        area = pad_area(cell)
+    o.append(f'{IND*2}area : {area:.1f};')
     o.append(f'{IND*2}pad_cell : true;')
     o.append(f'{IND*2}dont_use : true;    /* フレームに固定配置。合成が勝手に挿さないように */')
     o.append(f'{IND*2}dont_touch : true;')
@@ -227,7 +234,10 @@ def emit_pad(cell, d, o):
         o.append(f'{IND*4}related_pin : "HIZ";')
         o.append(f'{IND*4}timing_type : {tt};')
         o.append(f'{IND*4}timing_sense : non_unate;')
-        for k, key in (("rise", "cell_rise"), ("fall", "cell_fall")):
+        for k, key in (("rise", "cell_rise"), ("rise_transition", "rise_transition"),
+                       ("fall", "cell_fall"), ("fall_transition", "fall_transition")):
+            if d[mode].get(k) is None:
+                continue
             o.append(f'{IND*4}{key} (pad_tri_template_3x7) {{')
             o.append(values_block(d[mode][k], IND * 5))
             o.append(f'{IND*4}}}')
@@ -271,6 +281,14 @@ def main():
     o.append(f" * 遅延の測定点: 入力 {TH_DELAY}% -> 出力 {TH_DELAY}%")
     o.append(f" * 遷移の測定点: {TH_SLEW_LO}% -> {TH_SLEW_HI}%")
     o.append(" * 単位: 時間 ns / 容量 fF / 面積 um^2")
+    o.append(" *")
+    o.append(" * OSS_ESD_5V_DIO の 3 ステートアークの測定条件:")
+    o.append(" *   enable  遅延 HIZ 50% -> PAD 50%。PAD は 1Mohm で逆レールに置いてから。")
+    o.append(" *           遷移は PAD の 20-80%（逆レールから駆動レールへのフルスイング）。")
+    o.append(" *   disable 遅延 HIZ 50% -> 駆動電流が 100uA を切るまで。PAD を VDD/2 の")
+    o.append(" *           電圧源で押さえて電流で判定するので負荷に依らない。")
+    o.append(" *           **遷移は電圧では定義できない**（放しても波形が動かない）ので、")
+    o.append(" *           駆動電流が初期値の 80% -> 20% に落ちる時間を入れてある。")
     o.append(" *")
     o.append(" * 入っていないセル: ADDBUF / REGBUF / TLAT / DEC0 / DEC2 / DEC16 など")
     o.append(" *   アレイ内部で abut して使う CLASS BLOCK のセル。P&R の行に流さないので")
