@@ -125,6 +125,7 @@ _sys.path.insert(0, _HERE)
 import spi_config as _cfg  # noqa: E402
 # ---------------------------------------------------------------------------
 import json
+import math
 import os
 import sys
 from collections import defaultdict
@@ -328,7 +329,29 @@ def um(v, dbu):
     return int(round(v / dbu))
 
 
-def assign_lanes(nets_subset):
+SPAN_LANE_PACK = _os.environ.get("TD4_SPAN_LANE_PACK", "0") == "1"
+
+
+def assign_lanes(nets_subset, pack=True):
+    """x 区間が重ならないネットを同じレーン（= 同じトラック）に詰める。
+
+    --- TD4 移植 (10) ---
+    `pack=False` は詰めずに 1 ネット 1 レーンにする。**spanning ネット専用**。
+
+    理由: spanning のトランクは `xmin, xmax = min(pin_cxs), max(pin_cxs)` と、
+    **ジョグ後**のピン x で描かれる。ところがレーン割り当ては**ジョグ前**の
+    ピン x 区間で行う。行またぎで clear な x を探した結果ピンが右へ動くと、
+    トランクが割り当て時の区間を飛び出して**同じレーンの隣人を踏む**。
+
+    実測（`TD4_SPAN_LANE_PACK=1` = 従来）:
+      `_004_`    区間 (199.8, 1120.5) → lane 5、実際のトランク 194.4…1541.7
+      `rom_data[5]` 区間 (1158.3, 1260.9) → **同じ lane 5**
+      → ch0 の y=45.2 で x 1158.3…1260.9 が重なり短絡。
+
+    spanning は ch0 に 20 本しか無く、詰めても 11 レーン。詰めなければ 20
+    レーンで +9 トラック (48.6 µm) だが、**使われないトラックは step10 の
+    圧縮が丸ごと削る**ので最終コア高にはほとんど効かない。
+    """
     items = []
     for net, (xmin, xmax) in nets_subset.items():
         items.append((net, xmin, xmax))
@@ -336,6 +359,10 @@ def assign_lanes(nets_subset):
     lane_last_x = []
     assignment = {}
     for net, xmin, xmax in items:
+        if not pack:
+            assignment[net] = len(lane_last_x)
+            lane_last_x.append(xmax)
+            continue
         placed = False
         for i, last_x in enumerate(lane_last_x):
             if last_x < xmin - LANE_MARGIN:
@@ -580,7 +607,9 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
         running_count[c] += 1
         span_channel_assign[net] = c
         span_pool[c][net] = (xmin, xmax)
-    span_lanes = {c: assign_lanes(span_pool[c]) for c in range(n_ch)}
+    # TD4 移植 (10): spanning はレーンを詰めない（assign_lanes の docstring）
+    span_lanes = {c: assign_lanes(span_pool[c], pack=SPAN_LANE_PACK)
+                  for c in range(n_ch)}
     adj_lanes = {c: assign_lanes(adjacent_pair[c]) for c in range(n_ch)}
 
     # v4: assign each high-FO net to a channel (row-only ones pick
@@ -758,6 +787,16 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
     channel_used_x = defaultdict(list)  # (channel, idx) -> [(net, cx), ...]
     MIN_VIA_X_SEP = M1_PAD_SIZE + 1.4
 
+    # --- TD4 移植 (13) ---------------------------------------------------
+    # 同じネットでも via_1 のカット同士は離す必要がある。カット 1.4 µm・
+    # 最小間隔 1.5 µm なので中心間 2.9 µm 以上。`exclude_net` は「同じ
+    # ネットなら 1 本の導体だから無視」という趣旨だが、**DRC のカット間隔
+    # だけは導体が同じでも効く**。
+    # 実測: `rom_data[3]` のマクロ側ライザ着地 x=21.6 と `_166_.A` のピン
+    # x=24.3 が同じトランク (y=18.2) に 2.7 µm 間隔で並び、V1 space 1.3 µm
+    # の違反 1 件になっていた（唯一の残存 DRC）。
+    SAME_NET_VIA_MIN = 2.9
+
     def collides(channel, idx, cxs, exclude_net=None):
         """v17 (design_notes, this session): `exclude_net`, if given,
         skips any channel_used_x entry belonging to that SAME net --
@@ -775,6 +814,12 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
         for nb in (idx - 1, idx, idx + 1):
             for onet, ux in channel_used_x.get((channel, nb), []):
                 if exclude_net is not None and onet == exclude_net:
+                    # TD4 移植 (13): 同じネットでも**同じトラック上**の
+                    # カット間隔だけは見る（別トラックなら y が 5.4 離れる）
+                    if nb == idx:
+                        for cx in cxs:
+                            if 1e-6 < abs(cx - ux) < SAME_NET_VIA_MIN:
+                                return True
                     continue
                 for cx in cxs:
                     if abs(cx - ux) < MIN_VIA_X_SEP:
@@ -1617,7 +1662,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                 try:
                     jog_idx = claim_track_near(jog_channel, [cur_x, clear_x], target_idx, cur_net[0],
                                                 extra_ok=departure_leg_ok)
-                    print(f"  INFO: draw_jog claimed a fresh track near y={near_y} in "
+                    print(f"  INFO: [{cur_net[0]}] draw_jog claimed a fresh track near y={near_y} in "
                           f"channel {jog_channel} at x={cur_x} (no reusable idle stretch nearby, "
                           f"design_notes 43.6)")
                 except SystemExit:
@@ -1649,10 +1694,59 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                         place_via(cur_x, cur_y)
                         m1_box(min(cur_x, clear_x), cur_y - half_w4, max(cur_x, clear_x), cur_y + half_w4)
                         place_via(clear_x, cur_y)
-                        print(f"  INFO: draw_jog bridged directly to clear_x={clear_x} at "
+                        print(f"  INFO: [{cur_net[0]}] draw_jog bridged directly to clear_x={clear_x} at "
                               f"y={cur_y} (no track had a clear departure leg near y={near_y} "
                               f"in channel {jog_channel} at x={cur_x}; design_notes v28)")
                         return clear_x, cur_y
+                    # --- TD4 移植 (11) ---------------------------------
+                    # v28 のブリッジは **cur_y でしか**試さない。cur_y の
+                    # M1 が塞がっていると即座に最後の「無検査で近くの空き
+                    # トラック」へ落ちる。そこで cur_y と near_y の間の
+                    # トラック grid を順に試す：
+                    #
+                    #   cur_x を by まで M2 で登る（departure leg を検査）
+                    #   → by で M1 を clear_x まで（m1_run_clear で検査）
+                    #
+                    # トラックは claim しない（v28 と同じ）。検査は実 geometry
+                    # なので、他ネットが既に描いた金属とは重ならない。
+                    #
+                    # 実測: `_003_` (u_mem.ADD[2]) が cur_x=650.7 で詰まり、
+                    # 無検査フォールバックが x=650.7 の柱を y=1233.8 から
+                    # 上へ描いて、`_002_` が既に持っていた同じ柱
+                    # （x 649.0…652.4、y 23.6…1255.4）に 21.6 µm 重なって
+                    # 短絡していた。これが最後の 1 件だった。
+                    if abs(clear_x - cur_x) > 1e-6:
+                        _i_hi = int((CH_HEIGHTS[jog_channel] - 2 * TRACK0_OFFSET) // TRACK_PITCH)
+                        _cands = [ch_y0[jog_channel] + TRACK0_OFFSET + _i * TRACK_PITCH
+                                  for _i in range(0, _i_hi + 1)]
+                        _cands.sort(key=lambda v: abs(v - cur_y))
+                        for _by in _cands:
+                            if abs(_by - cur_y) < 1e-6:
+                                continue          # v28 で試し済み
+                            if not in_y_bound(_by):
+                                continue
+                            if _by > cur_y:
+                                _l, _h = cur_y + EPS, _by
+                            else:
+                                _l, _h = _by, cur_y - EPS
+                            if not channel_clear(cur_x, _l, _h):
+                                continue
+                            if not m1_run_clear(_by, cur_x, clear_x):
+                                continue
+                            half_w5 = M1_TRUNK_WIDTH / 2.0
+                            m2_box(cur_x - PAD_HALF, min(cur_y, _by),
+                                   cur_x + PAD_HALF, max(cur_y, _by))
+                            place_via(cur_x, _by)
+                            m1_box(min(cur_x, clear_x), _by - half_w5,
+                                   max(cur_x, clear_x), _by + half_w5)
+                            place_via(clear_x, _by)
+                            register_via_x(jog_channel, _by, cur_x, cur_net[0])
+                            register_via_x(jog_channel, _by, clear_x, cur_net[0])
+                            print(f"  INFO: [{cur_net[0]}] draw_jog bridged to clear_x={clear_x} at "
+                                  f"y={_by} (cur_y={cur_y} was blocked; no track near y={near_y} in "
+                                  f"channel {jog_channel} had a clear departure leg at x={cur_x}; "
+                                  f"TD4 移植 11)")
+                            return clear_x, _by
                     # v32 (design_notes, this session): before giving up
                     # entirely, try the SAME unconditional "nearest free
                     # track" fallback as before but still constrained to
@@ -1684,7 +1778,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                                                         extra_ok=lambda idx, jy: in_y_bound(jy)
                                                         and m1_run_clear(jy, cur_x, clear_x),
                                                         allow_claimed=True)
-                            print(f"  INFO: draw_jog fell back to an idle stretch of an already-"
+                            print(f"  INFO: [{cur_net[0]}] draw_jog fell back to an idle stretch of an already-"
                                   f"claimed track near y={near_y} in channel {jog_channel} WITHOUT "
                                   f"a verified clear departure leg at x={cur_x}, but constrained to "
                                   f"the caller's verified-clear y-range {y_bound} and m1_run_clear "
@@ -1693,12 +1787,12 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                             try:
                                 jog_idx = claim_track_near(jog_channel, [cur_x, clear_x], target_idx, cur_net[0],
                                                             extra_ok=lambda idx, jy: in_y_bound(jy))
-                                print(f"  INFO: draw_jog fell back to the nearest free track near "
+                                print(f"  INFO: [{cur_net[0]}] draw_jog fell back to the nearest free track near "
                                       f"y={near_y} in channel {jog_channel} WITHOUT a verified clear "
                                       f"departure leg at x={cur_x}, but still constrained to the "
                                       f"caller's verified-clear y-range {y_bound} (design_notes v32)")
                             except SystemExit:
-                                print(f"  WARNING: draw_jog could not find ANY free track near "
+                                print(f"  WARNING: [{cur_net[0]}] draw_jog could not find ANY free track near "
                                       f"y={near_y} in channel {jog_channel} within y_bound={y_bound} -- "
                                       f"falling back to nearest free track anywhere (may leave a "
                                       f"short to investigate)")
@@ -1713,7 +1807,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                         # a real capacity limit, not a bug, and should
                         # surface as a connectivity-check short to
                         # investigate rather than a hard crash.
-                        print(f"  WARNING: draw_jog could not find a track near y={near_y} in "
+                        print(f"  WARNING: [{cur_net[0]}] draw_jog could not find a track near y={near_y} in "
                               f"channel {jog_channel} with a clear departure leg at x={cur_x}, and "
                               f"a direct bridge to clear_x={clear_x} wasn't safe either -- falling "
                               f"back to nearest free track (may leave a short to investigate)")
@@ -2108,7 +2202,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                 passthrough_pins += 1
 
             cur_x, cur_y = cx, pin_edge_y
-            for row_k in ordered_rows:
+            for _rk_i, row_k in enumerate(ordered_rows):
                 jog_channel = row_k if direction > 0 else row_k + 1
                 row_ylo0, row_yhi0 = row_y0[row_k], row_y0[row_k] + row_h
                 entry_y0 = row_ylo0 if direction > 0 else row_yhi0
@@ -2182,8 +2276,36 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
                             return False
                         return via_x_clear(channel, track_y, x, net)
                 else:
-                    leg_ok = (lambda x, _lo=leg_lo, _hi=leg_hi:
-                              _hi - _lo <= 1e-6 or channel_clear(x, _lo, _hi))
+                    # --- TD4 移植 (12) ---------------------------------
+                    # v30 は**最後の行**だけ「この先の走行も clear か」を
+                    # 見ていた。途中の行では次のレグを見ないので、行を
+                    # 跨いだ先のチャネルが他ネットの柱で埋まっている x を
+                    # 平気で選ぶ。そこから先は x を変えるしか逃げ道が無く、
+                    # draw_jog は「departure leg が clear なトラックが無い」
+                    # と言って**無検査フォールバック**に落ちる。
+                    #
+                    # 実測: `_003_` (u_mem.ADD[2]) は row1 を x=650.7 で
+                    # 降りたが、`_002_` が ch1 の x 649.0…652.4 を y 29.0…
+                    # 1255.4 まで既に占有していた。ch1 に入った y=1259.4 は
+                    # チャネルの最上段なので下へはどこへも行けず、
+                    # フォールバックが y 1259.4→1233.8 の柱を無検査で描いて
+                    # 21.6 µm 重なった。これが最後の 1 件の短絡。
+                    #
+                    # 途中の行でも「次のレグ」（この行の向こう側の境界から
+                    # 次に跨ぐ行の手前の境界まで）を条件に加える。
+                    _row_ylo_k, _row_yhi_k = row_y0[row_k], row_y0[row_k] + row_h
+                    _exit_y_k = _row_yhi_k if direction > 0 else _row_ylo_k
+                    _row_next = ordered_rows[_rk_i + 1]
+                    _entry_next = (row_y0[_row_next] if direction > 0
+                                   else row_y0[_row_next] + row_h)
+                    nxt_lo, nxt_hi = min(_exit_y_k, _entry_next), max(_exit_y_k, _entry_next)
+
+                    def leg_ok(x, _lo=leg_lo, _hi=leg_hi, _nlo=nxt_lo, _nhi=nxt_hi):
+                        if _hi - _lo > 1e-6 and not channel_clear(x, _lo, _hi):
+                            return False
+                        if _nhi - _nlo > 1e-6 and not channel_clear(x, _nlo, _nhi):
+                            return False
+                        return True
                 try:
                     clear_x = find_row_clear_x(row_k, cur_x, extra_ok=leg_ok)
                 except SystemExit:
