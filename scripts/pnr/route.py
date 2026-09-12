@@ -48,9 +48,11 @@ def _macro_nets():
         pl = _j.load(open(cfg.PLACEMENT_JSON))
     except Exception:
         return set()
-    for i in pl["rows"][0]:
-        if i["type"] == cfg.MACRO_CELL:
-            return {p["net"] for p in i["pins"].values() if p["net"]}
+    # マクロは row0 とは限らない（縦置きの `TD4_MACRO_ROW`）。全行を見る。
+    for row in pl["rows"]:
+        for i in row:
+            if i["type"] == cfg.MACRO_CELL:
+                return {p["net"] for p in i["pins"].values() if p["net"]}
     return set()
 
 

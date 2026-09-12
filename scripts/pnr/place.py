@@ -48,7 +48,10 @@ SUPPLY = {"VDD", "VSS", "GND", "vdd", "vss", "gnd",
           "1'b0", "1'b1", "1'h0", "1'h1"}
 MACRO = cfg.MACRO_NET_CELL     # ネットリスト上の名前
 MACRO_PHYS = cfg.MACRO_CELL    # 置く物理セル
-MACRO_ROW = -1                 # 擬似行。row0 の下 = ch[0] を向く
+# 擬似行。マクロのピン列が向くチャネルの**下**の行に置く。
+# 横倒し（帯）は row0 の下なので -1。縦置きで `TD4_MACRO_ROW=k` なら k-1。
+MACRO_ROW = (getattr(cfg, "MACRO_ALIGN_ROW", 0)
+             if getattr(cfg, "MACRO_MODE", "landscape") == "portrait" else 0) - 1
 LOOKAHEAD = 6                  # 区画詰めで先を見る本数（行内順序を崩さない範囲）
 
 
@@ -251,7 +254,11 @@ def hpwl(order, width, net_cells, ports, rows_y, mpin):
 def order_rows(assign, width, net_cells, ports, rows_y, n, mpin,
                passes=40, seed=1):
     rng = random.Random(seed)
-    order = [[c for c in assign if assign[c] == r] for r in range(n)]
+    # マクロは `width` を持たない（行に置かない）。擬似行が実在の行番号に
+    # なる縦置き `TD4_MACRO_ROW>=1` では、これを外さないと hpwl が
+    # `KeyError: 'u_mem'` で落ちる。
+    order = [[c for c in assign if assign[c] == r and c in width]
+             for r in range(n)]
     for seq in order:
         rng.shuffle(seq)
     best = [list(s) for s in order]

@@ -111,7 +111,8 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
     if cfg.MACRO_MODE == "landscape" and my1 > 1e-6:
         raise SystemExit(f"マクロ帯の上端 {my1} が 0 を超える。帯はルータ座標の"
                          f"下に置くこと")
-    row0_y0 = cfg.row_y()[0][0]
+    mrow = getattr(cfg, "MACRO_ALIGN_ROW", 0) if cfg.MACRO_MODE == "portrait" else 0
+    row0_y0 = cfg.row_y()[0][mrow]
     mcell, minst = pl["macro"]["cell"], pl["macro"].get("net_cell", cfg.MACRO_NET_CELL)
     mcell, minst = pl["macro"]["cell"], pl["macro"]["inst"]
     # **バス接続を開く。** `netlist_parser` はピンごとに 1 ネットしか持たず、
@@ -141,8 +142,11 @@ def main(place_json=PLACE, out_json=None, net_path=None, lef_path=None):
                                    x1, round(my0 + y1 - row0_y0, 4)]
                                   for l, x0, y0, x1, y1
                                   in conv_rects(pinfo["rects"], mx0)]}
-    rows[0].append({"type": mcell, "name": minst, "row": 0, "x": mx0,
-                    "width": cfg.MACRO_W, "pins": mpins})
+    # マクロは**ピン列が向くチャネルの上の行**に足す。ルータは行ごとに
+    # `row_y0[r]` を足してピンの絶対 y を作るので、ここで入れる行と
+    # 上の `row0_y0` は同じ行でなければならない。
+    rows[mrow].append({"type": mcell, "name": minst, "row": mrow, "x": mx0,
+                       "width": cfg.MACRO_W, "pins": mpins})
 
     data = {"row_height": pl["row_h"], "row_width": pl["row_width"],
             "core_w": pl["core_w"], "core_h": pl["core_h"],

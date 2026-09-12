@@ -72,8 +72,9 @@ def main(path=None):
         # 面一であること（下辺のピン列が ch[0] を向くための拘束）。
         if mx0 < cfg.ROW_WIDTH_UM - EPS:
             bad.append(f"マクロ左端 {mx0} が行スタック (…{cfg.ROW_WIDTH_UM}) と重なる")
-        if abs(my0 - ys[0]) > EPS:
-            bad.append(f"マクロ底面 {my0} が row0 の底面 {ys[0]} と面一でない")
+        k = getattr(cfg, "MACRO_ALIGN_ROW", 0)
+        if abs(my0 - ys[k]) > EPS:
+            bad.append(f"マクロ底面 {my0} が row{k} の底面 {ys[k]} と面一でない")
         note.append(f"マクロは x {mx0}…{mx1} / y {my0}…{my1}（行スタックの右）。"
                     f"行スタック高 {stack}、コア高 {cfg.core_size()[1]} µm"
                     + ("（マクロが決めている）" if my1 > stack else "（行スタックが決めている）"))

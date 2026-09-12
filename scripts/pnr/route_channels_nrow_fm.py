@@ -566,13 +566,15 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
     # にする。spanning の spine は ch[0] に置かれ、そこから行を跨いで上がる。
     # direction は `-1 if channel <= row else 1` なので、row0 / ch0 で
     # 正しく「下向き」になる。
+    _DOWN_CH = (getattr(_cfg, "MACRO_ALIGN_ROW", 0)
+                if getattr(_cfg, "MACRO_MODE", "landscape") == "portrait" else 0)
     down_nets = set()
     for net, pads in net_pins.items():
         if any(inst in DOWN_FACING_INSTS for _r, inst, _p, *_ in pads):
             down_nets.add(net)
     if down_nets:
         print(f"down-facing macro nets: {len(down_nets)} "
-              f"(forced to spanning, legal channel [0])")
+              f"(forced to spanning, legal channel [{_DOWN_CH}])")
 
     for net, pads in net_pins.items():
         if len(pads) < 2:
@@ -583,7 +585,9 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS,
             continue
         if net in down_nets:
             xs = [(x0 + x1) / 2.0 for _r, _i, _p, x0, y0, x1, y1 in pads]
-            spanning.append((net, min(xs), max(xs), [0]))
+            # 出口のチャネルは**マクロの下辺が接している行**の下の ch。
+            # 横倒し（帯）では常に 0、縦置きでは `TD4_MACRO_ROW`。
+            spanning.append((net, min(xs), max(xs), [_DOWN_CH]))
             continue
         pin_rows = sorted({p[0] for p in pads})
         xs = [(x0 + x1) / 2.0 for _r, _i, _p, x0, y0, x1, y1 in pads]

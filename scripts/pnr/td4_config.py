@@ -167,6 +167,13 @@ else:
 # 必要量: 1.4 + 10 + 1.4 + 10 + 1.4 = 24.2 µm → サイト grid に丸めて 27.0。
 POWER_BAR_W = 10.0             # バー 1 本の M1 幅
 POWER_BAR_GAP = 2.0            # バー間 / 帯とバーの間（M1 最小 1.4 に余裕）
+# 縦置きのとき、マクロの**底面をどの行の底面に合わせるか**（`TD4_MACRO_ROW`）。
+# マクロの信号ピンは下辺 1 列なので、合わせた行 k の底面 = ch[k] を向く。
+#   k=0  ピンが ch[0] を向く。**マクロの 21 本が全部 row0 を越えて上へ抜ける**
+#        ので row0 の行またぎが詰まる（実測: clear-x 失敗 24 本のうち 10 本が row0）
+#   k=1  ピンが ch[1] を向く。row0 へは下り、row1…row4 へは上り、と分かれる
+# 行スタックより高くなると（マクロ上端 > スタック高）コアがその分だけ伸びる。
+MACRO_ALIGN_ROW = int(os.environ.get("TD4_MACRO_ROW", "0"))
 MACRO_GAP_UM = 0.0 if _PORTRAIT else 27.0
 # ルータ座標での帯の下端。縦置きでは帯が無いので使わない（macro_box() 参照）。
 MACRO_Y0 = 0.0 if _PORTRAIT else -(MACRO_H + MACRO_GAP_UM)
@@ -223,7 +230,7 @@ def macro_box():
     """
     if _PORTRAIT:
         x0 = ROW_WIDTH_UM + MACRO_SIDE_GAP
-        y0 = CH_HEIGHTS[0]
+        y0 = row_y()[0][MACRO_ALIGN_ROW]
         return (x0, y0, round(x0 + MACRO_W, 3), round(y0 + MACRO_H, 3))
     return (0.0, MACRO_Y0, MACRO_W, round(MACRO_Y0 + MACRO_H, 3))
 
@@ -280,9 +287,13 @@ def check():
         mx0, my0, mx1, my1 = macro_box()
         if mx1 > CORE_WIDTH_UM + 1e-6:
             msg.append(f"縦置きのマクロ右端 {mx1} がコア幅 {CORE_WIDTH_UM} を超える")
-        if abs(my0 - CH_HEIGHTS[0]) > 1e-6:
-            msg.append(f"縦置きのマクロ底面 {my0} が row0 の底面 {CH_HEIGHTS[0]} と面一でない"
-                       f"（下辺のピン列が ch[0] を向かなくなる）")
+        _ys, _stack = row_y()
+        if not (0 <= MACRO_ALIGN_ROW < N_ROWS):
+            msg.append(f"TD4_MACRO_ROW {MACRO_ALIGN_ROW} が行の範囲外（0…{N_ROWS-1}）")
+        elif abs(my0 - _ys[MACRO_ALIGN_ROW]) > 1e-6:
+            msg.append(f"縦置きのマクロ底面 {my0} が row{MACRO_ALIGN_ROW} の底面 "
+                       f"{_ys[MACRO_ALIGN_ROW]} と面一でない"
+                       f"（下辺のピン列が ch[{MACRO_ALIGN_ROW}] を向かなくなる）")
     # 電源バスバーが帯の上辺と ch[0] の間に収まるか（横倒しだけ）
     _need = 2 * POWER_BAR_W + 3 * POWER_BAR_GAP
     if not _PORTRAIT and MACRO_GAP_UM + 1e-9 < _need:
