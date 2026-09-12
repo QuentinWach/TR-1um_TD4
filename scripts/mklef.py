@@ -259,7 +259,21 @@ def macro(cell, name, cells=None):
         L.append(f"    END")
         L.append(f"  END {pname}")
 
-    # OBS: ピン以外の M1 / M2
+    # OBS
+    if cell.references and not sel(cell, M1) and not sel(cell, M2):
+        # 金属を一切自前で持たない純粋なコンテナ（REG8x16 / REG4x16）は全面を塞ぐ。
+        # sel(cell, M1) が空なので下の差分計算では OBS が丸ごと消えてしまう
+        # （トップに (235,0) を入れて hier_macro() を通らなくなったときに実際に消えた）。
+        # TLAT / REGBUF / TAP2S のように自前の金属を持つ BLOCK はここを通さない
+        # ——全面を塞ぐと行に置けなくなる。
+        L += ["  OBS", "    LAYER METAL1 ;",
+              f"      RECT 0.000 0.000 {w:.3f} {h:.3f} ;",
+              "    LAYER METAL2 ;",
+              f"      RECT 0.000 0.000 {w:.3f} {h:.3f} ;",
+              "  END", f"END {name}"]
+        return "\n".join(L)
+
+    # 標準セル: ピン以外の M1 / M2
     used = [s for v in pins.values() for _, s in v]
     obs = []
     for lay, ld in (("METAL1", M1), ("METAL2", M2)):

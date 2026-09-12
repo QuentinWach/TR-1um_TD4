@@ -212,14 +212,14 @@
   },
   "REG4x16": {
    "area": 231757.2,
-   "array": true,
+   "array": false,
    "h": 933.0,
    "tr": 1076,
    "w": 248.4
   },
   "REG8x16": {
    "area": 372826.8,
-   "array": true,
+   "array": false,
    "h": 933.0,
    "tr": 1876,
    "w": 399.6

@@ -81,8 +81,17 @@ def scan(path):
             y0, y1 = min(b_[0][1] for b_ in bb), max(b_[1][1] for b_ in bb)
             array = True
         w, h = round(x1 - x0, 3), round(y1 - y0, 3)
-        # 階層セルは図形が配下にあるので、Tr 数は展開してから数える
-        d = devices(flat) if array else devices(cell)
+        # 階層セルは図形が配下にあるので、Tr 数は展開してから数える。
+        # 自前の prBoundary を持っていても（= array=False でも）配下に
+        # インスタンスがあれば展開が要る — REG8x16/REG4x16 にトップの
+        # (235,0) を入れたときに Tr 数が 0 に化けたのがこれ。
+        if not array and cell.references:
+            flat = cell.copy("_f_" + cell.name)
+            flat.flatten()
+            array_flat = True
+        else:
+            array_flat = array
+        d = devices(flat) if array_flat else devices(cell)
         rows.append(dict(
             name=cell.name, w=w, h=h, area=round(w * h, 1), array=array, gate_area=d["GA"],
             nP=len(d["P"]), nN=len(d["N"]), tr=len(d["P"]) + len(d["N"]),
@@ -96,7 +105,9 @@ def scan(path):
 
 # --- 意図的に規約から外れているセル（毎回出ると本当の逸脱が埋もれる）---
 #     自前の prBoundary を持つので array 判定には乗らないが、行には置かないもの
-MACRO_BY_COORD = {"DEC0"}          # デコーダ 1 行ぶん。高さ 86.4 で座標指定して並べる
+MACRO_BY_COORD = {"DEC0",          # デコーダ 1 行ぶん。高さ 86.4 で座標指定して並べる
+                  "REG4x16", "REG8x16"}  # 高さ 933.0 のマクロ。トップに (235,0) を
+                                         # 入れたので array 判定には乗らない
 # 信号ピンを持たないのが正しいセル（電源だけで完結する）
 NO_SIGNAL_PIN = {"FILL1", "FILL2", "FILL3", "TAP2", "TAP2S", "TAP3"}
 # ワードラインを横 abut で通すため、信号を (48,1) に置いているセル
