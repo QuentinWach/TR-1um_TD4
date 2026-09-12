@@ -712,7 +712,15 @@ def main():
     # untouched, so genuinely high-fanout nets (scl_n, sda_in_buf, _016_,
     # _017_, _156_, bit_cnt[1], etc.) remain exactly as protected as
     # before.
-    SIMPLE_PIN_MAX = 3
+    # --- TD4 移植 (7): 「単純なネット」の上限をピン数で外から決める -----------
+    # このしきい値以下のピン数なら trunk 形状の検査を飛ばして「単純」とみなし、
+    # 短絡の自動修正で動かしてよいことにする。原本は 3（I2C 版が 0 -> 3 に
+    # 上げた経緯がコメントにある）。TD4 はマクロに繋がるネットが 4〜6 ピンで、
+    # しかも ch[0] に長いトランクを持つため軒並み「複雑」と判定され、
+    # **短絡が 1 件も自動修正されないまま残っていた**。
+    # 環境変数 TD4_SIMPLE_PIN_MAX で振れるようにして実測した:
+    #   3 (原本) -> 未解決 27 対 / 短絡 31 件
+    SIMPLE_PIN_MAX = int(_os.environ.get("TD4_SIMPLE_PIN_MAX", "3"))
 
     def classify_complex(net, shapes):
         n_pins = len(pin_map.get(net, []))
