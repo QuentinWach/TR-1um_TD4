@@ -63,6 +63,6 @@ DRC デッキ `00_Layers.drc` の `M1_LBL = labels(48,0)` / `M2_LBL = labels(49,
 FILL2/FILL3 のデキャップは拡散の両側とも同じレールに繋ぐ MOS 容量なので、
 区別できるネットが 1 本しかない。`?` を出さずにそのネットを両端に使う。
 
-### ngspice では `gnd` は節点 0 の別名
+### ngspice では `vss` は節点 0 の別名
 
-`Vgnd gnd 0 0` と書くと「shorted VSRC」で止まる。電源は vdd だけ置けばよい。
+`Vgnd vss 0 0` と書くと「shorted VSRC」で止まる。電源は vdd だけ置けばよい。

@@ -12,7 +12,7 @@
 *   凍結した時点で ngspice により機能を確認済み:
 *   真理値表 436 点 / 順序 87 点 すべて PASS（scripts/char/RESULTS.txt）。
 *
-.subckt FILL3  vdd gnd
-MP0 vdd gnd vdd vdd PMOS W=15.8u L=8.6u
-MN0 gnd vdd gnd gnd NMOS W=13.1u L=8.6u
+.subckt FILL3  vdd vss
+MP0 vdd vss vdd vdd PMOS W=15.8u L=8.6u
+MN0 vss vdd vss vss NMOS W=13.1u L=8.6u
 .ends FILL3

@@ -11,9 +11,9 @@
 * pin QM
 * pin QS
 * pin SET
-* pin gnd
+* pin vss
 * pin vdd
-.SUBCKT DFFS CK CKB CKP D Q QB QM QS SET gnd vdd
+.SUBCKT DFFS CK CKB CKP D Q QB QM QS SET vss vdd
 * device instance $1 r0 *1 60.3,45.8 PMOS
 XM1 vdd QB Q vdd PMOS L=1u W=10.4u AS=29.12p AD=29.12p PS=32u PD=32u
 * device instance $2 r0 *1 48.2,45.8 PMOS
@@ -45,29 +45,29 @@ XM15 vdd QS n16 vdd PMOS L=1u W=5.2u AS=13p AD=3.12p PS=10.2u PD=6.4u
 * device instance $16 r0 *1 50.4,39.2 PMOS
 XM16 n16 SET QB vdd PMOS L=1u W=5.2u AS=3.12p AD=14.56p PS=6.4u PD=16u
 * device instance $17 r0 *1 60.3,17.9 NMOS
-XM17 gnd QB Q gnd NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
+XM17 vss QB Q vss NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
 * device instance $18 r0 *1 16,17.9 NMOS
-XM18 gnd D n14 gnd NMOS L=1u W=3.4u AS=9.52p AD=2.04p PS=12.4u PD=4.6u
+XM18 vss D n14 vss NMOS L=1u W=3.4u AS=9.52p AD=2.04p PS=12.4u PD=4.6u
 * device instance $19 r0 *1 18.2,17.9 NMOS
-XM19 n14 CKB n6 gnd NMOS L=1u W=3.4u AS=2.04p AD=5.1p PS=4.6u PD=6.4u
+XM19 n14 CKB n6 vss NMOS L=1u W=3.4u AS=2.04p AD=5.1p PS=4.6u PD=6.4u
 * device instance $20 r0 *1 22.2,17.9 NMOS
-XM20 n6 CKP n7 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM20 n6 CKP n7 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $21 r0 *1 26.2,17.9 NMOS
-XM21 n7 QM gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM21 n7 QM vss vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $22 r0 *1 30.2,17.9 NMOS
-XM22 gnd n6 QM gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM22 vss n6 QM vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $23 r0 *1 34.2,17.9 NMOS
-XM23 QM CKP QS gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM23 QM CKP QS vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $24 r0 *1 38.2,17.9 NMOS
-XM24 QS CKB n9 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM24 QS CKB n9 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $25 r0 *1 42.2,17.9 NMOS
-XM25 n9 QB gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=8.5p PS=6.4u PD=8.4u
+XM25 n9 QB vss vss NMOS L=1u W=3.4u AS=5.1p AD=8.5p PS=6.4u PD=8.4u
 * device instance $26 r0 *1 48.2,17.9 NMOS
-XM26 gnd QS QB gnd NMOS L=1u W=3.4u AS=8.5p AD=5.1p PS=8.4u PD=6.4u
+XM26 vss QS QB vss NMOS L=1u W=3.4u AS=8.5p AD=5.1p PS=8.4u PD=6.4u
 * device instance $27 r0 *1 52.2,17.9 NMOS
-XM27 QB SET gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
+XM27 QB SET vss vss NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
 * device instance $28 r0 *1 4,17.9 NMOS
-XM28 CKB CK gnd gnd NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
+XM28 CKB CK vss vss NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
 * device instance $29 r0 *1 8,17.9 NMOS
-XM29 gnd CKB CKP gnd NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
+XM29 vss CKB CKP vss NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
 .ENDS DFFS

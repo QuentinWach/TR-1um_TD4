@@ -129,7 +129,7 @@ def check(rows):
             bad.append(f"{n}: 行高 {r['h']} µm (規定 {ROW_H})")
         if r["tr"] and r["pinshapes"] == 0 and n not in NO_SIGNAL_PIN:
             bad.append(f"{n}: (49,1) のピン形状が無い（ラベルのみ）")
-        sig = [s for s in r["netlabels"] if s not in ("vdd", "gnd")]
+        sig = [s for s in r["netlabels"] if s not in ("vdd", "vss")]
         outside = [s for s in sig if s.isupper() and s not in ("CKP", "CKB", "QM", "QS")]
         if outside and n not in ABUT_WORDLINE:
             bad.append(f"{n}: {','.join(outside)} が (48,1) にある"

@@ -31,19 +31,23 @@ P&R の本命 `td4_soc_arr_bb` は `REG8x16` をマクロとして持つので�
   * `.meas` には必ず `TD=` を入れる。入れないと書込みフェーズの
     エッジを拾ってしまう（実際に踏んだ）。
 
-**未解決: 抽出ネットリストでは書込みが効かない。**
+**未解決: 抽出ネットリストでは書込みが効かない。原因は PS/PD。**
   `lef/simulation/REG8x16.spice`（設計ネットリスト）では期待どおり動く
   —— word0 に 0x00、word1/2/4/8 に 0xFF を書いて読み戻せる。
   ところが `lef/extracted/REG8x16.extracted` を同じ刺激で回すと
-  **どのアドレスを読んでも 5V** になる。WEB は正しく駆動されているので
-  刺激側の問題ではない。抽出側の subckt ポート順が怪しい:
-  同じ GDS を 2 回抽出すると `.SUBCKT TLAT` のポート順が
-    RD WRB Q D vdd RDB WR gnd   (lef/extracted/ の既存ファイル)
-    RD WRB Q D WR vdd RDB gnd   (今回の再抽出)
-  と**変わる**。LVS はネット名で突き合わせるのでこれを見逃す。
-  当面は設計ネットリスト（既定）で測る。接合容量は PDK サブサーキットの
-  既定値（AS='w*sdwidth' など）で入るので、実測の AS/AD/PS/PD より
-  やや楽観側になる。
+  **どのアドレスを読んでも 5V** になる。切り分けた結果:
+
+    そのまま         動かない
+    AS/AD だけ外す   動かない
+    PS/PD だけ外す   **動く**（22.28ns -> 21.81ns）
+
+  `PS`/`PD`（接合の周長）が原因。`PS < W` のような異常値は 1876 素子中 0 件で、
+  値そのものは PDK の既定式 `2*(sdwidth+w)` と桁も合う。PDK のモデル
+  (`models_IP62_mos_v2.lib` の `.subckt PMOS` -> `M1 ... ps=ps pd=pd`) の
+  解釈を追う必要がある。当面は設計ネットリスト（既定）で測る。
+
+  （抽出が実行ごとに揺れるという以前の推測は**誤り**。3 回流して同一で、
+    REG8x16 の抽出もバイト一致。順が違って見えたのは抽出スコープの違い。）
 """
 from __future__ import annotations
 import argparse, json, os, re, subprocess, sys

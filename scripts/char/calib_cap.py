@@ -55,11 +55,11 @@ def build_deck(cell, pin, side, n):
     L.append(to_xm(f"{CELLDIR}/{DRV}{CELLEXT}"))
     if cell != DRV:
         L.append(to_xm(f"{CELLDIR}/{cell}{CELLEXT}"))
-    L += ["", f".temp 25", f"Vvdd vdd 0 {VDD}"]
+    L += ["", f".temp 25", f"Vvdd vdd 0 {VDD}", "Vvss vss 0 0"]
     tf = full_ramp(SLEW_IN)
     L.append(f"Vin src 0 PWL(0 0 {T0:g}n 0 {T0+tf:g}n {VDD:g})")
     L.append("Rin src A 0.001")
-    # ポート順はネットリストの宣言順に従う（KLayout は ... gnd vdd の順）
+    # ポート順はネットリストの宣言順に従う（KLayout は ... vss vdd の順）
     drv_ports = ["A" if p == "A" else ("NET" if p == "Y" else p) for p in all_ports_of(DRV)]
     L.append("XD " + " ".join(drv_ports) + f" {DRV}")
     for k in range(n):
@@ -67,7 +67,7 @@ def build_deck(cell, pin, side, n):
         for p in all_ports_of(cell):
             if p == pin:
                 pl.append("NET")
-            elif p in ("vdd", "gnd", "vss"):
+            elif p in ("vdd", "vss"):
                 pl.append(p)
             elif p in side:
                 pl.append(f"sv{'H' if side[p] else 'L'}")

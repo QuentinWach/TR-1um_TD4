@@ -36,7 +36,7 @@ P_WEB  = "WEB"           # 書込イネーブル（アクティブロー）
 W_INT  = "WEBI"
 P_DIN  = "D[{j}]"        # 外部書込データ  -> REGBUF.D
 P_DOUT = "Q[{j}]"        # 外部読出データ  <- REGBUF.QQ
-VDD, VSS = "vdd", "vss"  # 電源（セル内のラベルは gnd だが物理的に同一ネット）
+VDD, VSS = "vdd", "vss"  # 電源。セル内のラベルも vss に統一済み
 
 # デバイスクラス名は PDK の LVS ランセットに一致させる（libs.tech/klayout/tech/lvs/01_Extract.lvs）
 #   extract_devices(mos4("PMOS")) / mos4("NMOS")  -> 4端子 (D G S B)

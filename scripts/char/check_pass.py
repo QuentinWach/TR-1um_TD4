@@ -3,7 +3,7 @@
 
 論理が無いので真理値表は引けない。代わりに見るのは 3 つ:
 
-  1. **vdd と gnd が短絡していないこと** — DC で vdd に 5V を掛け、
+  1. **vdd と vss が短絡していないこと** — DC で vdd に 5V を掛け、
      流れ込む電流を測る。短絡していれば mA オーダーになる。
   2. **電源レールが左右に導通していること** — セルを横に abut して
      使うので、左端と右端でレールが繋がっていないと電源が切れる。
@@ -22,7 +22,19 @@ sys.path.insert(0, HERE)
 from check_comb import to_xm, ports_of, all_ports_of, CELLDIR, CELLEXT    # noqa: E402
 
 COX = 1.77          # fF/µm²
-GDS = f"{HERE}/TR-1um_STDCELL.gds"
+def _gds():
+    """セルライブラリの GDS。実体は lef/ にある。
+    `{HERE}/TR-1um_STDCELL.gds` を直に開いていたため、新規チェックアウトでは
+    OSError で動かなかった（mklib.py の cell_area.json と同じ穴）。"""
+    for p in (os.environ.get("TR1UM_GDS"),
+              f"{HERE}/TR-1um_STDCELL.gds",
+              f"{HERE}/../../lef/TR-1um_STDCELL.gds"):
+        if p and os.path.exists(p):
+            return p
+    raise SystemExit("TR-1um_STDCELL.gds が見つからない（TR1UM_GDS で指定可）")
+
+
+GDS = _gds()
 L_M1, L_BOUND = (13, 0), (235, 0)
 
 
@@ -38,7 +50,7 @@ def rail_reach(cell):
     # 縦につながるのではなく**横 abut でつながる**ので、見るのは
     # 「セルの上/下 1/4 にあって、左端から右端まで通っている M1 があるか」。
     h = y1 - y0
-    for tag, lo, hi in (("gnd", y0, y0 + h / 4), ("vdd", y1 - h / 4, y1)):
+    for tag, lo, hi in (("vss", y0, y0 + h / 4), ("vdd", y1 - h / 4, y1)):
         hit = [p.bounding_box() for p in sel(L_M1)
                if lo - 1e-6 <= (p.bounding_box()[0][1] + p.bounding_box()[1][1]) / 2 <= hi + 1e-6]
         left = any(abs(h_[0][0] - x0) < 1e-6 for h_ in hit)
@@ -88,7 +100,8 @@ def leak_and_cap(cell):
          f".include {HERE}/models/ip62_models", "",
          to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
          ".temp 25",
-         f"Vvdd vdd 0 PWL(0 {VDD} {t0}n {VDD} {t1}n {VDD+DVDD})"]
+         f"Vvdd vdd 0 PWL(0 {VDD} {t0}n {VDD} {t1}n {VDD+DVDD})",
+         "Vvss vss 0 0"]
     for p in ports:
         L.append(f"V_{p} {p} 0 0")
     L += ["", "XU " + " ".join(all_ports_of(cell)) + f" {cell}", "",
@@ -133,7 +146,7 @@ def main():
         if idc is None and not nodev:
             msgs.append("電流が測れていない")
         elif idc is not None and idc > 1e-6:
-            msgs.append(f"vdd-gnd 短絡の疑い ({idc*1e3:.3f} mA)")
+            msgs.append(f"vdd-vss 短絡の疑い ({idc*1e3:.3f} mA)")
         if not ok_rail:
             msgs.append("レールがセル端に届いていない: " +
                         ", ".join(f"{k}{'左' if not v[0] else ''}{'右' if not v[1] else ''}"
@@ -153,7 +166,7 @@ def main():
               f"{'OK' if not msgs else '** ' + ' / '.join(msgs)}   {note}")
         ng += bool(msgs)
     print("-" * 76)
-    print("  リーク: vdd から流れ込む静的電流。pA オーダーなら vdd-gnd 短絡なし。")
+    print("  リーク: vdd から流れ込む静的電流。pA オーダーなら vdd-vss 短絡なし。")
     print("  容量 実測: vdd を 0.1V/10ns で振ったときの電流から C = dI/(dV/dt)。")
     print("  うちゲート分: Cox 1.77 fF/µm² × ゲート面積。")
     print("  実測 - ゲート分 = 拡散の接合/オーバーラップ容量。FILL2/FILL3 とも約 130 fF で、")

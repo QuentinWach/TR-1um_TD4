@@ -13,9 +13,9 @@
 * pin QS
 * pin RSTB
 * pin S
-* pin gnd
+* pin vss
 * pin vdd
-.SUBCKT MUXDFFRB A B CK CKB CKP Q QB QM QS RSTB S gnd vdd
+.SUBCKT MUXDFFRB A B CK CKB CKP Q QB QM QS RSTB S vss vdd
 * device instance $1 r0 *1 27.3,42.2 PMOS
 XM1 vdd n9 n11 vdd PMOS L=1u W=11.2u AS=31.36p AD=31.36p PS=28u PD=28u
 * device instance $2 r0 *1 48.4,39.2 PMOS
@@ -55,41 +55,41 @@ XM18 n9 n3 n10 vdd PMOS L=1u W=5.2u AS=7.8p AD=7.8p PS=8.2u PD=8.2u
 * device instance $19 r0 *1 17.1,39.2 PMOS
 XM19 n10 B vdd vdd PMOS L=1u W=5.2u AS=7.8p AD=15.6p PS=8.2u PD=16.4u
 * device instance $20 r0 *1 92.7,17.9 NMOS
-XM20 gnd QB Q gnd NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
+XM20 vss QB Q vss NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
 * device instance $21 r0 *1 48.4,17.9 NMOS
-XM21 gnd n11 n20 gnd NMOS L=1u W=3.4u AS=9.52p AD=2.04p PS=12.4u PD=4.6u
+XM21 vss n11 n20 vss NMOS L=1u W=3.4u AS=9.52p AD=2.04p PS=12.4u PD=4.6u
 * device instance $22 r0 *1 50.6,17.9 NMOS
-XM22 n20 CKB n13 gnd NMOS L=1u W=3.4u AS=2.04p AD=5.1p PS=4.6u PD=6.4u
+XM22 n20 CKB n13 vss NMOS L=1u W=3.4u AS=2.04p AD=5.1p PS=4.6u PD=6.4u
 * device instance $23 r0 *1 54.6,17.9 NMOS
-XM23 n13 CKP n14 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM23 n13 CKP n14 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $24 r0 *1 58.6,17.9 NMOS
-XM24 n14 QM gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM24 n14 QM vss vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $25 r0 *1 62.6,17.9 NMOS
-XM25 gnd n13 QM gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM25 vss n13 QM vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $26 r0 *1 66.6,17.9 NMOS
-XM26 QM CKP QS gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM26 QM CKP QS vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $27 r0 *1 70.6,17.9 NMOS
-XM27 QS CKB n16 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM27 QS CKB n16 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $28 r0 *1 74.6,17.9 NMOS
-XM28 n16 QB gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=8.5p PS=6.4u PD=8.4u
+XM28 n16 QB vss vss NMOS L=1u W=3.4u AS=5.1p AD=8.5p PS=6.4u PD=8.4u
 * device instance $29 r0 *1 80.6,17.9 NMOS
-XM29 gnd QS n19 gnd NMOS L=1u W=3.4u AS=8.5p AD=2.21p PS=8.4u PD=4.7u
+XM29 vss QS n19 vss NMOS L=1u W=3.4u AS=8.5p AD=2.21p PS=8.4u PD=4.7u
 * device instance $30 r0 *1 82.9,17.9 NMOS
-XM30 n19 RSTB QB gnd NMOS L=1u W=3.4u AS=2.21p AD=9.52p PS=4.7u PD=12.4u
+XM30 n19 RSTB QB vss NMOS L=1u W=3.4u AS=2.21p AD=9.52p PS=4.7u PD=12.4u
 * device instance $31 r0 *1 36.4,17.9 NMOS
-XM31 CKB CK gnd gnd NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
+XM31 CKB CK vss vss NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
 * device instance $32 r0 *1 40.4,17.9 NMOS
-XM32 gnd CKB CKP gnd NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
+XM32 vss CKB CKP vss NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
 * device instance $33 r0 *1 5.1,17.9 NMOS
-XM33 gnd A n8 gnd NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
+XM33 vss A n8 vss NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
 * device instance $34 r0 *1 9.1,17.9 NMOS
-XM34 n8 n3 n9 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM34 n8 n3 n9 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $35 r0 *1 13.1,17.9 NMOS
-XM35 n9 S n10 gnd NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
+XM35 n9 S n10 vss NMOS L=1u W=3.4u AS=5.1p AD=5.1p PS=6.4u PD=6.4u
 * device instance $36 r0 *1 17.1,17.9 NMOS
-XM36 n10 B gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
+XM36 n10 B vss vss NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
 * device instance $37 r0 *1 27.3,17.9 NMOS
-XM37 gnd n9 n11 gnd NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
+XM37 vss n9 n11 vss NMOS L=1u W=3.4u AS=9.52p AD=9.52p PS=12.4u PD=12.4u
 * device instance $38 r0 *1 11.5,8.2 NMOS
-XM38 gnd S n3 gnd NMOS L=1u W=3.4u AS=10.2p AD=9.52p PS=12.8u PD=12.4u
+XM38 vss S n3 vss NMOS L=1u W=3.4u AS=10.2p AD=9.52p PS=12.8u PD=12.4u
 .ENDS MUXDFFRB

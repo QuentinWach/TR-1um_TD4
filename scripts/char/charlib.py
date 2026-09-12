@@ -88,7 +88,7 @@ def run_ngspice(deck, tag, timeout=600):
 def header(cell):
     return [f".include {HERE}/models/ip62_models", "",
             to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
-            f".temp {TEMP}", f"Vvdd vdd 0 {VDD}"]
+            f".temp {TEMP}", f"Vvdd vdd 0 {VDD}", "Vvss vss 0 0"]
 
 
 # --- アーク列挙 -----------------------------------------------------------

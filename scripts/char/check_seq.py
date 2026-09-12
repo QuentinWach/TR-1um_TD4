@@ -14,7 +14,7 @@
 
 回路の期待動作は**抽出ネットリストの構造から読んだもの**:
   DFFRB  M1/M14 `vdd RSTB QB vdd pmos`  -> RSTB=0 で QB=H、つまり Q=0（**アクティブ Low**）
-  DFFS   M28    `gnd SET  QB gnd nmos`  -> SET=1  で QB=L、つまり Q=1（**アクティブ High**）
+  DFFS   M28    `vss SET  QB vss nmos`  -> SET=1  で QB=L、つまり Q=1（**アクティブ High**）
   RSLATCH  Q=NOR(QB,R) / QB=NOR(Q,S)    -> R/S とも**アクティブ High** の NOR 型
 シミュレーションがこれと食い違えば、読み違いかレイアウトのどちらかが誤り。
 """
@@ -214,7 +214,7 @@ def build(cell, stim, chk, tstop):
           if floating else "*"),
          f".include {HERE}/models/ip62_models", "",
          to_xm(f"{CELLDIR}/{cell}{CELLEXT}"), "",
-         ".temp 25", f"Vvdd vdd 0 {VDD}"]
+         ".temp 25", f"Vvdd vdd 0 {VDD}", "Vvss vss 0 0"]
     for i, p in enumerate(ins):
         L.append(f"V{i} {p} 0 {pwl(wave[p], tstop)}")
     for p in outs:

@@ -73,6 +73,11 @@ def check_tables():
         elif d.get("seq"):
             for k, t in d["ckq"].items():
                 groups.append((f"CK->Q {k}", t))
+        elif d.get("macro"):
+            # REG8x16 のようなマクロ。アークは read[<ADD ピン>] の下にある。
+            for ad, arc in sorted(d.get("read", {}).items()):
+                for k, t in arc.items():
+                    groups.append((f"{ad}->Q {k}", t))
         else:
             for a in d["arcs"]:
                 for k in ("cell_rise", "cell_fall", "rise_transition", "fall_transition"):
@@ -187,7 +192,7 @@ def check_cap():
         # 入力は 20-80% が SLEW_V になる傾斜（表の index_1 と同じ定義）
         L.append(f"Vin src 0 PWL(0 0 100n 0 {100+full_ramp(SLEW_V):g}n 5)")
         L.append("Rin src A 0.001")
-        # ポート順はネットリストの宣言順に従う（KLayout の抽出は ... gnd vdd）
+        # ポート順はネットリストの宣言順に従う（KLayout の抽出は ... vss vdd）
         pp = all_ports_of("INV_X1")
         L.append("XU " + " ".join("A" if p == "A" else ("Y" if p == "Y" else p)
                                   for p in pp) + " INV_X1")

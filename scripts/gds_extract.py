@@ -184,7 +184,7 @@ def cell_pins(cell):
     pins, seen = [], set()
     for lab in cell.labels:
         t = lab.text
-        if t in ("vdd", "gnd") or t in seen:
+        if t in ("vdd", "vss") or t in seen:
             continue
         edge = x0 is not None and (abs(lab.origin[0] - x0) < 2.0 or abs(lab.origin[0] - x1) < 2.0)
         if lab.layer == 49 or (lab.layer == 48 and edge):
@@ -194,7 +194,7 @@ def cell_pins(cell):
 
 def spice(cell, devs, name):
     pins = cell_pins(cell)
-    lines = [f".subckt {name} {' '.join(pins)} vdd gnd",
+    lines = [f".subckt {name} {' '.join(pins)} vdd vss",
              "* auto-extracted by scripts/gds_extract.py -- NOT an LVS-grade netlist"]
     for i, (tag, gate, sd, w, l) in enumerate(devs):
         # ソースとドレインが同じネットに落ちるのは異常ではない。
@@ -205,7 +205,7 @@ def spice(cell, devs, name):
         else:
             s, d = (sd + ["?", "?"])[:2]
         mtype = "pmos" if tag == "P" else "nmos"
-        bulk = "vdd" if tag == "P" else "gnd"
+        bulk = "vdd" if tag == "P" else "vss"
         lines.append(f"M{i} {d} {gate} {s} {bulk} {mtype} W={w}u L={l}u")
     lines.append(".ends")
     return "\n".join(lines) + "\n"
@@ -224,16 +224,16 @@ if __name__ == "__main__":
 
     # --- セルフチェック: 電源が分離できていなければ結果は信用できない ---
     nets = set(names.values())
-    has_lbl = {t for t in (l.text for l in c.labels) if t in ("vdd", "gnd")}
+    has_lbl = {t for t in (l.text for l in c.labels) if t in ("vdd", "vss")}
     warn = []
-    if not {"vdd", "gnd"} <= has_lbl:
-        print(f"* 注意: このセルには {'/'.join(sorted({'vdd','gnd'} - has_lbl))} のラベルが無いため、"
+    if not {"vdd", "vss"} <= has_lbl:
+        print(f"* 注意: このセルには {'/'.join(sorted({'vdd','vss'} - has_lbl))} のラベルが無いため、"
               "電源ネットの分離を確認できません。")
         print("*       直列/並列の構造そのものは読めますが、ネット名は当てになりません。\n")
-    elif not {"vdd", "gnd"} <= nets:
-        warn.append("vdd / gnd のラベルはあるのに別ネットとして解決できていない（誤併合の疑い）")
-    if {"vdd", "gnd"} <= nets:
-        for tag, rail in (("P", "vdd"), ("N", "gnd")):
+    elif not {"vdd", "vss"} <= nets:
+        warn.append("vdd / vss のラベルはあるのに別ネットとして解決できていない（誤併合の疑い）")
+    if {"vdd", "vss"} <= nets:
+        for tag, rail in (("P", "vdd"), ("N", "vss")):
             if any(d[0] == tag and rail not in d[2] and len(d[2]) < 2 for d in devs):
                 warn.append(f"{tag}MOS の一部で {rail} 側の端子が取れていない")
     if warn:

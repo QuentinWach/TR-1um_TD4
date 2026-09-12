@@ -88,7 +88,7 @@ python3 scripts/mklef.py lef/TR-1um_STDCELL.gds -o lef
 
 名前はフィラーだが中身は **MOS 容量**。NMOS / PMOS とも L を伸ばした 1 個の
 ゲートで、ゲートを反対側のレールに、拡散（両側）と基板を同じ側のレールに落としてある
-（NMOS: ゲート→vdd / 拡散→gnd、PMOS: ゲート→gnd / 拡散→vdd。どちらも強反転で容量最大）。
+（NMOS: ゲート→vdd / 拡散→vss、PMOS: ゲート→vss / 拡散→vdd。どちらも強反転で容量最大）。
 
 | セル | W × L (P / N) | ゲート面積 | 容量 @ Cox 1.77 fF/µm² | セル面積比 |
 |---|---|---:|---:|---:|

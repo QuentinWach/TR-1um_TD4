@@ -25,7 +25,12 @@ RAIL_TOL = 0.25    # フルレール判定 [V]
 HERE = os.path.dirname(os.path.abspath(__file__))
 # 既定は GDS から抽出した cells/*.spi。環境変数で lef/simulation/*.spice に
 # 切り替えられる（生成した LVS ソースそのものを検証するため）。
-CELLDIR = os.environ.get("TR1UM_CELLDIR", f"{HERE}/cells")
+# 抽出ネットリストの置き場。既定は cells_ext（loadext.py の出力）。
+# 以前は {HERE}/cells を既定にしていたが、そんなディレクトリは無く、
+# TR1UM_CELLDIR を設定しないと全セルが「ネットリストが無い」で飛んでいた。
+CELLDIR = os.environ.get(
+    "TR1UM_CELLDIR",
+    f"{HERE}/cells_ext" if os.path.isdir(f"{HERE}/cells_ext") else f"{HERE}/cells")
 CELLEXT = os.environ.get("TR1UM_CELLEXT", ".spi")
 
 
@@ -33,7 +38,7 @@ def all_ports_of(cell):
     """`.subckt` 行のポートを**宣言順のまま**返す。
 
     **電源の並び順はネットリストによって違う。**
-    こちらの簡易抽出は `... vdd gnd`、KLayout の抽出は `... gnd vdd`。
+    こちらの簡易抽出は `... vdd vss`、KLayout の抽出は `... vss vdd`。
     インスタンス行は必ずこの順に合わせること（入れ替えると電源が逆になり、
     真理値表が壊れる）。
     """
@@ -46,7 +51,7 @@ def all_ports_of(cell):
 
 def ports_of(cell):
     """信号ピンだけ返す（電源は除く）"""
-    return [p for p in all_ports_of(cell) if p not in ("vdd", "gnd", "vss")]
+    return [p for p in all_ports_of(cell) if p not in ("vdd", "vss")]
 
 
 def classify(cell, ports, ins, outs):
@@ -84,8 +89,9 @@ def build(cell, outs):
     L = [f"* {cell} 真理値表 全網羅 ({len(combos)} 通り) -- check_comb.py 生成",
          f".include {HERE}/models/ip62_models", ""]
     L.append(to_xm(f"{CELLDIR}/{cell}{CELLEXT}"))
-    # ngspice は `gnd` を節点 0 の別名として扱うので、Vgnd は置かない（置くと短絡 VSRC）
-    L += ["", ".temp 25", f"Vvdd vdd 0 {VDD}"]
+    # 電源レールの綴りを gnd -> vss に統一したので **Vvss で明示的に接地する**。
+    # ngspice は `gnd` だけを節点 0 の別名として自動で扱う。`vss` は扱わない。
+    L += ["", ".temp 25", f"Vvdd vdd 0 {VDD}", "Vvss vss 0 0"]
 
     for k, p in enumerate(ins):
         pts = []

@@ -12,7 +12,7 @@
 *   凍結した時点で ngspice により機能を確認済み:
 *   真理値表 436 点 / 順序 87 点 すべて PASS（scripts/char/RESULTS.txt）。
 *
-.subckt DFF CK D QB Q vdd gnd
+.subckt DFF CK D QB Q vdd vss
 MP0 vdd QS QB vdd PMOS W=10.4u L=1.0u
 MP1 vdd CK CKB vdd PMOS W=10.4u L=1.0u
 MP2 vdd CKB CKP vdd PMOS W=10.4u L=1.0u
@@ -25,16 +25,16 @@ MP8 vdd n3 QM vdd PMOS W=5.2u L=1.0u
 MP9 QS CKB QM vdd PMOS W=5.2u L=1.0u
 MP10 n1 CKP QS vdd PMOS W=5.2u L=1.0u
 MP11 vdd QB n1 vdd PMOS W=5.2u L=1.0u
-MN0 gnd CK CKB gnd NMOS W=3.4u L=1.0u
-MN1 gnd CKB CKP gnd NMOS W=3.4u L=1.0u
-MN2 gnd QB Q gnd NMOS W=3.4u L=1.0u
-MN3 gnd QS QB gnd NMOS W=3.4u L=1.0u
-MN4 n4 D gnd gnd NMOS W=3.4u L=1.0u
-MN5 n4 CKB n3 gnd NMOS W=3.4u L=1.0u
-MN6 n3 CKP n2 gnd NMOS W=3.4u L=1.0u
-MN7 n2 QM gnd gnd NMOS W=3.4u L=1.0u
-MN8 gnd n3 QM gnd NMOS W=3.4u L=1.0u
-MN9 QS CKP QM gnd NMOS W=3.4u L=1.0u
-MN10 n1 CKB QS gnd NMOS W=3.4u L=1.0u
-MN11 n1 QB gnd gnd NMOS W=3.4u L=1.0u
+MN0 vss CK CKB vss NMOS W=3.4u L=1.0u
+MN1 vss CKB CKP vss NMOS W=3.4u L=1.0u
+MN2 vss QB Q vss NMOS W=3.4u L=1.0u
+MN3 vss QS QB vss NMOS W=3.4u L=1.0u
+MN4 n4 D vss vss NMOS W=3.4u L=1.0u
+MN5 n4 CKB n3 vss NMOS W=3.4u L=1.0u
+MN6 n3 CKP n2 vss NMOS W=3.4u L=1.0u
+MN7 n2 QM vss vss NMOS W=3.4u L=1.0u
+MN8 vss n3 QM vss NMOS W=3.4u L=1.0u
+MN9 QS CKP QM vss NMOS W=3.4u L=1.0u
+MN10 n1 CKB QS vss NMOS W=3.4u L=1.0u
+MN11 n1 QB vss vss NMOS W=3.4u L=1.0u
 .ends DFF

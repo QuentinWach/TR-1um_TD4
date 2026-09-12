@@ -9,11 +9,11 @@
 *
 * TR-1um (IP62)  W(P)=10.2u / W(N)=3.4u / L=1.0u
 *
-.subckt AND2_X1 Y A B vdd gnd
+.subckt AND2_X1 Y A B vdd vss
 MP0 n0 A vdd vdd PMOS W=10.2u L=1.0u
 MP1 n0 B vdd vdd PMOS W=10.2u L=1.0u
-MN0 s1 A gnd gnd NMOS W=3.4u L=1.0u
-MN1 n0 B s1 gnd NMOS W=3.4u L=1.0u
+MN0 s1 A vss vss NMOS W=3.4u L=1.0u
+MN1 n0 B s1 vss NMOS W=3.4u L=1.0u
 MP2 Y n0 vdd vdd PMOS W=10.2u L=1.0u
-MN2 Y n0 gnd gnd NMOS W=3.4u L=1.0u
+MN2 Y n0 vss vss NMOS W=3.4u L=1.0u
 .ends AND2_X1

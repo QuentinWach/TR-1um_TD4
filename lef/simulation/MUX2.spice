@@ -12,17 +12,17 @@
 *   凍結した時点で ngspice により機能を確認済み:
 *   真理値表 436 点 / 順序 87 点 すべて PASS（scripts/char/RESULTS.txt）。
 *
-.subckt MUX2 A B Y S vdd gnd
+.subckt MUX2 A B Y S vdd vss
 MP0 vdd S n4 vdd PMOS W=5.2u L=1.0u
 MP1 vdd n2 Y vdd PMOS W=11.2u L=1.0u
 MP2 vdd A n3 vdd PMOS W=5.2u L=1.0u
 MP3 n3 S n2 vdd PMOS W=5.2u L=1.0u
 MP4 n2 n4 n1 vdd PMOS W=5.2u L=1.0u
 MP5 vdd B n1 vdd PMOS W=5.2u L=1.0u
-MN0 gnd n2 Y gnd NMOS W=3.4u L=1.0u
-MN1 n3 A gnd gnd NMOS W=3.4u L=1.0u
-MN2 n3 n4 n2 gnd NMOS W=3.4u L=1.0u
-MN3 n2 S n1 gnd NMOS W=3.4u L=1.0u
-MN4 n1 B gnd gnd NMOS W=3.4u L=1.0u
-MN5 n4 S gnd gnd NMOS W=3.4u L=1.0u
+MN0 vss n2 Y vss NMOS W=3.4u L=1.0u
+MN1 n3 A vss vss NMOS W=3.4u L=1.0u
+MN2 n3 n4 n2 vss NMOS W=3.4u L=1.0u
+MN3 n2 S n1 vss NMOS W=3.4u L=1.0u
+MN4 n1 B vss vss NMOS W=3.4u L=1.0u
+MN5 n4 S vss vss NMOS W=3.4u L=1.0u
 .ends MUX2
