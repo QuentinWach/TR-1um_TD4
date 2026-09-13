@@ -438,6 +438,69 @@ def frame_opening(width_um=CORE_WIDTH_UM, lef=None):
     return best
 
 
+def frame_obs_rects(lef=None):
+    """`OSS_FRAME_GIO` の OBS 矩形（**ダイ中心が原点**）。"""
+    import re
+    txt = open(lef or FRAME_LEF).read()
+    body = re.search(rf"MACRO {FRAME_CELL}(.*?)END {FRAME_CELL}", txt, re.S).group(1)
+    obs = re.search(r"OBS(.*?)END", body, re.S).group(1)
+    die = float(re.search(r"SIZE\s+([\d.]+)\s+BY", body).group(1))
+    c = die / 2
+    return die, sorted({tuple(float(v) - c for v in q) for q in
+                        re.findall(r"RECT\s+(-?[\d.]+)\s+(-?[\d.]+)\s+(-?[\d.]+)"
+                                   r"\s+(-?[\d.]+)\s*;", obs)})
+
+
+def chip_geometry(gds=None, cell=None):
+    """コアをパッドリングの開口の**中央**に置いたときの寸法一式。
+
+    `OSS_FRAME_GIO` はセル自身がダイ中心を原点に持つ（bbox -1250…+1250）ので、
+    フレームは **(0,0) にそのまま置く**。コアだけオフセットする。
+
+    開口は十字型で、OBS の実測から:
+        |y| <= 800   -> |x| <= 920 が空き（幅 1840）
+        800 < |y| <= 920 -> |x| <= 800 が空き（幅 1600）
+    コアの実 bbox は **1604.7 x 1347.4**（x が 1598.4 でなく 1604.7 なのは
+    いちばん左のセルの N ウェル (140,0) が x=-6.3 まで出ているため）。
+    幅が 1600 を超えるので使えるのは |y| <= 800 の帯だが、高さ 1347.4 は
+    そこに余裕で収まる。**SCLK_SPI と同じく native bbox を対称にする。**
+    """
+    l, b, r, t = core_bbox_um(gds or FINAL_GDS, cell)
+    ox = round(-(l + r) / 2.0, 3)
+    oy = round(-(b + t) / 2.0, 3)
+    box = (round(l + ox, 3), round(b + oy, 3), round(r + ox, 3), round(t + oy, 3))
+    die, rects = frame_obs_rects()
+    # 開口の壁 = コアの x 帯 / y 帯を横切る OBS のうち、いちばん内側
+    wall_y = min((min(abs(p[1]), abs(p[3])) for p in rects
+                  if p[2] > box[0] and p[0] < box[2] and
+                  (p[1] >= box[3] - 1e-9 or p[3] <= box[1] + 1e-9)), default=die / 2)
+    wall_x = min((min(abs(p[0]), abs(p[2])) for p in rects
+                  if p[3] > box[1] and p[1] < box[3] and
+                  (p[0] >= box[2] - 1e-9 or p[2] <= box[0] + 1e-9)), default=die / 2)
+    return {
+        "die": die,
+        "core_offset": (ox, oy),
+        "core_native_bbox": (l, b, r, t),
+        "core_chip_bbox": box,
+        "wall": (wall_x, wall_y),
+        "channel_left": (round(box[0] + wall_x, 3), round(box[0] + GIO_PIN_RADIUS, 3)),
+        "channel_right": (round(wall_x - box[2], 3), round(GIO_PIN_RADIUS - box[2], 3)),
+        "channel_bottom": (round(box[1] + wall_y, 3), round(box[1] + GIO_PIN_RADIUS, 3)),
+        "channel_top": (round(wall_y - box[3], 3), round(GIO_PIN_RADIUS - box[3], 3)),
+    }
+
+
+def chip_fits(geom=None):
+    """コアが OBS のどれとも重ならないか。[(理由, 矩形)] を返す（空なら OK）。"""
+    g = geom or chip_geometry()
+    x0, y0, x1, y1 = g["core_chip_bbox"]
+    bad = []
+    for p in frame_obs_rects()[1]:
+        if p[0] < x1 - 1e-9 and p[2] > x0 + 1e-9 and p[1] < y1 - 1e-9 and p[3] > y0 + 1e-9:
+            bad.append(("コアが OBS と重なる", p))
+    return bad
+
+
 def pdk_tech_python():
     """PDK の KLayout PCell パッケージ（`from cells import tr_1um`）。
     ルータのビアは全部この PCell のインスタンスなので必須。"""
