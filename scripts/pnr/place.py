@@ -382,6 +382,15 @@ def fixed_blocks(row_w):
             if xb - (xs[-1] if xs else lo - cfg.PRI_W) >= cfg.PRI_W - 1e-6:
                 xs.append(xb)
         out += [(x, cfg.PRI_W, "pri") for x in xs]
+    # 狙い撃ちの追加コリドー（`TD4_PRI_X`）。既存の固定ブロックと重なる物と
+    # 行からはみ出す物は黙って捨てる（重なったら packing が壊れるため）。
+    for x in getattr(cfg, "PRI_EXTRA_X", []):
+        if x < 0 or x + cfg.PRI_W > row_w + 1e-6:
+            continue
+        if any(x < bx + bw - 1e-6 and bx < x + cfg.PRI_W - 1e-6
+               for bx, bw, _k in out):
+            continue
+        out.append((x, cfg.PRI_W, "pri"))
     return sorted(out)
 
 

@@ -14,6 +14,7 @@ Stages, each leaving its own GDS:
   step8  top-level pin pull-out               route_top_pins_nrow_fm.py
   step9  VDD/GND chip-level pins              add_power_pins_nrow_fm.py
   step10 channel compaction                   squeeze_channels_nrow_fm.py
+  step11 マクロ電源の接続                     connect_macro_power.py
          then two coverage checks: every top-level port has a pin marker,
          and every pin marker really reaches its cell pin
          (PIN markers and their labels are protected from the compaction --
@@ -136,7 +137,15 @@ def per_row_local_nets():
     """
     # 縦バスに乗せるネットは**必ず per-row-local**にする。行ごとのトランクと
     # spine の仕組みをそのまま使い、spine だけを帯へ逃がすため。
-    return {"clk_buf", "rst_n_buf"} | _prl_nets() | side_bus_nets()
+    #
+    # `TD4_PRL_NETS`（','区切り）で**名指しの追加**ができる。しきい値を下げる
+    # のとは別物: 実測で `PRL_MIN_PINS` を 5 → 4 にすると 24 → 37 本に増え、
+    # チャネルのトラックを一気に食う。一方 `ld_addr[2]` は 4 ピン/3 行で
+    # しきい値にわずかに届かず、兄弟の `ld_addr[0]`(6 ピン)/`ld_addr[1]`(5 ピン)
+    # だけが専用ガード付きトランクを持っていて、そいつが短絡していた。
+    # こういう「1 本だけ足したい」場合に使う。
+    return ({"clk_buf", "rst_n_buf"} | _prl_nets() | side_bus_nets()
+            | {n for n in os.environ.get("TD4_PRL_NETS", "").split(",") if n.strip()})
 FORCE_HIGH_FO_NETS = set()
 # --- TD4 移植 (19): フォールバックしたネットを pass 3 送りにする -----------
 # `draw_jog` が「departure leg が clear なトラックが無い」と言って**無検査
@@ -250,7 +259,23 @@ def stage8(ch_heights):
     rt.PORT_DIR = _port_dir()
     rt.main(placement_json=cfg.PLACEMENT_JSON, in_gds=cfg.RIPUP_GDS,
             out_gds=cfg.TOPPINS_GDS, ch_heights=ch_heights,
-            net_shapes_json=cfg.NET_SHAPES_RR_JSON, net_file=cfg.NET_PATH)
+            net_shapes_json=cfg.NET_SHAPES_RR_JSON, net_file=cfg.NET_PATH,
+            out_net_shapes_json=cfg.NET_SHAPES_TP_JSON)
+    # --- TD4: step8 の後にもう一度 rip-up ------------------------------------
+    # トップピンのルータは「どのトラックも衝突するので一番マシなものを選んだ」
+    # という無検査フォールバックを持っていて（ログの `[CHECK]`）、そこで引いた
+    # riser が他ネットの列を貫通することがある。実測: step7 で短絡 0 だったのに
+    # step8 で 1 件（`out_port[0]` の riser x=170.1 が `_050_` を貫通）。
+    # step8 が描いた形状を net_shapes に足したので、同じ rip-up / ドッグレッグを
+    # そのまま掛けられる。
+    if os.environ.get("TD4_RIPUP_AFTER_TOPPINS", "1") != "0":
+        import ripup_reroute_shorts as rr2
+        print("=== step8b: rip-up after top pins ===")
+        sys.argv = ["ripup_reroute_shorts.py", cfg.TOPPINS_GDS, cfg.PIN_MAP_RR_JSON,
+                    cfg.NET_SHAPES_TP_JSON, cfg.PLACEMENT_JSON,
+                    ",".join(str(h) for h in ch_heights), cfg.TOPPINS_GDS,
+                    cfg.PIN_MAP_TP_JSON, cfg.NET_SHAPES_TP2_JSON, "30"]
+        rr2.main()
 
 
     if not check_port_pins(cfg.TOPPINS_GDS):
@@ -310,8 +335,24 @@ def checks(gds, pin_map, ch, squeezed=False):
                     str(max(p["row_width"], p.get("core_w", 0)) + 30)])
 
 
+def stage11(ch_heights):
+    """マクロの電源をコアの電源レールに繋ぐ。
+
+    **圧縮（step10）の後**であること。前に入れると y が動く/削られる。
+    縦置きではマクロが行スタックの横に居るので、マクロの vdd / vss は
+    金属では何にも繋がっていない（`lvs_pnr.py` が「電源の島」として検出する）。
+    """
+    if not getattr(cfg, "MACRO_POWER", False):
+        print("  TD4_MACRO_POWER=0 -- マクロ電源の接続はしない")
+        return
+    import connect_macro_power as cmp_mod
+    os.makedirs(os.path.dirname(cfg.MACROPWR_GDS), exist_ok=True)
+    sys.argv = ["connect_macro_power.py", cfg.SQUEEZED_GDS, "-o", cfg.MACROPWR_GDS]
+    cmp_mod.main()
+
+
 STAGES = {5: stage5, 6: stage6, 7: stage7, 8: stage8, 9: stage9,
-          10: stage10}
+          10: stage10, 11: stage11}
 
 
 def main(first=5, last=10, ch=None):
@@ -330,12 +371,15 @@ def main(first=5, last=10, ch=None):
         print(f"\n{'=' * 60}\n=== step{n} ===\n{'=' * 60}")
         STAGES[n](ch)
     if last >= 10:
-        checks(cfg.SQUEEZED_GDS, cfg.PIN_MAP_SQ_JSON, ch, squeezed=True)
-        if not check_port_pins(cfg.SQUEEZED_GDS):
+        # step11 は電源の図形を足すだけで信号は触らないので、圧縮後のピンマップが
+        # そのまま使える。検査は**最終 GDS**に対して掛ける。
+        final = cfg.FINAL_GDS if last >= 11 else cfg.SQUEEZED_GDS
+        checks(final, cfg.PIN_MAP_SQ_JSON, ch, squeezed=True)
+        if not check_port_pins(final):
             raise SystemExit("!! top-level ports missing from the final layout")
         print()
         import verify_port_connectivity as vpc
-        if vpc.main(cfg.SQUEEZED_GDS) != 0:
+        if vpc.main(final) != 0:
             raise SystemExit("!! a top-level port does not reach its cell pin")
     elif last >= 9:
         checks(cfg.POWERPINS_GDS, cfg.PIN_MAP_RR_JSON, ch)
@@ -360,7 +404,7 @@ if __name__ == "__main__":
     ap_ = argparse.ArgumentParser(description=__doc__,
                                   formatter_class=argparse.RawDescriptionHelpFormatter)
     ap_.add_argument("--from", dest="first", type=int, default=5)
-    ap_.add_argument("--to", dest="last", type=int, default=10)
+    ap_.add_argument("--to", dest="last", type=int, default=11)
     ap_.add_argument("--ch-heights", default=None,
                      help="comma-separated channel budget, bottom margin first")
     a = ap_.parse_args()

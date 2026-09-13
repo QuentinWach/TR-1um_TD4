@@ -1,0 +1,7 @@
+=== 抽出 layout/step11/route_step_7_macro_power.gds (td4_soc_arr_nrow_fm)
+  wrote layout/portrait/simulation/td4_soc_arr_nrow_fm_lay.spice
+=== ソース layout/portrait/simulation/td4_soc_arr_nrow_fm.spice
+  レイアウト: circuit 1 / top pin 16 / device 3597 / net 1386
+  ソース    : circuit 1 / top pin 16 / device 3597 / net 1386
+
+=== LVS: **一致**

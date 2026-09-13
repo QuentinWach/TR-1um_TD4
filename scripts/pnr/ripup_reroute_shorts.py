@@ -126,6 +126,16 @@ VIA_MATCH_EPS_UM = 0.06
 # pin location after an earlier try_fix_* move.
 PIN_RECT_SANITY_UM = 15.0
 
+# TD4: strict (complex-net) vertical moves are bounded. A generic move may
+# walk 300 tracks looking for air; dragging a multi-segment net's segment
+# that far is how a "local" fix stops being local. 30 tracks = 162 um is
+# more than one TAP-to-TAP span, so a priority corridor is always inside it.
+STRICT_MAX_TRACKS = int(_os.environ.get("TD4_STRICT_MAX_TRACKS", "30"))
+# TD4: also run step10's component-level short check inside the rip-up loop
+# (`TD4_COMPONENT_CHECK=0` to go back to box-overlap-only).
+USE_COMPONENT_CHECK = _os.environ.get("TD4_COMPONENT_CHECK", "1") != "0"
+DEBUG_STRICT = _os.environ.get("TD4_DEBUG_STRICT", "0") == "1"
+
 
 def overlap_1d(a0, a1, b0, b1):
     lo = max(min(a0, a1), min(b0, b1))
@@ -151,6 +161,131 @@ def find_conflicts(net_shapes):
                     if ox > EPS and oy > EPS:
                         conflicts.append((na, ia, nb, ib, lyr_a))
     return conflicts
+
+
+def component_conflicts(fixer):
+    """TD4: the conflicts `find_conflicts` structurally cannot see.
+
+    `find_conflicts` compares the router's own recorded boxes and flags
+    only a POSITIVE-area overlap. Two things escape it:
+      * two different nets' boxes that abut exactly (gap 0) -- legal by
+        the router's `_overlapping` bookkeeping convention, but a dead
+        short in copper;
+      * a via_1's pad. Vias are not in net_shapes at all (the PCell draws
+        its own 3.4x3.4 M1+M2 pads), so a via of net A landing on net B's
+        metal is invisible here.
+    Both ARE seen by step10's `verify_connectivity_nrow_fm_m1m2.py`,
+    which unions real merged geometry through real vias -- which is why
+    this run reported a short (`reg_out[0]` <-> `_050_`) that the ripup
+    pass had already declared converged, and therefore never even
+    attempted to repair.
+
+    This runs that same union-find against the LIVE layout and maps each
+    offending net pair back to the concrete boxes to hand to try_fix_*:
+    the closest same-layer box pair (touching counts), else -- for a
+    via-mediated bridge -- the box of A whose own endpoint pad interacts
+    with B."""
+    layout, top = fixer.layout, fixer.top
+    v1_idx = layout.layer(*V1_LAYER)
+    polys = {}
+    for name, idx in (("M1", fixer.m1_idx), ("M2", fixer.m2_idx)):
+        polys[name] = list(db.Region(top.begin_shapes_rec(idx)).merged().each())
+    v1 = db.Region(top.begin_shapes_rec(v1_idx)).merged()
+
+    parent = {}
+
+    def find(k):
+        parent.setdefault(k, k)
+        while parent[k] != k:
+            parent[k] = parent[parent[k]]
+            k = parent[k]
+        return k
+
+    def union(a, b):
+        ra, rb = find(a), find(b)
+        if ra != rb:
+            parent[ra] = rb
+
+    for via in v1.each():
+        vbox = via.bbox()
+        vreg = db.Region(via)
+        hits = {}
+        for name in ("M1", "M2"):
+            h = [i for i, p in enumerate(polys[name])
+                 if p.bbox().overlaps(vbox) or p.bbox().touches(vbox)]
+            hits[name] = [i for i in h
+                          if vreg.interacting(db.Region(polys[name][i])).count() > 0]
+        for i in hits["M1"]:
+            for j in hits["M2"]:
+                union(("M1", i), ("M2", j))
+        for name in ("M1", "M2"):
+            for i in hits[name][1:]:
+                union((name, hits[name][0]), (name, i))
+
+    def locate(x_um, y_um):
+        xi, yi = fixer.um(x_um), fixer.um(y_um)
+        probe = db.Region(db.Box(xi - 2, yi - 2, xi + 2, yi + 2))
+        for name in ("M1", "M2"):
+            for i, p in enumerate(polys[name]):
+                bb = p.bbox()
+                if bb.left - 5 <= xi <= bb.right + 5 and bb.bottom - 5 <= yi <= bb.top + 5:
+                    if probe.interacting(db.Region(p)).count() > 0:
+                        return (name, i)
+        return None
+
+    root_to_net = {}
+    pairs = set()
+    for net, pins in fixer.pin_map.items():
+        for _inst, _pname, vx, vy in pins:
+            loc = locate(vx, vy)
+            if loc is None:
+                continue
+            r = find(loc)
+            other = root_to_net.get(r)
+            if other is not None and other != net:
+                pairs.add(tuple(sorted((other, net))))
+            root_to_net[r] = net
+
+    out = []
+    for na, nb in sorted(pairs):
+        sa, sb = fixer.net_shapes.get(na, []), fixer.net_shapes.get(nb, [])
+        best = None
+        for ia, (la, ax0, ay0, ax1, ay1) in enumerate(sa):
+            for ib, (lb, bx0, by0, bx1, by1) in enumerate(sb):
+                if la != lb:
+                    continue
+                gap = -min(overlap_1d(ax0, ax1, bx0, bx1),
+                           overlap_1d(ay0, ay1, by0, by1))
+                if gap <= EPS and (best is None or gap < best[0]):
+                    best = (gap, ia, ib, la)
+        if best is None:
+            # via-mediated: find A's box whose own endpoint pad touches B
+            breg = db.Region()
+            for lb, bx0, by0, bx1, by1 in sb:
+                breg.insert(db.Box(fixer.um(bx0), fixer.um(by0),
+                                   fixer.um(bx1), fixer.um(by1)))
+            for ia, (la, ax0, ay0, ax1, ay1) in enumerate(sa):
+                if (ax1 - ax0) >= (ay1 - ay0):
+                    mid = (ay0 + ay1) / 2.0
+                    pts = ((ax0, mid), (ax1, mid))
+                else:
+                    mid = (ax0 + ax1) / 2.0
+                    pts = ((mid, ay0), (mid, ay1))
+                for ex, ey in pts:
+                    pad = db.Region(db.Box(fixer.um(ex - PAD_HALF), fixer.um(ey - PAD_HALF),
+                                           fixer.um(ex + PAD_HALF), fixer.um(ey + PAD_HALF)))
+                    if breg.interacting(pad).count() > 0:
+                        best = (0.0, ia, 0, la)
+                        break
+                if best:
+                    break
+        if best is None:
+            print(f"  component check: {na} <-> {nb} share a component but no box pair "
+                  f"could be identified -- reporting only")
+            continue
+        _gap, ia, ib, lyr = best
+        out.append((na, ia, nb, ib, lyr))
+    return out
 
 
 class Fixer:
@@ -187,6 +322,18 @@ class Fixer:
         self.fixed_vertical = 0
         self.fixed_horizontal = 0
         self.failed = []
+
+        # TD4: priority M2 corridor track centres (`FILLPRI_*` reserved
+        # filler, same x in every row). Derived exactly like the router's
+        # own `priority_corridor_x`: read row 0 of the placement.
+        self.corridor_tracks = []
+        if placement is not None:
+            for inst in placement["rows"][0]:
+                if not inst.get("name", "").startswith("FILLPRI_"):
+                    continue
+                bx, bw = inst["x"], inst["width"]
+                self.corridor_tracks += [round(bx + X_GRID / 2.0 + k * X_GRID, 3)
+                                         for k in range(int(round(bw / X_GRID)))]
 
         self.pin_geom = None
         if placement is not None:
@@ -437,20 +584,65 @@ class Fixer:
                 and self.clear_excluding("M2", x - half, y - half, x + half, y + half,
                                           exclude_net=net, margin=M2_MIN_GAP))
 
-    def find_own_trunk(self, net, y_target):
+    def find_own_trunk(self, net, y_target, near_x=None):
         """This net's own horizontal M1 trunk box whose track level
         (y-midpoint) matches y_target -- identifies which end of a stub
         is the "trunk end" (an M1 trunk can be safely extended in X,
         since it's this SAME net's own metal -- unlike the pin end,
-        which is a real standard-cell pin and can never move)."""
+        which is a real standard-cell pin and can never move).
+
+        near_x (TD4, strict mode): a per-row-local / spine net can own
+        SEVERAL M1 runs at the same track level in different parts of the
+        row; returning "the first one" then extends a trunk that has
+        nothing to do with this via and silently leaves the real one
+        dangling. When near_x is given, only a run whose own x-range
+        actually reaches that via (within one via pad) qualifies, and an
+        ambiguous match (2 or more) is refused outright."""
+        hits = []
         for lyr, bx0, by0, bx1, by1 in self.net_shapes.get(net, []):
             if lyr != "M1":
                 continue
             if abs((by0 + by1) / 2.0 - y_target) < EPS and (bx1 - bx0) >= (by1 - by0):
-                return (bx0, by0, bx1, by1)
-        return None
+                if near_x is not None and not (bx0 - PAD_HALF <= near_x <= bx1 + PAD_HALF):
+                    continue
+                hits.append((bx0, by0, bx1, by1))
+        if near_x is None:
+            return hits[0] if hits else None
+        return hits[0] if len(hits) == 1 else None
 
-    def try_fix_vertical(self, net, box):
+    def vertical_is_simple_span(self, net, box):
+        """TD4: is `box` a plain PASS-THROUGH vertical M2 segment of `net`
+        -- i.e. does each of its two endpoints carry exactly this one M2
+        run, and nothing else of the same net?
+
+        This is the precise form of the "cascade risk" that made
+        try_fix_vertical off-limits for multi-segment/high-fanout nets.
+        The move ends with `remove_via_at(cx, y_end)`; if a SECOND M2 run
+        of the same net (a spine continuing on past that point, the usual
+        shape for a per-row-local net) also lands on that very via, the
+        via disappears and that other branch is silently disconnected --
+        exactly the RSTB1 incident. When each endpoint has only this one
+        M2 run, the via belongs to this segment alone and removing it
+        costs nothing else.
+
+        Being multi-segment somewhere ELSE on the net is irrelevant: what
+        matters is whether THIS via is a junction."""
+        x0, y0, x1, y1 = box
+        cx = (x0 + x1) / 2.0
+        for y_here in (min(y0, y1), max(y0, y1)):
+            n = 0
+            for lyr, bx0, by0, bx1, by1 in self.net_shapes.get(net, []):
+                if lyr != "M2":
+                    continue
+                if abs((bx0 + bx1) / 2.0 - cx) > PAD_HALF:
+                    continue
+                if min(by0, by1) - PAD_HALF <= y_here <= max(by0, by1) + PAD_HALF:
+                    n += 1
+            if n != 1:
+                return False
+        return True
+
+    def try_fix_vertical(self, net, box, strict=False):
         """box = (x0,y0,x1,y1), a vertical M2 run at cx=(x0+x1)/2 between
         two endpoints, each either (a) this net's own OTHER metal (an M1
         trunk/run at that Y level -- movable, since it's this SAME net's
@@ -474,86 +666,272 @@ class Fixer:
         the very net this fix was resolving. Both ends are now checked
         symmetrically -- most of this design's stubs turn out to have an
         own-net connector (an earlier jog's M1 run) at BOTH ends anyway,
-        not just the trunk end, so both can move."""
+        not just the trunk end, so both can move.
+
+        strict (TD4): the guarded variant used for multi-segment/high-
+        fanout ("complex") nets, which were previously refused outright.
+        It adds three conditions, each aimed at one way the generic move
+        could silently damage such a net:
+          1. every endpoint via must belong to this segment alone
+             (`vertical_is_simple_span`) -- otherwise removing it cuts
+             another branch (the RSTB1 incident);
+          2. the own-net M1 run picked up at each end must be the one
+             that actually reaches this via, and unambiguously so
+             (`find_own_trunk(..., near_x=cx)`);
+          3. the detour is bounded (`STRICT_MAX_TRACKS`), so a complex
+             net can never be dragged across the core, and priority M2
+             corridors -- reserved filler at the same x in EVERY row, so
+             clear top to bottom by construction -- are tried first.
+        Everything else (live `clear_excluding` / `via_pad_clear` checks
+        against the REAL final geometry) is shared with the generic path,
+        so a strict move is never less checked than a normal one."""
         x0, y0, x1, y1 = box
         cx = (x0 + x1) / 2.0
         ylo, yhi = min(y0, y1), max(y0, y1)
         half_w = M1_TRUNK_WIDTH / 2.0
 
-        conn_lo = self.find_own_trunk(net, ylo)
-        conn_hi = self.find_own_trunk(net, yhi)
+        dbg = strict and DEBUG_STRICT
+        if strict and not self.vertical_is_simple_span(net, box):
+            if dbg:
+                print(f"    [strict] {net}: endpoint via is a junction (another M2 run of "
+                      f"the same net lands on it) -- refused")
+            return False
+        near = cx if strict else None
+        conn_lo = self.find_own_trunk(net, ylo, near_x=near)
+        conn_hi = self.find_own_trunk(net, yhi, near_x=near)
         if conn_lo is None and conn_hi is None:
+            if dbg:
+                print(f"    [strict] {net}: no unambiguous own-net M1 run at either end "
+                      f"(cx={cx:.1f}, y={ylo:.1f}/{yhi:.1f}) -- refused")
             return False  # both ends look like real pins -- can't move either
 
         ends = [(ylo, conn_lo), (yhi, conn_hi)]
 
-        for k in range(1, 300):
-            for clear_x in (cx + k * X_GRID, cx - k * X_GRID):
-                leg = (clear_x - PAD_HALF, ylo, clear_x + PAD_HALF, yhi)
-                if not self.clear_excluding("M2", *leg, exclude_net=net, margin=M2_MIN_GAP):
-                    continue
-                ok = True
-                per_end = []  # (y_here, conn, run_box_or_None, ext_box_or_None)
-                for y_here, conn in ends:
-                    if not self.via_pad_clear(net, clear_x, y_here):
-                        ok = False
-                        break
-                    if conn is not None:
-                        cb0, cb1 = conn[0], conn[2]
-                        ext = None
-                        if clear_x < cb0 or clear_x > cb1:
-                            ext = (min(clear_x, cb0), y_here - half_w, max(clear_x, cb1), y_here + half_w)
-                            if not self.clear_excluding("M1", *ext, exclude_net=net, margin=M1_MIN_GAP):
-                                ok = False
-                                break
-                        per_end.append((y_here, conn, None, ext))
-                    else:
-                        # a real standard-cell pin: its own copper is
-                        # necessarily right at (cx, y_here) already (not
-                        # recorded in net_shapes, since it's the cell's
-                        # own LEF geometry, not something this router
-                        # drew) -- never collision-checked here, exactly
-                        # like the ORIGINAL router never checks it either
-                        # (m2_box's very first call always starts flush
-                        # against the pin's own pad). Only the M1 run
-                        # departing from it needs checking.
-                        run = (min(cx, clear_x), y_here - half_w, max(cx, clear_x), y_here + half_w)
-                        if not self.clear_excluding("M1", *run, exclude_net=net, margin=M1_MIN_GAP):
+        for clear_x in self.candidate_columns(cx, strict):
+            leg = (clear_x - PAD_HALF, ylo, clear_x + PAD_HALF, yhi)
+            if not self.clear_excluding("M2", *leg, exclude_net=net, margin=M2_MIN_GAP):
+                continue
+            ok = True
+            per_end = []  # (y_here, conn, run_box_or_None, ext_box_or_None)
+            for y_here, conn in ends:
+                if not self.via_pad_clear(net, clear_x, y_here):
+                    ok = False
+                    break
+                if conn is not None:
+                    cb0, cb1 = conn[0], conn[2]
+                    ext = None
+                    if clear_x < cb0 or clear_x > cb1:
+                        ext = (min(clear_x, cb0), y_here - half_w, max(clear_x, cb1), y_here + half_w)
+                        if not self.clear_excluding("M1", *ext, exclude_net=net, margin=M1_MIN_GAP):
                             ok = False
                             break
-                        per_end.append((y_here, conn, run, None))
-                if not ok:
-                    continue
+                    per_end.append((y_here, conn, None, ext))
+                else:
+                    # a real standard-cell pin: its own copper is
+                    # necessarily right at (cx, y_here) already (not
+                    # recorded in net_shapes, since it's the cell's
+                    # own LEF geometry, not something this router
+                    # drew) -- never collision-checked here, exactly
+                    # like the ORIGINAL router never checks it either
+                    # (m2_box's very first call always starts flush
+                    # against the pin's own pad). Only the M1 run
+                    # departing from it needs checking.
+                    run = (min(cx, clear_x), y_here - half_w, max(cx, clear_x), y_here + half_w)
+                    if not self.clear_excluding("M1", *run, exclude_net=net, margin=M1_MIN_GAP):
+                        ok = False
+                        break
+                    per_end.append((y_here, conn, run, None))
+            if not ok:
+                continue
 
-                # commit
-                self.delete_box("M2", box)
-                self.net_shapes[net] = [s for s in self.net_shapes[net] if tuple(s) != ("M2",) + box]
-                self.add_box("M2", *leg)
-                self.net_shapes[net].append(["M2", *leg])
-                for y_here, conn, run, ext in per_end:
-                    if conn is not None:
-                        self.remove_via_at(cx, y_here)
-                        if ext is not None:
-                            self.delete_box("M1", conn)
-                            self.net_shapes[net] = [s for s in self.net_shapes[net] if tuple(s) != ("M1",) + conn]
-                            self.add_box("M1", *ext)
-                            self.net_shapes[net].append(["M1", *ext])
-                        self.add_via(clear_x, y_here)
-                    else:
-                        self.add_box("M1", *run)
-                        self.net_shapes[net].append(["M1", *run])
-                        self.add_via(cx, y_here)
-                        self.add_via(clear_x, y_here)
-                if net in self.pin_map:
-                    updated = []
-                    for inst, pname, vx, vy in self.pin_map[net]:
-                        if abs(vx - cx) < EPS and (abs(vy - ylo) < EPS or abs(vy - yhi) < EPS):
-                            vx = clear_x
-                        updated.append([inst, pname, vx, vy])
-                    self.pin_map[net] = updated
-                self.fixed_vertical += 1
-                return True
+            # commit
+            self.delete_box("M2", box)
+            self.net_shapes[net] = [s for s in self.net_shapes[net] if tuple(s) != ("M2",) + box]
+            self.add_box("M2", *leg)
+            self.net_shapes[net].append(["M2", *leg])
+            for y_here, conn, run, ext in per_end:
+                if conn is not None:
+                    self.remove_via_at(cx, y_here)
+                    if ext is not None:
+                        self.delete_box("M1", conn)
+                        self.net_shapes[net] = [s for s in self.net_shapes[net] if tuple(s) != ("M1",) + conn]
+                        self.add_box("M1", *ext)
+                        self.net_shapes[net].append(["M1", *ext])
+                    self.add_via(clear_x, y_here)
+                else:
+                    self.add_box("M1", *run)
+                    self.net_shapes[net].append(["M1", *run])
+                    self.add_via(cx, y_here)
+                    self.add_via(clear_x, y_here)
+            if net in self.pin_map:
+                updated = []
+                for inst, pname, vx, vy in self.pin_map[net]:
+                    if abs(vx - cx) < EPS and (abs(vy - ylo) < EPS or abs(vy - yhi) < EPS):
+                        vx = clear_x
+                    updated.append([inst, pname, vx, vy])
+                self.pin_map[net] = updated
+            self.fixed_vertical += 1
+            return True
+        if dbg:
+            print(f"    [strict] {net}: no clear column within {STRICT_MAX_TRACKS} tracks of "
+                  f"cx={cx:.1f} (corridors tried first) -- refused")
         return False
+
+    def track_ys(self, y):
+        """Channel track Y positions (the lattice the router itself uses)
+        for the channel containing `y`, or [] outside any channel."""
+        c = self.channel_of(y)
+        if c is None:
+            return []
+        n = int((self.ch_heights[c] - 2 * TRACK0_OFFSET) // TRACK_PITCH) + 1
+        return [self.ch_y0[c] + TRACK0_OFFSET + k * TRACK_PITCH for k in range(max(n, 0))]
+
+    def try_fix_vertical_detour(self, net, box, other_box):
+        """TD4: route the vertical run AROUND the offending stretch instead
+        of relocating the whole thing.
+
+        `try_fix_vertical` moves the entire span to another column, which
+        needs (a) a column that is clear over the WHOLE span and (b) the
+        freedom to lift both endpoint vias. Both assumptions break exactly
+        where this design's remaining shorts live:
+          * `_063_`/`wr_hi`: each endpoint via is a junction -- another M2
+            run of the same net lands on it, so lifting it would cut that
+            branch (this is the real content of the "cascade risk" ban);
+          * `_069_`/`ld_addr[2]`: the run spans a whole channel, and in a
+            channel packed with other nets' spines no column is clear over
+            234 um -- not even a priority corridor, which is only reserved
+            inside the ROWS.
+        A detour needs neither: both endpoints and their vias stay exactly
+        where they are, and only the short stretch that actually overlaps
+        has to find air. The shape is the same two-via M1 dogleg the router
+        already draws (draw_jog), applied twice -- out at yj, back at yj2.
+
+        `other_box` is the conflicting net's box: its Y overlap with this
+        one is the stretch that must be vacated."""
+        x0, y0, x1, y1 = box
+        cx = (x0 + x1) / 2.0
+        ylo, yhi = min(y0, y1), max(y0, y1)
+        ox0, oy0, ox1, oy1 = other_box
+        bad_lo, bad_hi = max(ylo, min(oy0, oy1)), min(yhi, max(oy0, oy1))
+        if bad_hi <= bad_lo:
+            bad_lo = bad_hi = (ylo + yhi) / 2.0
+        half_w = M1_TRUNK_WIDTH / 2.0
+        clr = PAD_HALF + M2_MIN_GAP          # via pad + space, clear of the stretch
+        dbg = DEBUG_STRICT
+
+        grid = self.track_ys((ylo + yhi) / 2.0) or [
+            ylo + TRACK_PITCH * k for k in range(1, int((yhi - ylo) / TRACK_PITCH))]
+        # The overlap is usually at an END of the span, not in the middle:
+        # this design's remaining shorts are two nets whose runs meet in the
+        # SAME column, one ending where the other begins. When the bad
+        # stretch reaches an endpoint there is no room for a turn below/above
+        # it -- so the turn happens AT the endpoint instead: the endpoint via
+        # stays exactly where it is (junction-safe) and only an M1 run
+        # departs from it sideways. That is the one-sided detour.
+        if bad_lo <= ylo + clr:
+            lows = [ylo]
+        else:
+            lows = sorted([y for y in grid if ylo + clr <= y <= bad_lo - clr],
+                          key=lambda y: bad_lo - y)[:4]
+        if bad_hi >= yhi - clr:
+            highs = [yhi]
+        else:
+            highs = sorted([y for y in grid if bad_hi + clr <= y <= yhi - clr],
+                           key=lambda y: y - bad_hi)[:4]
+        if not lows or not highs:
+            if dbg:
+                print(f"    [detour] {net}: no room for a dogleg inside the span "
+                      f"(y {ylo:.1f}..{yhi:.1f}, must clear {bad_lo:.1f}..{bad_hi:.1f})")
+            return False
+
+        for clear_x in self.candidate_columns(cx, strict=True):
+            for yj in lows:
+                for yj2 in highs:
+                    leg = (clear_x - PAD_HALF, yj, clear_x + PAD_HALF, yj2)
+                    if not self.clear_excluding("M2", *leg, exclude_net=net, margin=M2_MIN_GAP):
+                        continue
+                    runs = [(min(cx, clear_x), y - half_w, max(cx, clear_x), y + half_w)
+                            for y in (yj, yj2)]
+                    if not all(self.clear_excluding("M1", *r, exclude_net=net,
+                                                    margin=M1_MIN_GAP) for r in runs):
+                        continue
+                    # every via this detour ADDS must be clearance-checked,
+                    # not just the ones on the new column: when yj / yj2 is
+                    # not an original endpoint, a NEW via appears at (cx, y)
+                    # too. Leaving those two out produced M1-space and
+                    # V1-space DRC violations (measured: 2 + 1).
+                    new_vias = [(clear_x, yj), (clear_x, yj2)]
+                    for vy in (yj, yj2):
+                        if abs(vy - ylo) > EPS and abs(vy - yhi) > EPS:
+                            new_vias.append((cx, vy))
+                    if not all(self.via_pad_clear(net, vx, vy) for vx, vy in new_vias):
+                        continue
+                    # commit: keep both original endpoints (and their vias)
+                    self.delete_box("M2", box)
+                    self.net_shapes[net] = [s for s in self.net_shapes[net]
+                                            if tuple(s) != ("M2",) + box]
+                    for ya, yb in ((ylo, yj), (yj2, yhi)):
+                        if yb - ya <= EPS:
+                            continue          # one-sided detour: no stub here
+                        seg = (cx - PAD_HALF, ya, cx + PAD_HALF, yb)
+                        self.add_box("M2", *seg)
+                        self.net_shapes[net].append(["M2", *seg])
+                    self.add_box("M2", *leg)
+                    self.net_shapes[net].append(["M2", *leg])
+                    for r in runs:
+                        self.add_box("M1", *r)
+                        self.net_shapes[net].append(["M1", *r])
+                    for vx, vy in ((cx, yj), (clear_x, yj), (cx, yj2), (clear_x, yj2)):
+                        # the two ORIGINAL endpoint vias are already there
+                        # (and may be junctions) -- never re-place them
+                        if vx == cx and (abs(vy - ylo) < EPS or abs(vy - yhi) < EPS):
+                            continue
+                        self.add_via(vx, vy)
+                    self.fixed_vertical += 1
+                    if dbg:
+                        print(f"    [detour] {net}: x {cx:.1f} -> {clear_x:.1f} between "
+                              f"y {yj:.1f} and {yj2:.1f}")
+                    return True
+        if dbg:
+            print(f"    [detour] {net}: no clear detour column within {STRICT_MAX_TRACKS} "
+                  f"tracks of cx={cx:.1f}")
+        return False
+
+    def candidate_columns(self, cx, strict=False):
+        """Columns to try for a relocated vertical M2 run, nearest first.
+
+        Generic path: the historical unbounded ±k*X_GRID walk.
+        strict path (complex nets): bounded to STRICT_MAX_TRACKS, and the
+        priority M2 corridors come first -- those are reserved filler at
+        the same x in EVERY row, so a column there is clear from the top
+        of the stack to the bottom by construction, which is exactly what
+        a row-crossing segment of a complex net needs. Only corridor
+        tracks that sit on this segment's own 5.4 grid are offered, so a
+        relocated run still lands on the same track lattice as everything
+        else in the channel."""
+        if strict:
+            out = []
+            for tx in sorted(self.corridor_tracks, key=lambda t: abs(t - cx)):
+                if abs(tx - cx) < EPS:
+                    continue
+                if abs(tx - cx) > STRICT_MAX_TRACKS * X_GRID:
+                    continue
+                if abs(round((tx - cx) / X_GRID) * X_GRID - (tx - cx)) > 1e-3:
+                    continue
+                out.append(tx)
+            for k in range(1, STRICT_MAX_TRACKS + 1):
+                out += [cx + k * X_GRID, cx - k * X_GRID]
+            seen = set()
+            for x in out:
+                key = round(x, 3)
+                if key in seen:
+                    continue
+                seen.add(key)
+                yield x
+            return
+        for k in range(1, 300):
+            yield cx + k * X_GRID
+            yield cx - k * X_GRID
 
     def channel_of(self, y):
         for c, y0 in enumerate(self.ch_y0):
@@ -753,16 +1131,40 @@ def main():
     fixer = Fixer(in_gds, pin_map, net_shapes, ch_y0, ch_heights, row_width, placement=placement)
 
     permanently_failed = set()
+    # TD4: a component-level pair can survive a "successful" move (the box
+    # that got moved was not the one actually bridging). Cap the retries so
+    # the loop cannot ping-pong on one pair until max_iters.
+    attempts = {}
+    MAX_PAIR_ATTEMPTS = 3
     it = 0
     while it < max_iters:
         it += 1
         conflicts = find_conflicts(fixer.net_shapes)
         conflicts = [c for c in conflicts if (c[0], c[2]) not in permanently_failed
                      and (c[2], c[0]) not in permanently_failed]
+        if not conflicts and USE_COMPONENT_CHECK:
+            # TD4: box overlap is clean -- now ask the same question step10
+            # asks (real merged geometry unioned through real vias), so a
+            # zero-gap abutment or a via pad landing on another net gets a
+            # repair attempt instead of being discovered only at sign-off.
+            conflicts = [c for c in component_conflicts(fixer)
+                         if (c[0], c[2]) not in permanently_failed
+                         and (c[2], c[0]) not in permanently_failed]
+            if conflicts:
+                print(f"iteration {it}: box overlaps clean, but the component check finds "
+                      f"{len(conflicts)} shorted net pair(s): "
+                      f"{sorted({(c[0], c[2]) for c in conflicts})}")
         if not conflicts:
             print(f"iteration {it}: 0 conflicts remain -- converged")
             break
         na, ia, nb, ib, lyr = conflicts[0]
+        key = tuple(sorted((na, nb)))
+        attempts[key] = attempts.get(key, 0) + 1
+        if attempts[key] > MAX_PAIR_ATTEMPTS:
+            print(f"iteration {it}: {na} <-> {nb} still shorted after "
+                  f"{MAX_PAIR_ATTEMPTS} repair attempts -- giving up on this pair")
+            permanently_failed.add((na, nb))
+            continue
         box_a = tuple(fixer.net_shapes[na][ia][1:])
         box_b = tuple(fixer.net_shapes[nb][ib][1:])
 
@@ -780,9 +1182,40 @@ def main():
         a_ok = (na not in complex_nets) or not a_vert
         b_ok = (nb not in complex_nets) or not b_vert
         if not a_ok and not b_ok:
+            # TD4: before giving up, try the GUARDED vertical move on each
+            # side in turn (smaller net first). try_fix_vertical(strict=True)
+            # refuses unless this via belongs to this segment alone and the
+            # own-net M1 run at each end is unambiguous, and it keeps the
+            # detour inside STRICT_MAX_TRACKS, preferring a priority M2
+            # corridor -- so the cascade the blanket ban guards against
+            # cannot happen, while the common case (a complex net whose
+            # segment is a plain pass-through) does get repaired.
+            area_a = sum((abs(s[3] - s[1]) * abs(s[4] - s[2])) for s in fixer.net_shapes[na])
+            area_b = sum((abs(s[3] - s[1]) * abs(s[4] - s[2])) for s in fixer.net_shapes[nb])
+            order = ([(na, box_a, box_b), (nb, box_b, box_a)] if area_a <= area_b
+                     else [(nb, box_b, box_a), (na, box_a, box_b)])
+            done = False
+            for mv, bx, ob in order:
+                if fixer.try_fix_vertical(mv, bx, strict=True):
+                    print(f"iteration {it}: {na} <-> {nb} on {lyr} -- both sides complex, "
+                          f"moved {mv} with the guarded vertical fix")
+                    done = True
+                    break
+            if not done:
+                # both refused the whole-span move (junction endpoints, or no
+                # column clear over the full span) -- detour around the
+                # offending stretch instead, which needs neither.
+                for mv, bx, ob in order:
+                    if fixer.try_fix_vertical_detour(mv, bx, ob):
+                        print(f"iteration {it}: {na} <-> {nb} on {lyr} -- both sides complex, "
+                              f"detoured {mv} around the overlap")
+                        done = True
+                        break
+            if done:
+                continue
             print(f"iteration {it}: {na} <-> {nb} on {lyr} -- BOTH sides are a complex net's "
-                  f"vertical (single M2 segment) box, refusing to move either (too high a "
-                  f"cascade risk) -- unresolved")
+                  f"vertical (single M2 segment) box and neither passes the guarded move's "
+                  f"safety conditions -- unresolved")
             permanently_failed.add((na, nb))
             continue
         if a_ok and b_ok:
@@ -814,6 +1247,21 @@ def main():
             fixed = fixer.try_fix_vertical(fallback, fbox) if f_vertical else fixer.try_fix_horizontal(fallback, fbox)
 
         if not fixed:
+            # TD4: last resort -- the guarded vertical move on whichever
+            # side the policy above would not let the generic mover touch.
+            for mv, bx, ob in ((na, box_a, box_b), (nb, box_b, box_a)):
+                bx0_, by0_, bx1_, by1_ = bx
+                if (by1_ - by0_) < (bx1_ - bx0_):
+                    continue                      # horizontal: not this path
+                if fixer.try_fix_vertical(mv, bx, strict=True):
+                    print(f"  recovered by the guarded vertical fix on {mv}")
+                    fixed = True
+                    break
+                if fixer.try_fix_vertical_detour(mv, bx, ob):
+                    print(f"  recovered by detouring {mv} around the overlap")
+                    fixed = True
+                    break
+        if not fixed:
             print(f"  could not fix {na}<->{nb} without touching a multi-segment/high-fanout "
                   f"net -- giving up on this pair, will still report as unresolved")
             permanently_failed.add((na, nb))
@@ -826,6 +1274,10 @@ def main():
     if remaining:
         pairs = {(c[0], c[2]) for c in remaining}
         print("unresolved net pairs:", pairs)
+    if USE_COMPONENT_CHECK:
+        comp = component_conflicts(fixer)
+        print(f"component-level check: {len(comp)} shorted net pair(s) remain"
+              + (f": {sorted({(c[0], c[2]) for c in comp})}" if comp else ""))
 
     fixer.layout.write(out_gds)
     with open(out_pin_map_json, "w") as f:

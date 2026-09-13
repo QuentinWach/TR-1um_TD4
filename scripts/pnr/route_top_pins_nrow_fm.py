@@ -197,7 +197,7 @@ def gather_pins(placement, ch_heights, row_h, resolver=None):
 
 
 def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heights=CH_HEIGHTS,
-         net_shapes_json=NET_SHAPES_JSON, net_file=None):
+         net_shapes_json=NET_SHAPES_JSON, net_file=None, out_net_shapes_json=None):
     resolver = None
     if net_file:
         from netlist_parser import _build_alias_resolver
@@ -256,11 +256,29 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
             via_lib, via_decl.id(), {"x": M1_PAD_SIZE, "y": M1_PAD_SIZE, "x0": "c", "y0": "c"})
         top.insert(db.CellInstArray(pcell_idx, db.Trans(db.Vector(um(cx), um(cy)))))
 
+    # TD4: log what THIS script draws, per net, in the same
+    # net_shapes format the router and ripup_reroute_shorts.py use.
+    # Without it the top-pin wires are invisible to the rip-up pass, so a
+    # riser drawn straight through another net (the `[CHECK]` least-bad
+    # fallback below does exactly that when every track collides) can only
+    # ever be found at sign-off. Measured: `out_port[0]`'s riser at x=170.1
+    # ran y 824.5..1326.5 through `_050_` (y 837..1076.8, same column) --
+    # 0 shorts at step7, 1 at step8.
+    drawn = {}
+    cur_net = [None]
+
+    def _log(layer, x0, y0, x1, y1):
+        if cur_net[0]:
+            drawn.setdefault(cur_net[0], []).append(
+                [layer, min(x0, x1), min(y0, y1), max(x0, x1), max(y0, y1)])
+
     def m1_box(x0, y0, x1, y1):
         top.shapes(m1_idx).insert(db.Box(um(x0), um(y0), um(x1), um(y1)))
+        _log("M1", x0, y0, x1, y1)
 
     def m2_box(x0, y0, x1, y1):
         top.shapes(m2_idx).insert(db.Box(um(x0), um(y0), um(x1), um(y1)))
+        _log("M2", x0, y0, x1, y1)
 
     own_region_cache = {}
 
@@ -445,6 +463,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
     # ---- row0: M2 straight down, 10um past Y=0 ----
     for port, direc, inst, pname, cx, cy in row0_list:
         net = port_to_net_name(port, resolver)
+        cur_net[0] = net
         half = PAD_HALF
         y_end = -EXTEND_UM
         if cy - half > row0_bound:
@@ -486,6 +505,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
     # ---- row3: M2 straight up, 10um past Y=core_h ----
     for port, direc, inst, pname, cx, cy in row3_list:
         net = port_to_net_name(port, resolver)
+        cur_net[0] = net
         half = PAD_HALF
         y_end = core_h + EXTEND_UM
         if cy + half < row3_bound:
@@ -525,6 +545,52 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
                 return idx
         return None
 
+    # --- TD4: ポートが乗っている行に**隣接する**チャネルを使う --------------
+    # 原本は 4 行のコア専用で、中間行のポートを**必ず row1 と row2 の間の帯**
+    # へ落としていた（`ch2_lo/ch2_hi` は固定）。5 行（縦置き）ではそれが破綻し、
+    # row3 のピンが row2 と ch[2] を貫いて 500 µm 降りる。実測: `out_port[0]`
+    # のピン y=1327.8（row3）が y=826.2（ch[2]）まで x=170.1 を一直線に降り、
+    # 同じ列の `_050_`（y 837…1077）を貫通して短絡した。step7 まで 0 件だった
+    # 短絡が step8 で 1 件出るのはこれが原因。
+    # 行 r のすぐ隣のチャネルに落とせば riser は 1 行分（約 60 µm）で済む。
+    TOPPIN_ADJ = _os.environ.get("TD4_TOPPIN_ADJACENT_CH", "1") != "0"
+    band_used = {}
+
+    def row_of(cy):
+        for r, y0 in enumerate(row_y0):
+            if y0 - 1e-6 <= cy <= y0 + row_h + 1e-6:
+                return r
+        return min(range(len(row_y0)), key=lambda r: abs(row_y0[r] + row_h / 2.0 - cy))
+
+    def band_for(cy, from_bottom):
+        if not TOPPIN_ADJ:
+            return ch2_lo, ch2_hi
+        r = row_of(cy)
+        if from_bottom:                      # 上へ抜ける -> 行の上のチャネル
+            lo = row_y0[r] + row_h
+            hi = row_y0[r + 1] if r + 1 < len(row_y0) else core_h
+        else:                                # 下へ抜ける -> 行の下のチャネル
+            hi = row_y0[r]
+            lo = (row_y0[r - 1] + row_h) if r >= 1 else 0.0
+        if hi - lo < 2 * TRACK0_OFFSET + TRACK_PITCH:
+            return ch2_lo, ch2_hi            # 狭すぎる帯は従来どおり
+        return lo, hi
+
+    def band_n_tracks(lo, hi):
+        return int((hi - lo - 2 * TRACK0_OFFSET) // TRACK_PITCH) + 1
+
+    def band_track_y(lo, idx):
+        return lo + TRACK0_OFFSET + idx * TRACK_PITCH
+
+    def claim_band_track(lo, hi, from_bottom, exclude=()):
+        n = band_n_tracks(lo, hi)
+        used = band_used.setdefault((lo, hi), set())
+        order = range(n) if from_bottom else range(n - 1, -1, -1)
+        for idx in order:
+            if idx not in used and idx not in exclude:
+                return idx
+        return None
+
     x_right_end = row_width + EXTEND_UM
     half2 = PAD_HALF
     half1 = M1_TRUNK_WIDTH / 2.0
@@ -546,6 +612,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
     def route_row1_row2(pin_list, from_bottom, x_end, direction_label):
         for port, direc, inst, pname, cx, cy in pin_list:
             net = port_to_net_name(port, resolver)
+            cur_net[0] = net
             # v50 (design_notes 70): the pin's own physical source-pin
             # footprint, ALWAYS excluded regardless of whether `net` has
             # a net_shapes_log entry (own_region()'s only source, empty
@@ -558,16 +625,18 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
             # real external routing -- confirmed root cause of the
             # tx_data[0]<->_074_ short surviving the v49 jog fix on the
             # first attempt.
+            blo, bhi = band_for(cy, from_bottom)
+            n_band = band_n_tracks(blo, bhi)
             self_own = db.Region(db.Box(um(cx - half2 - 0.2), um(cy - half2 - 0.2),
                                          um(cx + half2 + 0.2), um(cy + half2 + 0.2)))
             tried = set()
             result = None
-            for _attempt in range(n_ch2_tracks):
-                idx = claim_ch2_track(from_bottom=from_bottom, exclude=tried)
+            for _attempt in range(n_band):
+                idx = claim_band_track(blo, bhi, from_bottom=from_bottom, exclude=tried)
                 if idx is None:
                     break
                 tried.add(idx)
-                track_y = ch2_track_y(idx)
+                track_y = band_track_y(blo, idx)
                 if from_bottom:
                     ok1 = m2_clear(cx - half2, cy + SELF_MARGIN, cx + half2, track_y - half2,
                                     exclude_net=net, extra_own=self_own)
@@ -577,15 +646,15 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
                                     exclude_net=net, extra_own=self_own)
                     ok2 = m1_clear(x_end, track_y - half1, cx, track_y + half1, exclude_net=net)
                 if ok1 and ok2:
-                    used_ch2_idx.add(idx)
+                    band_used.setdefault((blo, bhi), set()).add(idx)
                     result = (idx, track_y, cx, True)
                     break
             if result is None:
-                jog_order = range(n_ch2_tracks) if from_bottom else range(n_ch2_tracks - 1, -1, -1)
+                jog_order = range(n_band) if from_bottom else range(n_band - 1, -1, -1)
                 for idx in jog_order:
-                    if idx in used_ch2_idx:
+                    if idx in band_used.setdefault((blo, bhi), set()):
                         continue
-                    track_y = ch2_track_y(idx)
+                    track_y = band_track_y(blo, idx)
                     if from_bottom:
                         y_lo, y_hi = cy + SELF_MARGIN, track_y - half2
                         dog_y = (cy + SELF_MARGIN - half2, cy + SELF_MARGIN + half2)
@@ -602,7 +671,7 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
                     else:
                         ok2j = m1_clear(x_end, track_y - half1, jog_x, track_y + half1, exclude_net=net)
                     if ok2j:
-                        used_ch2_idx.add(idx)
+                        band_used.setdefault((blo, bhi), set()).add(idx)
                         result = (idx, track_y, jog_x, True)
                         break
             if result is None:
@@ -614,13 +683,15 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
                 # would short into each other. Least-bad choice: the track
                 # with the FEWEST touching pre-existing shapes.
                 if from_bottom:
-                    idx = min((i for i in range(n_ch2_tracks) if i not in used_ch2_idx),
-                              key=lambda i: _collision_count(cx, ch2_track_y(i), x_end, half1, exclude_net=net))
+                    idx = min((i for i in range(n_band)
+                               if i not in band_used.setdefault((blo, bhi), set())),
+                              key=lambda i: _collision_count(cx, band_track_y(blo, i), x_end, half1, exclude_net=net))
                 else:
-                    idx = min((i for i in range(n_ch2_tracks) if i not in used_ch2_idx),
-                              key=lambda i: _collision_count(x_end, ch2_track_y(i), cx, half1, exclude_net=net))
-                used_ch2_idx.add(idx)
-                result = (idx, ch2_track_y(idx), cx, False)
+                    idx = min((i for i in range(n_band)
+                               if i not in band_used.setdefault((blo, bhi), set())),
+                              key=lambda i: _collision_count(x_end, band_track_y(blo, i), cx, half1, exclude_net=net))
+                band_used.setdefault((blo, bhi), set()).add(idx)
+                result = (idx, band_track_y(blo, idx), cx, False)
             idx, track_y, via_x, ok = result
             if from_bottom:
                 self_y_lo, self_y_hi = cy - half2, cy + SELF_MARGIN + half2
@@ -652,6 +723,15 @@ def main(placement_json=PLACEMENT_JSON, in_gds=IN_GDS, out_gds=OUT_GDS, ch_heigh
 
     layout.write(out_gds)
     print(f"wrote {out_gds}")
+    if out_net_shapes_json:
+        merged = {n: [list(b) for b in v] for n, v in net_shapes_log.items()}
+        for n, v in drawn.items():
+            merged.setdefault(n, []).extend(v)
+        with open(out_net_shapes_json, "w") as f:
+            json.dump(merged, f)
+        print(f"wrote {out_net_shapes_json} "
+              f"({sum(len(v) for v in drawn.values())} new box(es) on "
+              f"{len(drawn)} top-port net(s))")
     n_clear = sum(1 for r in report if r[-1])
     print(f"{len(report)} port(s) wired, {n_clear} with a pre-existing-geometry-clear path, "
           f"{len(report) - n_clear} flagged for review")

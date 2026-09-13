@@ -49,6 +49,11 @@ PIN_MAP_RR_JSON = os.path.join(LAYOUT, "pin_map_nrow_fm_rr.json")
 PIN_MAP_SQ_JSON = os.path.join(LAYOUT, "pin_map_nrow_fm_sq.json")
 NET_SHAPES_SQ_JSON = os.path.join(LAYOUT, "net_shapes_nrow_fm_sq.json")
 NET_SHAPES_RR_JSON = os.path.join(LAYOUT, "net_shapes_nrow_fm_rr.json")
+# TD4: step8 (トップピン) が描いた分を足したもの。step8 の後にもう一度
+# ripup を掛けるために要る。
+NET_SHAPES_TP_JSON = os.path.join(LAYOUT, "net_shapes_nrow_fm_tp.json")
+PIN_MAP_TP_JSON = os.path.join(LAYOUT, "pin_map_nrow_fm_tp.json")
+NET_SHAPES_TP2_JSON = os.path.join(LAYOUT, "net_shapes_nrow_fm_tp2.json")
 COMPACTION_INFO_JSON = os.path.join(LAYOUT, "compaction_info_nrow_fm.json")
 
 # ---- セルライブラリの幾何 ------------------------------------------------
@@ -97,6 +102,13 @@ PRI_PITCH = float(os.environ.get("TD4_PRI_PITCH", "1e9"))
 # 縦バスを入れると行幅が減るので、コリドーを 3 本に戻して取り返せる
 # （FILL3 なら 48.6 µm/行）。
 PRI_MODE = os.environ.get("TD4_PRI_MODE", "both")
+# **狙い撃ちの追加コリドー**（`TD4_PRI_X="135.0,..."`, µm, サイトグリッドに丸める）。
+# ピッチを詰めると「同じ x に集まりすぎて互いに衝突」して逆効果（上のメモ）だが、
+# 短絡が実際に出ている x（実測: ch2/ch3 の x≈137）にだけ 1 本足すのは話が別。
+# 1 本 = 行あたり 16.2 µm しか食わず、パーティション上限 (= 全セル幅/行数 ×
+# (1+tol) ≈ 878 µm) の方が実効行幅よりずっと小さいので**実質タダ**。
+PRI_EXTRA_X = [round(round(float(v) / SITE_UM) * SITE_UM, 3)
+               for v in os.environ.get("TD4_PRI_X", "").split(",") if v.strip()]
 
 # ---- フロアプラン --------------------------------------------------------
 # **メモリは横倒しにして行スタックの下に敷く。**
@@ -135,6 +147,15 @@ MACRO_MODE = os.environ.get("TD4_MACRO_MODE", "landscape")
 if MACRO_MODE not in ("landscape", "portrait"):
     raise SystemExit(f"TD4_MACRO_MODE は landscape か portrait（今 {MACRO_MODE}）")
 _PORTRAIT = MACRO_MODE == "portrait"
+
+# --- step11: マクロの電源をコアのレールに繋ぐ -----------------------------
+# 縦置きはマクロが行スタックの横に居て、その電源ポート（上下辺の M2）が
+# **金属では何にも繋がらない**。`scripts/pnr/connect_macro_power.py` が
+# TAP の柱からマクロ下辺のポートまでストラップを通す。
+# 横倒し（確定済みの結果）は既定で触らない。
+MACRO_POWER = os.environ.get("TD4_MACRO_POWER", "1" if _PORTRAIT else "0") != "0"
+MACROPWR_GDS = os.path.join(LAYOUT, "step11", "route_step_7_macro_power.gds")
+FINAL_GDS = MACROPWR_GDS if MACRO_POWER else SQUEEZED_GDS
 
 # 実験用の上書き。`TD4_N_ROWS=5 python3 scripts/pnr/place.py` のように使う。
 N_ROWS = int(os.environ.get("TD4_N_ROWS", "5" if _PORTRAIT else "4"))
