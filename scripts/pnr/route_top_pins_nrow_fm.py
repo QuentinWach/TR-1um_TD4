@@ -182,7 +182,27 @@ def gather_pins(placement, ch_heights, row_h, resolver=None):
     _no_bottom = bool(getattr(_cfg, "NO_BOTTOM_PORTS", False))
     _top = n_rows - 1
     _mids = list(range(0 if _no_bottom else 1, _top))
-    _half = (len(_mids) + 1) // 2
+    # --- TD4: 右辺が使えないときは全部左へ ------------------------------------
+    # 中間行のポートは「右へ M1」で `x = row_width + 10` に出る。**行幅が
+    # コア幅と同じ前提**の作りで、縦置きのように行スタックの右にマクロが
+    # 居るとピンがコアの内部に取り残される。
+    # 実測（縦置き 5 行）: `d[1]` と `rst_n` のピンが x=1148.7 に打たれた。
+    # 行の右端は 1150.2、その右 1198.8…1598.4 は `REG8x16`。マクロの OBS は
+    # M1/M2 とも全面なので、チップ側から横切って取りに行くこともできない。
+    # 判定は**行幅 < コア幅**（モードに依らない）。`TD4_TOPPIN_RIGHT=1` で戻せる。
+    _row_w = getattr(_cfg, "ROW_WIDTH_UM", None)
+    _core_w = getattr(_cfg, "CORE_WIDTH_UM", None)
+    _right_ok = _os.environ.get("TD4_TOPPIN_RIGHT")
+    if _right_ok is None:
+        _right_ok = not (_row_w and _core_w and _row_w < _core_w - 1e-6)
+    else:
+        _right_ok = _right_ok != "0"
+    if _right_ok:
+        _half = (len(_mids) + 1) // 2
+    else:
+        _half = 0                       # 右へは 1 本も出さない
+        print(f"  [top pins] 行幅 {_row_w} < コア幅 {_core_w} なので"
+              f"右辺は使わない（中間行のポートは全部左へ）")
     _right = [it for r in _mids[:_half] for it in by_row[r]]
     _left = [it for r in _mids[_half:] for it in by_row[r]]
     row0_ports = set() if _no_bottom else {item[0] for item in by_row[0]}
