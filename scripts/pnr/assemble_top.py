@@ -53,6 +53,11 @@ import argparse
 import os
 import sys
 
+# **チップ組み立ては縦置き専用。** `TD4_MACRO_MODE` の既定は landscape で、
+# 付け忘れると `FINAL_GDS` が step10 を指し、`MACRO_CELL` も MEMPORT になる
+# （2026-09-14: マクロ電源の入っていないコアを載せたチップを作ってしまった）。
+# ここで固定する。コア側を landscape で作り直したいときはコア側のスクリプトで。
+os.environ.setdefault("TD4_MACRO_MODE", "portrait")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import td4_config as cfg                                    # noqa: E402
@@ -91,7 +96,7 @@ def main():
                     help="コアの下の余りを PTECT (63,1) で塞ぐ")
     a = ap.parse_args()
 
-    core_gds = a.core_gds or cfg.FINAL_GDS
+    core_gds = a.core_gds or cfg.CHIP_CORE_GDS
     geom = cfg.chip_geometry(core_gds)
     bad = cfg.chip_fits(geom)
 

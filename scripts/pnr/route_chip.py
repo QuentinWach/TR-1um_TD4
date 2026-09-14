@@ -54,6 +54,21 @@ HIZ の結線は 14 本すべてレール直結で、VDD 側が 9 本、四辺�
        GND リングに via で繋ぐ。VDD リング（M1）は跨ぐだけ。
        残り三辺の VSS 壁ピンにも GND リングから短いストラップを出す。
 
+## REG8x16 の電源
+
+マクロは vdd/vss とも**上辺と下辺の両方**に M2 ポートを持ち、左右 2 列ある
+（計 8 本）。マクロの上辺はコアの上辺と面一なので、**上辺のポートはコアの
+中からは届かない** -- step11 の `connect_macro_power` が右下の 1 組だけ行の
+電源に繋いでいるのはそのため。チップ側には上下のチャネルに M1 のバーが
+あるので、そこまで M2 をまっすぐ延ばす:
+
+    vdd 上辺 2 本 -> 上の VDD バー（678.5 -> 690、12 µm）
+    vss 下辺 2 本 -> 下の GND バー（-250.0 -> -690、440 µm）
+
+下側は**行の右側の空き**（行幅 1150.2、マクロ左端 1198.8）を通る。実測で
+この 2 列は M2 も V1 も空で、横切るのは別ネットの M1 だけ（左列で 23 本）。
+これで左右どちらの柱も両端から給電される。
+
   usage: python3 scripts/pnr/route_chip.py [-o OUT]
 """
 from __future__ import annotations
@@ -66,9 +81,15 @@ from collections import defaultdict
 
 import klayout.db as db
 
+# **チップ組み立ては縦置き専用。** `TD4_MACRO_MODE` の既定は landscape で、
+# 付け忘れると `FINAL_GDS` が step10 を指し、`MACRO_CELL` も MEMPORT になる
+# （2026-09-14: マクロ電源の入っていないコアを載せたチップを作ってしまった）。
+# ここで固定する。コア側を landscape で作り直したいときはコア側のスクリプトで。
+os.environ.setdefault("TD4_MACRO_MODE", "portrait")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import td4_config as cfg                                    # noqa: E402
+import connect_macro_power                                  # noqa: E402
 
 sys.path.insert(0, cfg.pdk_tech_python())
 import pya                                                  # noqa: E402
@@ -114,6 +135,23 @@ VSS_STRAP = (("LEFT", -400.0), ("LEFT", 0.0), ("LEFT", 400.0),
              ("RIGHT", -400.0), ("RIGHT", 0.0), ("RIGHT", 400.0),
              ("TOP", -400.0), ("TOP", 400.0), ("BOTTOM", 400.0))
 STRAP_W = 6.0
+
+# ---- REG8x16 の電源をチャネルの M1 バーまで引き上げる/下げる -------------
+# マクロは vdd も vss も**上辺と下辺の両方**に M2 ポートを持ち、左右 2 列ある
+# （LEF: vdd x 76.6-80.0 / 395.2-398.6、vss x 1.0-4.4 / 389.8-393.2、
+#  y は 1.1-4.5 と 928.5-931.9）。マクロの上辺はコアの上辺と面一なので、
+# **上辺のポートはコアの中からは届かない**（step11 の `connect_macro_power`
+# が右下の 1 組だけ行の電源に繋いでいるのはそのため）。チップ側なら
+# 上のチャネルに VDD の M1 バーが、下のチャネルに GND の M1 バーがあるので、
+# そこまで M2 をまっすぐ延ばせる:
+#
+#   vdd 上辺 2 本 -> 上の VDD バー（コア上端 678.5 から 690 まで 12 µm）
+#   vss 下辺 2 本 -> 下の GND バー（マクロ下端 -250.0 から -690 まで 440 µm）
+#
+# 下側の 440 µm は**行の右側の空き**（行幅 1150.2、マクロ左端 1198.8）を
+# 通る。実測でこの 2 列は M2 も V1 も空で、横切るのは別ネットの M1 だけ
+# （左列で 23 本）。M2 x M1 なので via を打たなければ何も起きない。
+MACRO_RISER_W = 3.4      # マクロのポート幅ちょうど。段差を作らない
 
 R_NOM = 866.0            # 区間計算用の名目半径（レーン帯のまん中あたり）
 PERI = 8 * R_NOM
@@ -409,6 +447,39 @@ def draw_ring(d, net, R):
     d.net = None
 
 
+def macro_risers(gds, dx, dy):
+    """{"VDD": [(x, y_start)], "GND": [(x, y_start)]}（チップ座標）。
+
+    マクロの電源ポートのうち、上辺の `vdd` と下辺の `vss` を取る。x は
+    ポートの中心、y はポートの**外側の端**（そこからバーへ向かって延ばす）。
+    座標は LEF の宣言ではなく、GDS のインスタンス位置 + LEF のポート矩形。"""
+    ly = db.Layout()
+    ly.read(gds)
+    core = ly.cell(cfg.TOP_CELL_NAME)
+    origin = None
+    for inst in core.each_inst():
+        if ly.cell(inst.cell_index).name == cfg.MACRO_CELL:
+            origin = (inst.dtrans.disp.x, inst.dtrans.disp.y)
+            break
+    if origin is None:
+        return {"VDD": [], "GND": []}, None
+    mx, my = origin
+    ports = connect_macro_power.macro_power_ports(cfg.LEF_PATH, cfg.MACRO_CELL)
+    out = {"VDD": [], "GND": []}
+    for net, rail, top_side in (("vdd", "VDD", True), ("vss", "GND", False)):
+        rects = ports[net]
+        ymark = (max if top_side else min)(r[1] for r in rects)
+        for r in rects:
+            if abs(r[1] - ymark) > 1e-6:
+                continue
+            x = mx + (r[0] + r[2]) / 2.0 + dx
+            y = my + (r[1] if top_side else r[3]) + dy
+            out[rail].append((round(x, 3), round(y, 3)))
+    for k in out:
+        out[k].sort()
+    return out, (mx + dx, my + dy)
+
+
 def core_power_pins(gds, dx, dy):
     """コアの VDD/GND の M2 ポートを辺ごとに。{net: {'TOP': [x], 'BOTTOM': [x]}}"""
     ly = db.Layout()
@@ -440,7 +511,7 @@ def main():
     a = ap.parse_args()
 
     plan = json.load(open(a.plan, encoding="utf-8"))
-    core_gds = a.core_gds or cfg.FINAL_GDS
+    core_gds = a.core_gds or cfg.CHIP_CORE_GDS
     cl, cb, cr, ct = plan["core_chip_bbox"]
     dx, dy = plan["core_offset"]
 
@@ -498,6 +569,7 @@ def main():
 
     # ---- コアの電源 -------------------------------------------------------
     taps = core_power_pins(core_gds, dx, dy)
+    risers, macro_at = macro_risers(core_gds, dx, dy)
     for net, bus_y, edge in (("VDD", VDD_BUS_Y, "TOP"), ("GND", GND_BUS_Y, "BOTTOM")):
         xs = taps[net][edge]
         if len(xs) != 4:
@@ -509,6 +581,9 @@ def main():
         else:
             lo = min(lo, min(VSS_STRIP_X) - 8.0)
             hi = max(hi, max(VSS_STRIP_X) + 8.0)
+        # マクロのライザもこのバーで受けるので、バーを右へ伸ばす
+        for rx, _ in risers[net]:
+            lo, hi = min(lo, rx - 8.0), max(hi, rx + 8.0)
         d.wire("M1", lo, bus_y, hi, bus_y, BUS_W)
         y_in = ct - 1.5 if edge == "TOP" else cb + 1.5
         y_out = bus_y + 3.5 if edge == "TOP" else bus_y - 3.5
@@ -518,6 +593,18 @@ def main():
         d.net = None
         print(f"{net} バス M1 y={bus_y} x [{lo:.1f}, {hi:.1f}]、"
               f"タップ {len(xs)} 本 {xs}")
+
+    # ---- REG8x16 の電源をバーまで延伸 ------------------------------------
+    for net, bus_y in (("VDD", VDD_BUS_Y), ("GND", GND_BUS_Y)):
+        d.net = net
+        for rx, ry in risers[net]:
+            d.wire("M2", rx, ry, rx, bus_y, MACRO_RISER_W)
+            d.via(rx, bus_y, MACRO_RISER_W, 6.8)
+        d.net = None
+    if macro_at:
+        print(f"{cfg.MACRO_CELL} @ {macro_at} のポートからバーへ: "
+              + "  ".join(f"{k} " + ", ".join(f"x={x} y={y}" for x, y in v)
+                          for k, v in risers.items() if v))
 
     # VDD: バス -> リング -> M1 でフレームのピンへ
     d.net = "VDD"

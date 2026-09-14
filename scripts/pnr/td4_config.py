@@ -396,6 +396,12 @@ def check_opening():
 
 # ---- チップ統合（コアを GIO パッドリングに落とす） -----------------------
 CHIP = os.path.join(LAYOUT, "chip")
+# チップに載せるコア。**step11（マクロ電源）を走らせたならそれが正**。
+# `TD4_MACRO_MODE` の既定は landscape なので、環境変数を付け忘れると
+# `FINAL_GDS` が step10 を指し、**マクロの vdd/vss が金属で何にも繋がって
+# いないコア**を載せてしまう（2026-09-14 に実際にやって、組み上げた
+# チップに step11 のストラップが入っていなかった）。あるなら step11。
+CHIP_CORE_GDS = MACROPWR_GDS if os.path.exists(MACROPWR_GDS) else FINAL_GDS
 GIO_PIN_RADIUS = 921.7         # P/HIZ/OUT 端子の半径（ダイ中心から）
 PTECT_LAYER = (63, 1)
 
@@ -547,7 +553,7 @@ def chip_geometry(gds=None, cell=None):
     幅が 1600 を超えるので使えるのは |y| <= 800 の帯だが、高さ 1347.4 は
     そこに余裕で収まる。**SCLK_SPI と同じく native bbox を対称にする。**
     """
-    l, b, r, t = core_bbox_um(gds or FINAL_GDS, cell)
+    l, b, r, t = core_bbox_um(gds or CHIP_CORE_GDS, cell)
     ox = round(-(l + r) / 2.0, 3)
     oy = round(-(b + t) / 2.0, 3)
     box = (round(l + ox, 3), round(b + oy, 3), round(r + ox, 3), round(t + oy, 3))

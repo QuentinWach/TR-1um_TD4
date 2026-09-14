@@ -23,6 +23,11 @@ import json
 import os
 import sys
 
+# **チップ組み立ては縦置き専用。** `TD4_MACRO_MODE` の既定は landscape で、
+# 付け忘れると `FINAL_GDS` が step10 を指し、`MACRO_CELL` も MEMPORT になる
+# （2026-09-14: マクロ電源の入っていないコアを載せたチップを作ってしまった）。
+# ここで固定する。コア側を landscape で作り直したいときはコア側のスクリプトで。
+os.environ.setdefault("TD4_MACRO_MODE", "portrait")
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import td4_config as cfg                                    # noqa: E402
@@ -125,7 +130,7 @@ def main():
     # コアの電源タップ
     dx, dy = plan["core_offset"]
     ly2 = db.Layout()
-    ly2.read(cfg.FINAL_GDS)
+    ly2.read(cfg.CHIP_CORE_GDS)
     core = ly2.cell(cfg.TOP_CELL_NAME)
     taps = 0
     for s in core.shapes(ly2.layer(49, 0)).each():
@@ -138,6 +143,30 @@ def main():
             bad.append(f"コアの {s.text.string} タップ ({x:.1f}, {y:.1f}) "
                        f"が島 {i}（期待 {rails[s.text.string]}）")
     print(f"  コアの電源タップ {taps} 本を確認")
+
+    # REG8x16 のポート（チップ側でバーまで延ばした 4 本 + step11 の右下 1 組）
+    import connect_macro_power as _cmp
+    origin = None
+    for inst in core.each_inst():
+        if ly2.cell(inst.cell_index).name == cfg.MACRO_CELL:
+            origin = (inst.dtrans.disp.x, inst.dtrans.disp.y)
+            break
+    if origin is None:
+        bad.append(f"{cfg.MACRO_CELL} がコアに無い")
+    else:
+        mports = _cmp.macro_power_ports(cfg.LEF_PATH, cfg.MACRO_CELL)
+        nm = 0
+        for net, rail in (("vdd", "VDD"), ("vss", "GND")):
+            for r in mports[net]:
+                x = origin[0] + (r[0] + r[2]) / 2.0 + dx
+                y = origin[1] + (r[1] + r[3]) / 2.0 + dy
+                i = look(x, y, "M2")
+                nm += 1
+                side = "上" if r[1] > 400 else "下"
+                if i != rails[rail]:
+                    bad.append(f"{cfg.MACRO_CELL}.{net} の{side}辺ポート "
+                               f"({x:.1f}, {y:.1f}) が島 {i}（期待 {rails[rail]}）")
+        print(f"  {cfg.MACRO_CELL} の電源ポート {nm} 本を確認")
 
     print()
     if bad:
