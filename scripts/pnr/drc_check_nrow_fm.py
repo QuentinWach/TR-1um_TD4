@@ -53,3 +53,14 @@ print('V1 space viol:', v1.space_check(int(round(1.5 / dbu))).count())
 print('V1 enclosed by M1<1.0 viol:', v1.enclosed_check(m1, int(round(1.0 / dbu))).count())
 print('V1 enclosed by M2<1.0 viol:', v1.enclosed_check(m2, int(round(1.0 / dbu))).count())
 print('V1-GC space<1.2 viol:', v1.separation_check(gc, int(round(1.2 / dbu))).count())
+
+# V1 のカットは 1.4 角ちょうど（V1.W1: bbox_max > 1.4）。
+# 2026-09-14: assemble_top.py が同名セル（コアとフレームに両方ある
+# `via_1` / `via_1$1`）を KLayout の既定 AddToCell で重ねてしまい、
+# カットが 0.75 µm ずれて重なって幅 2.15 の V1 が 15 個できていた。
+# 図形の間隔だけ見ていると V1.S1 でしか出ないので、幅も数える。
+# ※ フレーム単体にも 1.4 を超える V1 が 17 個ある（ボンドパッド下など）。
+#   チップで数えるときはその 17 個がベースライン。
+_big = [p for p in v1.merged().each()
+        if p.bbox().width() * dbu > 1.4001 or p.bbox().height() * dbu > 1.4001]
+print(f'V1 cut > 1.4 viol: {len(_big)}')

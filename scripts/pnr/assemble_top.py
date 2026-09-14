@@ -110,7 +110,16 @@ def main():
     top.insert(db.CellInstArray(core.cell_index(), db.Trans(db.Vector(um(ox), um(oy)))))
 
     # ---- GIO リング（セル自身がダイ中心原点なので (0,0)）----
-    layout.read(cfg.FRAME_GDS)
+    # **同名セルは必ずリネームさせる。** コアにもフレームにも `via_1` /
+    # `via_1$1` という名前の via PCell 変種が入っていて（パラメータは別物）、
+    # KLayout の既定（AddToCell）で読むと**両方の図形が同じセルに重なる**。
+    # 2026-09-14 のチップ DRC 30 件（V1.W1 15 / V1.S1 15、|座標| 1030 近辺の
+    # ボンドパッド下）はこれが原因で、フレーム GDS 単体は clean だった。
+    # カットが 0.75 µm ずれて重なり、幅 2.15 の V1 と 0.75 の隙間ができる。
+    opt = db.LoadLayoutOptions()
+    opt.cell_conflict_resolution = \
+        db.LoadLayoutOptions.CellConflictResolution.RenameCell
+    layout.read(cfg.FRAME_GDS, opt)
     gio = layout.cell(cfg.FRAME_CELL)
     if gio is None:
         raise SystemExit(f"{cfg.FRAME_CELL} が {cfg.FRAME_GDS} に無い")
