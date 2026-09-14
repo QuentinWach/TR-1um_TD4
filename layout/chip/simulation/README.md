@@ -54,6 +54,22 @@ x2 … td4_soc_arr_nrow_fm
   `scripts/pnr/add_top_pins.py` がボンドパッドに M2PIN (49,1) 3 µm 角 +
   TXM2 (49,0) のラベルを打つ。本数が合わないと KLayout はグラフマッチに
   入らず、全ピンが将棋倒しで不一致になる。
+* **ラベルだけではサブサーキットのピンが生えない。** パッドの金属は
+  `OSS_FRAME_GIO` の中にあるので、トップにラベル（と M2PIN）しか置かないと、
+  抽出器によっては「トップから物理的に触っていない」と見なされる。PDK の
+  LVS ランセットで 2026-09-14:
+
+      No equivalent pin P10 from reference netlist found in netlist.
+      This is an indication that a physical connection is not made to the
+      subcircuit.
+
+  P10/P11/P12/P13/P15 -- **出力パッド 5 本ちょうど**。入力パッドは `P<n>`
+  端子までコアから配線が来ているので触れているが、出力パッドはコアが
+  `OUT<n>` を駆動するだけで、ボンドパッドの網にはトップから何も触れて
+  いなかった。`scripts/klayout_extract.py` はラベル層を M2 に繋ぐので
+  44 ピン全部見えていて、こちらの LVS では気づけなかった。
+  `add_top_pins.py` が**同じ 3 µm 角を M2 (20,0) にも置く**ようにして解決
+  （素の抽出でフレームのピンが 39 -> 44 に増えるのを確認）。
 * フレームのグランドは `VSS`、コアは `GND`。同じ 1 本で、チップでの名前は
   ボンドパッドのラベルに合わせて `VSS`。
 * 入力パッドの `OUT` は浮くので `VSS` に落としてある

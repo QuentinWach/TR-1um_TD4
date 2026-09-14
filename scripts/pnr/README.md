@@ -1106,6 +1106,13 @@ step11 があればそちらを選ぶ。
 結果は 2026-09-14 時点で **一致**（両側とも top pin 16 / device 4225 /
 net 1503）。詳しくは `layout/chip/simulation/README.md`。
 
+`lvs_pnr.py` は既定で**両側を flatten** する（`--hier` で階層のまま）。
+PDK の LVS ランセットは階層で比べるので、**flatten では見えない不一致が
+ある**。実際 2026-09-14 に `OSS_FRAME_GIO` のピン P10/P11/P12/P13/P15
+（= 出力パッド 5 本）が「物理的に繋がっていない」と出た。トップに
+ラベルしか置いていなかったためで、`add_top_pins.py` が M2 の実体も置く
+ようにして解決（詳細は `layout/chip/simulation/README.md`）。
+
 いちばん時間を取られたのは **フレームの combine**。`lef/simulation/
 OSS_FRAME_GIO.spice` は `combine_devices()` を掛けたあとのもの（ngspice 用）
 で、そのまま混ぜると素子数がレイアウト 4225 / ソース 3909 と 316 個ずれる。

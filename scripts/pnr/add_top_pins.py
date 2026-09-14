@@ -18,6 +18,25 @@ LVS はどちらの側も、**誰も宣言していないトップのポート**
 書く前に、**中心に本当に M2 があるか**を必ず見る。何も無いところにピンを
 置くと、そこだけ孤立した網として抽出されて LVS が幻を追うことになる。
 
+## ラベルだけでは足りない -- M2 の実体も置く
+
+パッドの金属は `OSS_FRAME_GIO` の**中**にある。トップにラベルしか置かないと、
+抽出器の設定によっては「トップから物理的に触っていない」と見なされて、
+サブサーキットにピンが生えない。2026-09-14 に PDK の LVS ランセットで:
+
+    No equivalent pin P10 from reference netlist found in netlist.
+    This is an indication that a physical connection is not made to the
+    subcircuit.
+
+P10/P11/P12/P13/P15 -- ちょうど**出力パッド 5 本**。入力パッドは `P<n>` 端子
+までコアから配線が来ているので触れているが、出力パッドはコアが `OUT<n>` を
+駆動するだけで、ボンドパッドの網にはトップから何も触れていなかった
+（`scripts/klayout_extract.py` はラベル層を M2 に繋ぐので 44 ピン全部見えて
+いて、気づけなかった）。
+
+なので**同じ箱を M2 (20,0) にも置く**。パッドの M2 に重なるだけで DRC は
+変わらず（マージされる）、抽出器の設定によらずピンが生える。
+
   usage: python3 scripts/pnr/add_top_pins.py [-o OUT]
 """
 from __future__ import annotations
@@ -99,6 +118,7 @@ def main():
                 if s.is_text()}
     half = PIN_SIZE_UM / 2.0
     pin_li, txt_li = ly.layer(*M2PIN_LAYER), ly.layer(*TXM2_LAYER)
+    m2_li = ly.layer(*M2_LAYER)
 
     problems, added = [], []
     for name in sorted(pads, key=lambda n: (n[0] != "P", n)):
@@ -111,6 +131,7 @@ def main():
             problems.append(f"{name}: トップに同じ名前のラベルがもうある")
             continue
         top.shapes(pin_li).insert(box)
+        top.shapes(m2_li).insert(box)      # ラベルだけでなく金属の実体も
         t = db.DText(name, x, y).to_itype(u)
         t.size = int(round(a.text_size / u))
         top.shapes(txt_li).insert(t)
@@ -118,8 +139,9 @@ def main():
 
     for name, x, y, edge in added:
         print(f"  {name:5s} ({x:8.1f}, {y:8.1f})  {edge}")
-    print(f"{len(added)} 本: M2PIN {M2PIN_LAYER} に {PIN_SIZE_UM} 角 + "
-          f"TXM2 {TXM2_LAYER} のテキスト（セル {cfg.CHIP_TOP_CELL}）")
+    print(f"{len(added)} 本: M2PIN {M2PIN_LAYER} と M2 {M2_LAYER} に "
+          f"{PIN_SIZE_UM} 角 + TXM2 {TXM2_LAYER} のテキスト"
+          f"（セル {cfg.CHIP_TOP_CELL}）")
     if problems:
         for p in problems:
             print("  PROBLEM: " + p)

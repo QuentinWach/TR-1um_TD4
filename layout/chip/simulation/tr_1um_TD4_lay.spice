@@ -3,26 +3,26 @@
 * cell tr_1um_TD4
 .SUBCKT tr_1um_TD4
 * net 1 P7
-* net 2 P10
-* net 3 P9
+* net 2 P9
+* net 3 P10
 * net 4 VDD
 * net 5 P4
 * net 8 P5
-* net 10 P12
-* net 11 P6
-* net 12 P11
-* net 14 P13
-* net 15 P2
-* net 16 P1
+* net 10 P6
+* net 11 P11
+* net 12 P12
+* net 13 P13
+* net 15 P14
+* net 16 P2
 * net 17 P3
-* net 18 P14
+* net 18 P1
 * net 20 P15
 * net 21 VSS
 * cell instance $1 r0 *1 -796.05,-678.5
-X$1 4 9 6 1 5 8 11 3 7 19 15 16 13 18 17 21 td4_soc_arr_nrow_fm
+X$1 4 9 6 1 5 8 10 2 7 19 16 18 14 15 17 21 td4_soc_arr_nrow_fm
 * cell instance $2 r0 *1 0,0
-X$2 4 4 21 4 4 4 4 21 4 4 4 4 21 21 21 15 16 20 21 17 5 21 21 8 11 21 21 1 21 3
-+ 2 7 6 12 10 9 13 14 18 21 19 21 21 21 OSS_FRAME_GIO
+X$2 4 4 21 4 4 4 4 21 4 4 4 4 21 21 21 16 18 20 21 17 5 21 21 8 10 21 21 1 21 2
++ 3 7 6 11 12 9 14 13 15 21 19 21 21 21 OSS_FRAME_GIO
 * cell instance $3 r0 *1 0,-690
 X$3 21 via_1$9
 * cell instance $4 r0 *1 0,-884
@@ -86,15 +86,15 @@ X$32 4 via_1
 * cell instance $33 r0 *1 620,815.4
 X$33 19 via_1
 * cell instance $34 r0 *1 826.2,826.2
-X$34 18 via_1
+X$34 15 via_1
 * cell instance $35 r0 *1 826.2,530
-X$35 18 via_1
+X$35 15 via_1
 * cell instance $36 r0 *1 810,810
 X$36 9 via_1
 * cell instance $37 r0 *1 820.8,820.8
-X$37 13 via_1
+X$37 14 via_1
 * cell instance $38 r0 *1 820.8,180
-X$38 13 via_1
+X$38 14 via_1
 * cell instance $39 r0 *1 884,400
 X$39 21 via_1
 * cell instance $40 r0 *1 926,400
@@ -110,25 +110,25 @@ X$44 7 via_1
 * cell instance $45 r0 *1 -810,810
 X$45 9 via_1
 * cell instance $46 r0 *1 -820.8,820.8
-X$46 16 via_1
+X$46 18 via_1
 * cell instance $47 r0 *1 -91.35,820.8
-X$47 13 via_1
+X$47 14 via_1
 * cell instance $48 r0 *1 -270,820.8
-X$48 16 via_1
+X$48 18 via_1
 * cell instance $49 r0 *1 -831.6,270
 X$49 5 via_1
 * cell instance $50 r0 *1 -820.8,22.9
-X$50 3 via_1
+X$50 2 via_1
 * cell instance $51 r0 *1 -831.6,279.9
-X$51 15 via_1
+X$51 16 via_1
 * cell instance $52 r0 *1 -831.6,831.6
-X$52 15 via_1
+X$52 16 via_1
 * cell instance $53 r0 *1 -530,831.6
-X$53 15 via_1
+X$53 16 via_1
 * cell instance $54 r0 *1 -884,884
 X$54 21 via_1$7
 * cell instance $55 r0 *1 -685.35,826.2
-X$55 18 via_1
+X$55 15 via_1
 * cell instance $56 r0 *1 -902,902
 X$56 4 via_1$7
 * cell instance $57 r0 *1 -534.15,815.4
@@ -136,7 +136,7 @@ X$57 19 via_1
 * cell instance $58 r0 *1 -220,902
 X$58 4 via_1
 * cell instance $59 r0 *1 -820.8,258.3
-X$59 16 via_1
+X$59 18 via_1
 * cell instance $60 r0 *1 -625.95,815.4
 X$60 17 via_1
 * cell instance $61 r0 *1 -815.4,815.4
@@ -170,7 +170,7 @@ X$74 21 via_1$7
 * cell instance $75 r0 *1 -810,-810
 X$75 9 via_1
 * cell instance $76 r0 *1 -837,-530
-X$76 11 via_1
+X$76 10 via_1
 * cell instance $77 r0 *1 -902,-902
 X$77 4 via_1$7
 * cell instance $78 r0 *1 -826.2,-826.2
@@ -204,7 +204,7 @@ X$91 21 via_1$9
 * cell instance $92 r0 *1 -530,-837
 X$92 1 via_1
 * cell instance $93 r0 *1 -837,-262.6
-X$93 11 via_1
+X$93 10 via_1
 * cell instance $94 r0 *1 -884,-400
 X$94 21 via_1
 * cell instance $95 r0 *1 -926,-400
@@ -216,7 +216,7 @@ X$97 21 via_1$8
 * cell instance $98 r0 *1 -37.35,-690
 X$98 21 via_1$8
 * cell instance $99 r0 *1 -820.8,-820.8
-X$99 3 via_1
+X$99 2 via_1
 * cell instance $100 r0 *1 -815.4,-815.4
 X$100 7 via_1
 * cell instance $101 r0 *1 -512.55,-810
@@ -244,7 +244,7 @@ X$111 1 via_1
 * cell instance $112 r0 *1 620,-815.4
 X$112 7 via_1
 * cell instance $113 r0 *1 270,-820.8
-X$113 3 via_1
+X$113 2 via_1
 * cell instance $114 r0 *1 902,-902
 X$114 4 via_1$7
 * cell instance $115 r0 *1 259.65,-826.2
