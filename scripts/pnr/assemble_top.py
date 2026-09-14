@@ -15,27 +15,33 @@
 
 ## コアはどこに座るか
 
-開口は十字型。`lef/TR-1um_frame.lef` の OBS 実測で:
+**開口は四隅まで含めて 1840 x 1840 の正方形。** 実測（`frame_opening()` が
+frame GDS の図形を測る）で、原点中心 1840 角は全層で完全に空き、1844 で
+当たる。四方の内壁はどこも ±920。
 
-    |y| <= 800        -> |x| <= 920 が空き（幅 1840）
-    800 < |y| <= 920  -> |x| <= 800 が空き（幅 1600）
+`lef/TR-1um_frame.lef` の **OBS を読んではいけない**。四隅を 360x360 の矩形
+（x 800…1160, y 800…1160）で粗く塞いでいるが、`OSS_FRAME_CNR` の実際の図形は
+**外側 2 辺に沿った L 字**で内側の角は空いている。OBS を鵜呑みにすると
+「幅 1600 超なら |y| <= 800」という実在しない崖が出る（2026-09-14 ユーザ指摘）。
 
-コアの実 bbox は **1604.7 x 1347.4**。x が 1598.4 でなく 1604.7 なのは
+コアの実 bbox は **1604.7 x 1357.0**。x が 1598.4 でなく 1604.7 なのは
 **いちばん左のセルの N ウェル (140,0) が x=-6.3 まで出ている**から
-（`CORE_WIDTH_UM` は prBoundary の幅）。1600 を超えるので使えるのは
-`|y| <= 800` の帯だが、高さ 1347.4 はそこに余裕で収まる。
+（`CORE_WIDTH_UM` は prBoundary の幅）。
 
 `td4_config.chip_geometry()` が **native bbox を中心対称**に置く
 （SCLK_SPI と同じ流儀）。結果:
 
-    コア bbox  -802.35 … 802.35  x  -673.7 … 673.7
-    チャネル   左右 117.65 / 上下 126.3 µm（壁まで）
-               左右 119.35 / 上下 248.0 µm（端子リング 921.7 まで）
+    コア bbox  -802.35 … 802.35  x  -678.5 … 678.5
+    チャネル   左右 117.65 / 上下 241.5 µm（壁まで）
+               左右 119.35 / 上下 243.2 µm（端子リング 921.7 まで）
+
+`CORE_WIDTH_UM` は開口いっぱいまで広げられるが、**余裕を持たせたまま
+据え置く**（ユーザ判断 2026-09-14）。
 
 ## PTECT は置いていない
 
 移植元はコアが開口に対して極端に低く（324.9 / 1840）、余った下半分を
-PTECT (63,1) で塞いでいた。TD4 のコアは 1347.4 で開口をほぼ埋めるため、
+PTECT (63,1) で塞いでいた。TD4 のコアは 1357.0 で開口をほぼ埋めるため、
 残りはそのまま配線チャネルになる。必要になったら `--ptect` で足せるように
 してある。
 
@@ -134,7 +140,7 @@ def main():
     if a.ptect:
         pad = geom["channel_bottom"][0]
         top.shapes(layout.layer(*cfg.PTECT_LAYER)).insert(
-            db.Box(um(x0), um(-(geom["wall"][1] - pad)), um(x1), um(y0 - pad)))
+            db.Box(um(x0), um(geom["wall"]["bottom"] + pad), um(x1), um(y0 - pad)))
 
     # ---- 検算（LEF の宣言ではなく実ジオメトリに対して）----
     above, below = measured_inner_wall(layout, gio, x0, x1)
@@ -153,8 +159,10 @@ def main():
     print(f"    native bbox {geom['core_native_bbox']}")
     print(f"    チップ座標  ({x0}, {y0}) … ({x1}, {y1})"
           f"   [{x1-x0:.1f} x {y1-y0:.1f}]")
-    print(f"  開口の壁      |x| <= {geom['wall'][0]} / |y| <= {geom['wall'][1]}"
-          f"（実測の内壁 {below} … {above}）")
+    w = geom["wall"]
+    print(f"  開口の壁（実測） 左 {w['left']} / 右 {w['right']} / "
+          f"下 {w['bottom']} / 上 {w['top']}"
+          f"   ※ コアの x 帯での内壁は {below} … {above}")
     print("  チャネル（壁まで / 端子リング 921.7 まで）:")
     for side in ("top", "bottom", "left", "right"):
         w, t = geom["channel_" + side]

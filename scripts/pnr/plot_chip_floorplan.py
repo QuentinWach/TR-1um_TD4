@@ -61,8 +61,13 @@ def main():
                            edgecolor="#333", lw=1.4))
     for p in rects:
         ax.add_patch(Rectangle((p[0], p[1]), p[2] - p[0], p[3] - p[1],
-                               facecolor="#c8c8c8", edgecolor="#8d8d8d",
-                               lw=0.4, alpha=0.85))
+                               facecolor="#dedede", edgecolor="#b5b5b5",
+                               lw=0.4, alpha=0.8, hatch="////"))
+    # 実ジオメトリの内壁（= 本当の開口）。OBS の四隅の宣言は粗いので、
+    # そちらはハッチだけにして、こちらを実線で出す。
+    lo, hi = cfg.frame_opening()
+    ax.add_patch(Rectangle((lo, lo), hi - lo, hi - lo, facecolor="none",
+                           edgecolor="#2e7d32", lw=1.6))
     r = cfg.GIO_PIN_RADIUS
     ax.add_patch(Rectangle((-r, -r), 2 * r, 2 * r, facecolor="none",
                            edgecolor="#00838f", lw=0.9, ls="--"))
@@ -90,11 +95,13 @@ def main():
         f"{cfg.CHIP_TOP_CELL}   die {die:.0f} x {die:.0f} um\n"
         f"core {cfg.TOP_CELL_NAME} @ ({dx}, {dy})  "
         f"[{x1-x0:.1f} x {y1-y0:.1f}]   "
+        f"opening {hi-lo:.0f} x {hi-lo:.0f} (measured)   "
         f"channel T/B {geom['channel_top'][0]:.1f}  L/R {geom['channel_left'][0]:.1f} um",
         fontsize=10, loc="left")
     ax.tick_params(labelsize=7)
     fig.text(0.5, 0.015,
-             "grey = OSS_FRAME_GIO OBS (pads/corners)   dashed cyan = pin ring 921.7   "
+             "hatched grey = LEF OBS (coarse, corners over-declared)   "
+             "green = measured opening 1840x1840   dashed cyan = pin ring 921.7   "
              "blue = core bbox   red = core port pins   orange = VDD/GND pins",
              ha="center", fontsize=8, color="#555")
     fig.tight_layout(rect=(0, 0.035, 1, 1))

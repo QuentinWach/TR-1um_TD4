@@ -411,12 +411,94 @@ def core_bbox_um(gds=None, cell=None):
     return (b.left * ly.dbu, b.bottom * ly.dbu, b.right * ly.dbu, b.top * ly.dbu)
 
 
-def frame_opening(width_um=CORE_WIDTH_UM, lef=None):
-    """幅 width_um のコアが収まる最大の y 帯（ダイ中心基準）。
+_FRAME_REGION = {}
 
-    `OSS_FRAME_GIO` の OBS 実測。**定数で持たない** — SCLK_SPI は
-    `GIO_INNER_WALL = 920.0` を定数で持っていたが、TD4 のフレーム GDS では
-    幅 1620 に対する壁は ±800 で、そのまま継承すると 120 µm 食い込む。
+# 「コアが当たってはいけない」層。ウェル (140,0) も入れる（重なりは論外だし、
+# 実測では M1/M2 と同じ ±920 なので実質効かない）。
+FRAME_HARD_LAYERS = ((3, 1), (3, 2), (8, 1), (11, 0), (13, 0), (14, 0),
+                     (19, 0), (20, 0), (48, 1), (49, 1), (140, 0))
+
+
+def frame_region(gds=None, cell=None):
+    """フレームの実ジオメトリ（`FRAME_HARD_LAYERS` の和）。結果はキャッシュ。"""
+    import klayout.db as db
+    key = (gds or FRAME_GDS, cell or FRAME_CELL)
+    if key not in _FRAME_REGION:
+        ly = db.Layout()
+        ly.read(key[0])
+        top = ly.cell(key[1])
+        if top is None:
+            raise SystemExit(f"{key[1]} が {key[0]} に無い")
+        r = db.Region()
+        for lay in FRAME_HARD_LAYERS:
+            r += db.Region(top.begin_shapes_rec(ly.layer(*lay)))
+        r.merge()
+        _FRAME_REGION[key] = (r, ly.dbu)
+    return _FRAME_REGION[key]
+
+
+def frame_clear(x0, y0, x1, y1, gds=None, cell=None):
+    """その矩形がフレームの実ジオメトリと重ならないか。"""
+    import klayout.db as db
+    r, u = frame_region(gds, cell)
+    box = db.Region(db.Box(int(round(x0 / u)), int(round(y0 / u)),
+                           int(round(x1 / u)), int(round(y1 / u))))
+    return (r & box).is_empty()
+
+
+def frame_opening(width_um=CORE_WIDTH_UM, gds=None, cell=None):
+    """幅 width_um のコアが収まる最大の y 帯（ダイ中心基準）。**実ジオメトリ実測。**
+
+    `frame_opening_lef()`（OBS 宣言）と違い、四隅の L 字を正しく見る。
+    実測: 原点中心 1840 x 1840 は**全層で完全に空き**、1844 で当たる。
+    つまり開口は**四隅まで含めて 1840 角**。`CORE_WIDTH_UM = 1598.4` は
+    OBS の崖を避けて決めた値なので、実際にはもっと広げられる（が、余裕を
+    持たせたまま据え置く — ユーザ判断 2026-09-14）。
+    """
+    lo, hi = 0.0, 1250.0
+    for _ in range(40):
+        mid = (lo + hi) / 2
+        if frame_clear(-width_um / 2, -mid, width_um / 2, mid, gds, cell):
+            lo = mid
+        else:
+            hi = mid
+    return (-round(lo, 3), round(lo, 3))
+
+
+def frame_inner_wall(box, gds=None, cell=None):
+    """コアの箱 (x0,y0,x1,y1) の四方で、フレームの実ジオメトリが来ている位置。
+
+    返すのは (left, right, bottom, top)。LEF の OBS ではなく図形を測る。"""
+    import klayout.db as db
+    r, u = frame_region(gds, cell)
+    x0, y0, x1, y1 = box
+    out = {}
+    for side, probe in (
+            ("left",   (-1250.0, y0, x0, y1)),
+            ("right",  (x1, y0, 1250.0, y1)),
+            ("bottom", (x0, -1250.0, x1, y0)),
+            ("top",    (x0, y1, x1, 1250.0))):
+        reg = r & db.Region(db.Box(int(round(probe[0] / u)), int(round(probe[1] / u)),
+                                   int(round(probe[2] / u)), int(round(probe[3] / u))))
+        if reg.is_empty():
+            out[side] = None
+            continue
+        b = reg.bbox()
+        out[side] = {"left": b.right * u, "right": b.left * u,
+                     "bottom": b.top * u, "top": b.bottom * u}[side]
+    return out
+
+
+def frame_opening_lef(width_um=CORE_WIDTH_UM, lef=None):
+    """**LEF の OBS 宣言**から見た開口（ダイ中心基準）。比較用に残してある。
+
+    **これを設計の根拠に使ってはいけない。** OBS は四隅を 360x360 の矩形
+    （x 800…1160, y 800…1160）で粗く塞いでいるが、`OSS_FRAME_CNR` の実際の
+    図形は**外側 2 辺に沿った L 字**で、内側の角は空いている（実測: (780…860)^2
+    には何も無い）。そのため OBS を読むと
+        幅 1598.4 -> ±920 / 幅 1604.7 -> ±800
+    という「崖」が出るが、**実在しない**。実ジオメトリの開口は四隅まで含めて
+    1840 x 1840 の正方形（`frame_opening()` が実測する）。
     """
     import re
     txt = open(lef or FRAME_LEF).read()
@@ -469,35 +551,44 @@ def chip_geometry(gds=None, cell=None):
     ox = round(-(l + r) / 2.0, 3)
     oy = round(-(b + t) / 2.0, 3)
     box = (round(l + ox, 3), round(b + oy, 3), round(r + ox, 3), round(t + oy, 3))
-    die, rects = frame_obs_rects()
-    # 開口の壁 = コアの x 帯 / y 帯を横切る OBS のうち、いちばん内側
-    wall_y = min((min(abs(p[1]), abs(p[3])) for p in rects
-                  if p[2] > box[0] and p[0] < box[2] and
-                  (p[1] >= box[3] - 1e-9 or p[3] <= box[1] + 1e-9)), default=die / 2)
-    wall_x = min((min(abs(p[0]), abs(p[2])) for p in rects
-                  if p[3] > box[1] and p[1] < box[3] and
-                  (p[0] >= box[2] - 1e-9 or p[2] <= box[0] + 1e-9)), default=die / 2)
+    die = frame_obs_rects()[0]
+    # 壁は**実ジオメトリ**で測る。LEF の OBS は四隅を 360x360 の矩形で粗く
+    # 塞いでいて、そのまま読むと「幅 1600 超なら |y| <= 800」という実在しない
+    # 崖が出る（`frame_opening_lef()` の注意書き）。
+    w = frame_inner_wall(box)
     return {
         "die": die,
         "core_offset": (ox, oy),
         "core_native_bbox": (l, b, r, t),
         "core_chip_bbox": box,
-        "wall": (wall_x, wall_y),
-        "channel_left": (round(box[0] + wall_x, 3), round(box[0] + GIO_PIN_RADIUS, 3)),
-        "channel_right": (round(wall_x - box[2], 3), round(GIO_PIN_RADIUS - box[2], 3)),
-        "channel_bottom": (round(box[1] + wall_y, 3), round(box[1] + GIO_PIN_RADIUS, 3)),
-        "channel_top": (round(wall_y - box[3], 3), round(GIO_PIN_RADIUS - box[3], 3)),
+        "wall": {k: (round(v, 3) if v is not None else None) for k, v in w.items()},
+        "channel_left": (round(box[0] - w["left"], 3) if w["left"] is not None else None,
+                         round(box[0] + GIO_PIN_RADIUS, 3)),
+        "channel_right": (round(w["right"] - box[2], 3) if w["right"] is not None else None,
+                          round(GIO_PIN_RADIUS - box[2], 3)),
+        "channel_bottom": (round(box[1] - w["bottom"], 3) if w["bottom"] is not None else None,
+                           round(box[1] + GIO_PIN_RADIUS, 3)),
+        "channel_top": (round(w["top"] - box[3], 3) if w["top"] is not None else None,
+                        round(GIO_PIN_RADIUS - box[3], 3)),
     }
 
 
 def chip_fits(geom=None):
-    """コアが OBS のどれとも重ならないか。[(理由, 矩形)] を返す（空なら OK）。"""
+    """コアがフレームの**実ジオメトリ**と重ならないか。[(理由, 情報)]（空なら OK）。
+
+    OBS 宣言ではなく図形で見る。参考までに OBS 側の判定も添える
+    （四隅を粗く塞いでいるので、実測が OK でも OBS では当たることがある）。"""
     g = geom or chip_geometry()
-    x0, y0, x1, y1 = g["core_chip_bbox"]
+    box = g["core_chip_bbox"]
     bad = []
-    for p in frame_obs_rects()[1]:
-        if p[0] < x1 - 1e-9 and p[2] > x0 + 1e-9 and p[1] < y1 - 1e-9 and p[3] > y0 + 1e-9:
-            bad.append(("コアが OBS と重なる", p))
+    if not frame_clear(*box):
+        bad.append(("コアがフレームの実ジオメトリと重なる", box))
+    obs = [p for p in frame_obs_rects()[1]
+           if p[0] < box[2] - 1e-9 and p[2] > box[0] + 1e-9
+           and p[1] < box[3] - 1e-9 and p[3] > box[1] + 1e-9]
+    if obs and not bad:
+        print(f"  note: LEF の OBS では {len(obs)} 個の矩形と重なるが、"
+              f"実ジオメトリでは当たっていない（四隅の粗い宣言）")
     return bad
 
 
