@@ -74,7 +74,8 @@ def main():
         # **コアとフレームは名前で弾く**（大きさで弾くと、コア内部の小さな
         # 図形が数千個そのまま出てきてチャネルが見えなくなる）。
         for inst in top.each_inst():
-            if inst.cell.name in (cfg.TOP_CELL_NAME, cfg.FRAME_CELL):
+            if inst.cell.name in (cfg.TOP_CELL_NAME, cfg.FRAME_CELL,
+                                  cfg.FRAME_CELL_CHIP):
                 continue
             for s in inst.cell.shapes(idx).each():
                 if not (s.is_box() or s.is_polygon() or s.is_path()):

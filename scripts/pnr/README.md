@@ -1011,6 +1011,8 @@ KLayout の LVS は「セル名と同じ名前の .spice」を探す流儀で、
 360x360 で粗く塞いでいて実在しない崖を作るので読まない）。
 
     step1  assemble_top.py         フレーム @ (0,0)、コアを中心対称に置く
+           ※ フレームのセルは `OSS_FRAME` に改名する（pre_check.py の
+             FRAME_CELL_NAMES に GIO 版が無いため。刈ったあとにやる）
     step2  gen_top_routing_plan.py 接続表と端点（PAD_MAP だけが手書き）
            route_chip.py           実配線
            verify_chip.py          接続性と短絡の検算
@@ -1099,7 +1101,9 @@ step11 があればそちらを選ぶ。
 
 ### チップレベル LVS（`layout/chip/simulation/`）
 
-    step3  add_top_pins.py   ボンドパッド 16 個に M2PIN + ラベル
+    step3  add_top_pins.py   ボンドパッド 16 個に M2PIN + M2 + ラベル
+    step4  place_logo.py     空きに OpenSUSI のロゴ（M2 ドット）
+           export_mpw.py     src/<top>.gds と src/<top>.cir を出す
            mkchipnet.py      ソースネットリスト（コア + フレーム + 接続表）
            lvs_pnr.py        比較
 
@@ -1134,3 +1138,31 @@ OSS_FRAME_GIO.spice` は `combine_devices()` を掛けたあとのもの（ngspi
 **LVS 用の `_lay.spice` を ngspice に持っていかないこと。** トップに
 `.SUBCKT` のポートが無く、ネット名が番号、素子が `M...`（PDK の PMOS/NMOS は
 サブサーキットなので `XM` でないと読めない）。
+
+### step4: OpenSUSI ロゴ（`place_logo.py`）
+
+`lef/opensusi_logo.txt`（5 µm 格子のビットマップ、317 x 63）から**紋章だけ**
+（0〜64 列）を切り出して 2:1 に縮約し、**3.0 µm 角の M2 ドット 646 個**を
+5.0 µm 格子で置く。塗りつぶしではなくドットにするのは、
+
+    ドット 3.0 µm      = M2 の最小幅ちょうど
+    上下左右の隣        = 5.0 - 3.0 = 2.0 µm = M2 の最小間隔ちょうど
+    斜めの隣            = 2.83 µm
+
+で、どちらの検査も「未満」を違反とするから。移植元（I2C）は 5 µm の塗り
+つぶしで描いて斜めの角が触れ、手で直している。
+
+置き場所はチップ全体で**いちばん広い空き**を実測で求めた
+**(410, -680)-(790, -470) の 380 x 210 µm**（マクロ REG8x16 の下、行の右側、
+GND ライザ 2 本の間）。ロゴ全体（1,583 x 313 µm）は入らない。文字まで入れると
+5:1 まで縮めることになり、その縮尺では字が潰れて読めない。
+
+ロゴ単体で DRC を掛けてから置き、置いたあとにチップ全体を見て**新しい違反が
+0 件**であることを確認する。LVS は浮いたドットを `purge_nets()` が落とすので
+一致のまま。
+
+### トップセル名
+
+`tr_1um_jun1okamura`。MPW のテンプレートが「`tr_1um_` で始まり GitHub
+ユーザ名を含むこと」と決めている（シャトル上で名前がぶつからないように）。
+`td4_config.CHIP_TOP_CELL` を変えれば下流は全部ついてくる。

@@ -15,7 +15,9 @@ ROOT = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 
 # ---- 設計の同定 ----------------------------------------------------------
 TOP_CELL_NAME = "td4_soc_arr_nrow_fm"        # 配置配線したコアセル
-CHIP_TOP_CELL = "tr_1um_TD4"                 # info.yaml の gds.top_cell
+CHIP_TOP_CELL = "tr_1um_jun1okamura"         # info.yaml の gds.top_cell
+#   MPW のテンプレートが「tr_1um_ で始まり GitHub ユーザ名を含むこと」と
+#   決めている（シャトル上で名前がぶつからないように）。
 
 # ---- 入力 ----------------------------------------------------------------
 # ライブラリ本体（`scripts/mklef.py` が作る。P&R は直接読まない）
@@ -402,6 +404,13 @@ CHIP = os.path.join(LAYOUT, "chip")
 # いないコア**を載せてしまう（2026-09-14 に実際にやって、組み上げた
 # チップに step11 のストラップが入っていなかった）。あるなら step11。
 CHIP_CORE_GDS = MACROPWR_GDS if os.path.exists(MACROPWR_GDS) else FINAL_GDS
+# **チップに載せるときはフレームのセル名を `OSS_FRAME` に付け替える。**
+# `scripts/pre_check.py`（MPW のチェッカ）の `FRAME_CELL_NAMES` は
+# {OSS_FRAME, OSS_FRAME_TEG} で、GIO 版の名前が入っていない。フレーム GDS には
+# `OSS_FRAME`（アナログ 16 パッド）と `OSS_FRAME_GIO`（HIZ/OUT 付き）の両方が
+# 入っているが、チップに取り込むのは GIO 版だけなので名前はぶつからない。
+# LVS のソース側（mkchipnet.py）も同じ名前に合わせる。
+FRAME_CELL_CHIP = "OSS_FRAME"
 GIO_PIN_RADIUS = 921.7         # P/HIZ/OUT 端子の半径（ダイ中心から）
 PTECT_LAYER = (63, 1)
 

@@ -1,18 +1,17 @@
-** tr_1um_TD4.spice -- チップレベルの LVS ソースネットリスト。
+** tr_1um_jun1okamura.spice -- チップレベルの LVS ソースネットリスト。
 ** scripts/pnr/mkchipnet.py が生成。手で編集しないこと。
 **   コア    : layout/portrait/simulation/td4_soc_arr_nrow_fm.spice
 **   フレーム: lef/simulation/OSS_FRAME_GIO_nocombine.spice
 **   接続表  : layout/chip/gio_connections.json
 **
-** x1 = OSS_FRAME_GIO / x2 = td4_soc_arr_nrow_fm。`NC_*` は両側とも本当に
-** どこにも繋がっていない端子で、1 本ずつ固有の名前を付けてある
+** x1 = OSS_FRAME（元 OSS_FRAME_GIO）/ x2 = td4_soc_arr_nrow_fm。** どこにも繋がっていない端子で、1 本ずつ固有の名前を付けてある
 ** （まとめると浮いた端子どうしが短絡して見える）。
 ** トップは 16 本のボンドパッドを宣言する（P1-P7, VSS, P9-P15, VDD。
 ** P8 は VSS、P16 は VDD でフレーム固定）。レイアウト側は
 ** scripts/pnr/add_top_pins.py が同じ 16 本を打つ。**本数が合って
 ** いないと KLayout はグラフマッチに入らない。**
 
-* OSS_FRAME_GIO — LVS ソースネットリスト（フレーム）
+* OSS_FRAME — LVS ソースネットリスト（フレーム）
 *
 * scripts/mkframespice.py が生成。手で編集しないこと。
 * 出どころ: TR-1um_frame_25x25.gds を KLayout のエンジンで抽出し凍結した。
@@ -134,7 +133,7 @@ X1 VDD VSS OSS_NCH_ESD
 X3 VSS VDD OSS_PCH_ESD
 .ends OSS_ESD_5V_VDD
 
-.subckt OSS_FRAME_GIO HIZ1 HIZ10 HIZ11 HIZ12 HIZ13 HIZ14 HIZ15 HIZ2 HIZ3 HIZ4 HIZ5 HIZ6 HIZ7 HIZ9 OUT1 OUT10 OUT11 OUT12 OUT13 OUT14 OUT15 OUT2 OUT3 OUT4 OUT5 OUT6 OUT7 OUT9 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS
+.subckt OSS_FRAME HIZ1 HIZ10 HIZ11 HIZ12 HIZ13 HIZ14 HIZ15 HIZ2 HIZ3 HIZ4 HIZ5 HIZ6 HIZ7 HIZ9 OUT1 OUT10 OUT11 OUT12 OUT13 OUT14 OUT15 OUT2 OUT3 OUT4 OUT5 OUT6 OUT7 OUT9 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS
 X4 P6 VDD HIZ6 OUT6 VSS OSS_ESD_5V_DIO
 X5 P4 VDD HIZ4 OUT4 VSS OSS_ESD_5V_DIO
 X6 P5 VDD HIZ5 OUT5 VSS OSS_ESD_5V_DIO
@@ -151,7 +150,7 @@ X16 P15 VDD HIZ15 OUT15 VSS OSS_ESD_5V_DIO
 X17 VDD VSS OSS_ESD_5V_VDD
 X18 P2 VDD HIZ2 OUT2 VSS OSS_ESD_5V_DIO
 X22 P3 VDD HIZ3 OUT3 VSS OSS_ESD_5V_DIO
-.ends OSS_FRAME_GIO
+.ends OSS_FRAME
 
 * td4_soc_arr_nrow_fm -- LVS ソースネットリスト（設計意図側）
 * scripts/pnr/mklvsnet.py が生成。手で編集しないこと。
@@ -825,13 +824,13 @@ XFILL_r4_49 VDD GND FILL2
 XFILLPRI_r4_29 VDD GND FILL3
 .ends td4_soc_arr_nrow_fm
 
-.subckt tr_1um_TD4 P1 P2 P3 P4 P5 P6 P7 VSS P9 P10 P11 P12 P13 P14 P15 VDD
+.subckt tr_1um_jun1okamura P1 P2 P3 P4 P5 P6 P7 VSS P9 P10 P11 P12 P13 P14 P15 VDD
 x1 VDD VSS VSS VSS VSS VDD VSS VDD
 + VDD VDD VDD VDD VDD VDD VSS out_port[0]
 + out_port[1] out_port[2] out_port[3] VSS cflag_o VSS VSS VSS
 + VSS VSS VSS VSS P1 P10 P11 P12
 + P13 P14 P15 P2 P3 P4 P5 P6
-+ P7 P9 VDD VSS OSS_FRAME_GIO
++ P7 P9 VDD VSS OSS_FRAME
 x2 P1 P9 P14 P2 P3 P4 P5 P6
 + P7 out_port[3] out_port[2] out_port[1] out_port[0] cflag_o VDD VSS td4_soc_arr_nrow_fm
 .ends

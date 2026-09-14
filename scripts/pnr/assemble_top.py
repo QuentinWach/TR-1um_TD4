@@ -150,6 +150,17 @@ def main():
                   f"{', '.join(sorted(dropped)[:8])}"
                   + (" …" if len(dropped) > 8 else ""))
 
+    # ---- MPW のチェッカに合わせてフレームを `OSS_FRAME` に改名 ----
+    # `scripts/pre_check.py` の `FRAME_CELL_NAMES` は {OSS_FRAME, OSS_FRAME_TEG}
+    # で GIO 版の名前が無い。**刈ったあとにやること** -- フレーム GDS には
+    # アナログ 16 パッドの `OSS_FRAME` も入っていて、読み込み直後は名前が
+    # ぶつかる（刈ると参照の無いそちらが消える）。
+    if gio.name != cfg.FRAME_CELL_CHIP:
+        if layout.cell(cfg.FRAME_CELL_CHIP) is not None:
+            raise SystemExit(f"{cfg.FRAME_CELL_CHIP} が既にある -- 改名できない"
+                             "（--keep-unused を外すこと）")
+        gio.name = cfg.FRAME_CELL_CHIP
+
     x0, y0, x1, y1 = geom["core_chip_bbox"]
     if a.ptect:
         pad = geom["channel_bottom"][0]
@@ -168,7 +179,8 @@ def main():
 
     die = geom["die"]
     print(f"=== {cfg.CHIP_TOP_CELL}  ダイ {die} x {die}  ({-die/2} … {die/2})")
-    print(f"  フレーム {cfg.FRAME_CELL}  @ (0, 0)   ← セル原点がダイ中心")
+    print(f"  フレーム {cfg.FRAME_CELL} -> {cfg.FRAME_CELL_CHIP}  @ (0, 0)"
+          f"   ← セル原点がダイ中心")
     print(f"  コア     {cfg.TOP_CELL_NAME}  @ {geom['core_offset']}")
     print(f"    native bbox {geom['core_native_bbox']}")
     print(f"    チップ座標  ({x0}, {y0}) … ({x1}, {y1})"

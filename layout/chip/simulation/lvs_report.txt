@@ -1,6 +1,6 @@
-=== 抽出 layout/chip/step3_top_pins.gds (tr_1um_TD4)
-  wrote layout/chip/simulation/tr_1um_TD4_lay.spice
-=== ソース layout/chip/simulation/tr_1um_TD4.spice
+=== 抽出 layout/chip/step4_final.gds (tr_1um_jun1okamura)
+  wrote layout/chip/simulation/tr_1um_jun1okamura_lay.spice
+=== ソース layout/chip/simulation/tr_1um_jun1okamura.spice
   レイアウト: circuit 1 / top pin 16 / device 4225 / net 1503
   ソース    : circuit 1 / top pin 16 / device 4225 / net 1503
 

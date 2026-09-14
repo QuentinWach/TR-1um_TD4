@@ -1,15 +1,15 @@
-* tb_tr_1um_TD4.spi -- 抽出したチップの動作確認（ngspice）
+* tb_tr_1um_jun1okamura.spi -- 抽出したチップの動作確認（ngspice）
 * scripts/pnr/gen_chip_tb.py が生成。手で編集しないこと。
 * プログラム: B3 B6 BC B8 F0  期待する OUT: [3, 6, 12, 8] の繰り返し
 * クロック 100 ns（10.0 MHz）  Exec 開始 1800 ns  終了 3150 ns
 
 .include "/home/claude/pnr/td4/scripts/char/models/ip62_models"
-.include "/home/claude/pnr/td4/layout/chip/simulation/tr_1um_TD4_sim.spice"
+.include "/home/claude/pnr/td4/layout/chip/simulation/tr_1um_jun1okamura_sim.spice"
 
 Vvdd VDD 0 DC 5.0
 Vvss VSS 0 DC 0
 
-X1 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS tr_1um_TD4
+X1 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS tr_1um_jun1okamura
 
 Vclk P1 0 PWL(0 0 50n 0 51n 5 100n 5 101n 0 150n 0 151n 5 200n 5 201n 0 250n 0 251n 5 300n 5 301n 0 350n 0 351n 5 400n 5 401n 0 450n 0 451n 5 500n 5 501n 0 550n 0 551n 5 600n 5 601n 0 650n 0 651n 5 700n 5 701n 0 750n 0 751n 5 800n 5 801n 0 850n 0 851n 5 900n 5 901n 0 950n 0 951n 5 1000n 5 1001n 0 1050n 0 1051n 5 1100n 5 1101n 0 1150n 0 1151n 5 1200n 5 1201n 0 1250n 0 1251n 5 1300n 5 1301n 0 1350n 0 1351n 5 1400n 5 1401n 0 1450n 0 1451n 5 1500n 5 1501n 0 1550n 0 1551n 5 1600n 5 1601n 0 1650n 0 1651n 5 1700n 5 1701n 0 1750n 0 1751n 5 1800n 5 1801n 0 1850n 0 1851n 5 1900n 5 1901n 0 1950n 0 1951n 5 2000n 5 2001n 0 2050n 0 2051n 5 2100n 5 2101n 0 2150n 0 2151n 5 2200n 5 2201n 0 2250n 0 2251n 5 2300n 5 2301n 0 2350n 0 2351n 5 2400n 5 2401n 0 2450n 0 2451n 5 2500n 5 2501n 0 2550n 0 2551n 5 2600n 5 2601n 0 2650n 0 2651n 5 2700n 5 2701n 0 2750n 0 2751n 5 2800n 5 2801n 0 2850n 0 2851n 5 2900n 5 2901n 0 2950n 0 2951n 5 3000n 5 3001n 0 3050n 0 3051n 5 3100n 5 3101n 0 3150n 0 3151n 5 3200n 5 3201n 0 3250n 0 3251n 5 3300n 5 3301n 0 3350n 0 3351n 5 3400n 5 3401n 0)
 Vd0 P7 0 PWL(0 0 300n 0 301n 5 600n 5 601n 0 700n 0 701n 5 900n 5 901n 0 1000n 0 1001n 5 1200n 5 1201n 0 1300n 0 1301n 5 1500n 5 1501n 0 1600n 0 1601n 5)

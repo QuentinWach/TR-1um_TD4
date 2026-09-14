@@ -8,10 +8,10 @@
 # Project metadata (used for documentation / review)
 # ======================================================
 project:
-  title: ""        # Project title (e.g. "Simple CPU", "PLL", "ADC")
-  author: ""       # Your name
-  discord: ""      # Optional: Discord username (for support / communication)
-  description: ""  # Short one-line description
+  title: "TD4 4-bit CPU"
+  author: "Jun Okamura"
+  discord: ""
+  description: "TD4 4-bit CPU with a 16 x 8 bit writable instruction memory, place-and-routed on TR-1um (IP62)"
 
 # ======================================================
 # Layout (GDS) configuration
@@ -20,8 +20,7 @@ gds:
   # Top cell name MUST:
   # - start with "tr_1um_"
   # - include your GitHub username (for uniqueness)
-  # Example: tr_1um_jun1okamura
-  top_cell: "tr_1um_username"
+  top_cell: "tr_1um_jun1okamura"
 
   # File extension of layout
   extension: "gds"
@@ -33,8 +32,8 @@ lvs:
   # Netlist file extension (placed in src/)
   extension: "cir"
 
-  # If true → only generate extracted netlist (no comparison)
-  # If false → perform full LVS comparison
+  # If true -> only generate extracted netlist (no comparison)
+  # If false -> perform full LVS comparison
   netlist_only: false
 
 # ======================================================
@@ -42,9 +41,7 @@ lvs:
 # ======================================================
 mdp:
   # Output GDS file name generated after MDP
-  # Recommended:
-  #   IP62_<github_username>.gds
-  file: "IP62_username.gds"
+  file: "IP62_jun1okamura.gds"
 
 # ======================================================
 # PDK configuration (DO NOT MODIFY unless necessary)

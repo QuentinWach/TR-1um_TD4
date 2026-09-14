@@ -1,8 +1,8 @@
 # layout/chip/simulation/ — チップレベルの LVS
 
 ```
-tr_1um_TD4.spice       ソース（設計意図）。scripts/pnr/mkchipnet.py が生成
-tr_1um_TD4_lay.spice   レイアウトからの抽出。scripts/pnr/lvs_pnr.py -o
+tr_1um_jun1okamura.spice       ソース（設計意図）。scripts/pnr/mkchipnet.py が生成
+tr_1um_jun1okamura_lay.spice   レイアウトからの抽出。scripts/pnr/lvs_pnr.py -o
 lvs_report.txt         比較の結果
 ```
 
@@ -10,11 +10,12 @@ lvs_report.txt         比較の結果
 
 ```sh
 python3 scripts/pnr/add_top_pins.py          # step2 -> step3（ボンドパッドにピン）
+python3 scripts/pnr/place_logo.py            # step3 -> step4（ロゴ）
 python3 scripts/pnr/mkchipnet.py             # ソースを作る
 python3 scripts/pnr/lvs_pnr.py \
-    layout/chip/step3_top_pins.gds tr_1um_TD4 \
-    layout/chip/simulation/tr_1um_TD4.spice \
-    -o layout/chip/simulation/tr_1um_TD4_lay.spice
+    layout/chip/step4_final.gds tr_1um_jun1okamura \
+    layout/chip/simulation/tr_1um_jun1okamura.spice \
+    -o layout/chip/simulation/tr_1um_jun1okamura_lay.spice
 ```
 
 現状（2026-09-14）:
@@ -30,7 +31,7 @@ python3 scripts/pnr/lvs_pnr.py \
 サブサーキット 2 個とポート表だけ。
 
 ```
-.subckt tr_1um_TD4 P1 P2 P3 P4 P5 P6 P7 VSS P9 P10 P11 P12 P13 P14 P15 VDD
+.subckt tr_1um_jun1okamura P1 P2 P3 P4 P5 P6 P7 VSS P9 P10 P11 P12 P13 P14 P15 VDD
 x1 … OSS_FRAME_GIO
 x2 … td4_soc_arr_nrow_fm
 .ends
@@ -78,9 +79,9 @@ x2 … td4_soc_arr_nrow_fm
 ## ngspice（抽出ネットリストでの動作確認）
 
 ```
-tr_1um_TD4_ext.spice   抽出（scripts/klayout_extract.py、combine 済み・ネット名付き）
-tr_1um_TD4_sim.spice   それを ngspice 用に直したもの（scripts/frame2sim.py）
-tb_tr_1um_TD4.spi      テストベンチ（scripts/pnr/gen_chip_tb.py）
+tr_1um_jun1okamura_ext.spice   抽出（scripts/klayout_extract.py、combine 済み・ネット名付き）
+tr_1um_jun1okamura_sim.spice   それを ngspice 用に直したもの（scripts/frame2sim.py）
+tb_tr_1um_jun1okamura.spi      テストベンチ（scripts/pnr/gen_chip_tb.py）
 chip_tb.log            ngspice の出力
 chip_tb.png            波形（scripts/pnr/check_chip_sim.py）
 ```
@@ -88,16 +89,16 @@ chip_tb.png            波形（scripts/pnr/check_chip_sim.py）
 ### 流し方
 
 ```sh
-python3 scripts/klayout_extract.py layout/chip/step3_top_pins.gds tr_1um_TD4 \
-    -o layout/chip/simulation/tr_1um_TD4_ext.spice
-python3 scripts/frame2sim.py layout/chip/simulation/tr_1um_TD4_ext.spice \
-    -o layout/chip/simulation/tr_1um_TD4_sim.spice
+python3 scripts/klayout_extract.py layout/chip/step4_final.gds tr_1um_jun1okamura \
+    -o layout/chip/simulation/tr_1um_jun1okamura_ext.spice
+python3 scripts/frame2sim.py layout/chip/simulation/tr_1um_jun1okamura_ext.spice \
+    -o layout/chip/simulation/tr_1um_jun1okamura_sim.spice
 python3 scripts/pnr/gen_chip_tb.py --period 100 --cycles 12
-cd layout/chip/simulation && ngspice -b tb_tr_1um_TD4.spi > chip_tb.log
+cd layout/chip/simulation && ngspice -b tb_tr_1um_jun1okamura.spi > chip_tb.log
 cd - && python3 scripts/pnr/check_chip_sim.py --t-exec 1800
 ```
 
-**LVS 用の `tr_1um_TD4_lay.spice` は ngspice には使えない。** あれは
+**LVS 用の `tr_1um_jun1okamura_lay.spice` は ngspice には使えない。** あれは
 `lvs_pnr.py -o` の出力で、トップに `.SUBCKT` のポートが無く、ネット名が
 番号で、素子が `M...`（PDK の PMOS/NMOS は `.model` ではなく**サブサーキット**
 なので `XM` でないといけない）。`klayout_extract.py` はそのどれもやってくれる。

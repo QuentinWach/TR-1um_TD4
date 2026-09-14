@@ -49,7 +49,8 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 import td4_config as cfg                                    # noqa: E402
 
-GIO_CELL = "OSS_FRAME_GIO"
+GIO_CELL = "OSS_FRAME_GIO"          # .spice の中での名前
+CHIP_GIO_CELL = cfg.FRAME_CELL_CHIP  # チップ GDS / LVS での名前（OSS_FRAME）
 # **`combine_devices()` を掛けていない方**を使う。`lvs_pnr.py` は DFFRB で
 # KLayout が内部エラーを出すので両側とも combine しない方針で、ここで
 # combine 済みのフレームを混ぜると素子数が 316 個ずれる（2026-09-14 に実測:
@@ -158,7 +159,10 @@ def build():
             problems.append(f"パッド {n}: コア {s['net']}={a!r} だが "
                             f"{side}{n}={b!r}")
 
-    gio_body = open(GIO_SPICE, encoding="utf-8").read().rstrip("\n")
+    # レイアウト側は `assemble_top.py` が `OSS_FRAME` に改名しているので、
+    # ソース側の `.subckt` 名も揃える（LVS はセル名で対応を取る）。
+    gio_body = re.sub(rf"\b{re.escape(GIO_CELL)}\b", CHIP_GIO_CELL,
+                      open(GIO_SPICE, encoding="utf-8").read().rstrip("\n"))
     core_body = open(CORE_SPICE, encoding="utf-8").read().rstrip("\n")
     names = lambda t: set(re.findall(r"^\.subckt\s+(\S+)", t, re.M))  # noqa: E731
     clash = names(gio_body) & names(core_body)
@@ -195,7 +199,7 @@ def main():
         f"**   フレーム: {os.path.relpath(GIO_SPICE, cfg.ROOT)}",
         f"**   接続表  : {os.path.relpath(CONN, cfg.ROOT)}",
         "**",
-        f"** x1 = {GIO_CELL} / x2 = {cfg.TOP_CELL_NAME}。`NC_*` は両側とも本当に",
+        f"** x1 = {CHIP_GIO_CELL}（元 {GIO_CELL}）/ x2 = {cfg.TOP_CELL_NAME}。"
         "** どこにも繋がっていない端子で、1 本ずつ固有の名前を付けてある",
         "** （まとめると浮いた端子どうしが短絡して見える）。",
         "** トップは 16 本のボンドパッドを宣言する（P1-P7, VSS, P9-P15, VDD。",
@@ -205,7 +209,7 @@ def main():
     ]
     lines = header + ["", gio_body, "", core_body, "",
                       f".subckt {cfg.CHIP_TOP_CELL} " + " ".join(TOP_PIN_ORDER),
-                      wrap("x1", [gio_net[p] for p in gio_ports], GIO_CELL),
+                      wrap("x1", [gio_net[p] for p in gio_ports], CHIP_GIO_CELL),
                       wrap("x2", [core_net[p] for p in core_ports],
                            cfg.TOP_CELL_NAME),
                       ".ends", ""]

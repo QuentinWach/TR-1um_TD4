@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """gen_chip_tb.py -- 抽出したチップを ngspice で動かすテストベンチ。
 
-    layout/chip/simulation/tr_1um_TD4_sim.spice  （抽出 -> ngspice 用に変換）
-  -> layout/chip/simulation/tb_tr_1um_TD4.spi
+    layout/chip/simulation/<top>_sim.spice  （抽出 -> ngspice 用に変換）
+  -> layout/chip/simulation/tb_<top>.spi
 
 `hdl/tb/tb_td4_soc_arr.v` と**同じ手順**をボンドパッドに対して流す:
 
@@ -41,9 +41,9 @@ sys.path.insert(0, HERE)
 import td4_config as cfg                                    # noqa: E402
 
 SIM = os.path.join(cfg.CHIP, "simulation")
-NETLIST = os.path.join(SIM, "tr_1um_TD4_sim.spice")
+NETLIST = os.path.join(SIM, cfg.CHIP_TOP_CELL + "_sim.spice")
 MODELS = os.path.join(cfg.ROOT, "scripts", "char", "models", "ip62_models")
-OUT = os.path.join(SIM, "tb_tr_1um_TD4.spi")
+OUT = os.path.join(SIM, "tb_" + cfg.CHIP_TOP_CELL + ".spi")
 
 VDD = 5.0
 TR = 1.0                        # 入力の遷移時間 ns
