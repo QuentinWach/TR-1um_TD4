@@ -1,0 +1,451 @@
+{
+ "core_offset": [
+  -796.05,
+  -678.5
+ ],
+ "core_chip_bbox": [
+  -802.35,
+  -678.5,
+  802.35,
+  678.5
+ ],
+ "pin_radius": 921.7,
+ "signals": [
+  {
+   "net": "clk",
+   "role": "CLK",
+   "pad": 1,
+   "from": {
+    "what": "core",
+    "x": -794.55,
+    "y": 258.3,
+    "edge": "LEFT",
+    "layer": "M1",
+    "port": "clk"
+   },
+   "to": {
+    "what": "pad",
+    "x": -270.0,
+    "y": 921.7,
+    "edge": "TOP",
+    "layer": "M2",
+    "terminal": "P1"
+   },
+   "ring_run_um": 1315.1,
+   "same_edge": false
+  },
+  {
+   "net": "wr",
+   "role": "WR",
+   "pad": 2,
+   "from": {
+    "what": "core",
+    "x": -794.55,
+    "y": 279.9,
+    "edge": "LEFT",
+    "layer": "M1",
+    "port": "wr"
+   },
+   "to": {
+    "what": "pad",
+    "x": -530.0,
+    "y": 921.7,
+    "edge": "TOP",
+    "layer": "M2",
+    "terminal": "P2"
+   },
+   "ring_run_um": 1033.5,
+   "same_edge": false
+  },
+  {
+   "net": "nibsel",
+   "role": "NIBSEL",
+   "pad": 3,
+   "from": {
+    "what": "core",
+    "x": -625.95,
+    "y": 677.0,
+    "edge": "TOP",
+    "layer": "M2",
+    "port": "nibsel"
+   },
+   "to": {
+    "what": "pad",
+    "x": -921.7,
+    "y": 530.0,
+    "edge": "LEFT",
+    "layer": "M2",
+    "terminal": "P3"
+   },
+   "ring_run_um": 687.4,
+   "same_edge": false
+  },
+  {
+   "net": "d[3]",
+   "role": "D[3]",
+   "pad": 4,
+   "from": {
+    "what": "core",
+    "x": 227.25,
+    "y": -677.0,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "port": "d[3]"
+   },
+   "to": {
+    "what": "pad",
+    "x": -921.7,
+    "y": 270.0,
+    "edge": "LEFT",
+    "layer": "M2",
+    "terminal": "P4"
+   },
+   "ring_run_um": 2340.7,
+   "same_edge": false
+  },
+  {
+   "net": "d[2]",
+   "role": "D[2]",
+   "pad": 5,
+   "from": {
+    "what": "core",
+    "x": 259.65,
+    "y": -677.0,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "port": "d[2]"
+   },
+   "to": {
+    "what": "pad",
+    "x": -921.7,
+    "y": -270.0,
+    "edge": "LEFT",
+    "layer": "M2",
+    "terminal": "P5"
+   },
+   "ring_run_um": 1833.1,
+   "same_edge": false
+  },
+  {
+   "net": "d[1]",
+   "role": "D[1]",
+   "pad": 6,
+   "from": {
+    "what": "core",
+    "x": -794.55,
+    "y": -262.6,
+    "edge": "LEFT",
+    "layer": "M1",
+    "port": "d[1]"
+   },
+   "to": {
+    "what": "pad",
+    "x": -921.7,
+    "y": -530.0,
+    "edge": "LEFT",
+    "layer": "M2",
+    "terminal": "P6"
+   },
+   "ring_run_um": 267.4,
+   "same_edge": true
+  },
+  {
+   "net": "d[0]",
+   "role": "D[0]",
+   "pad": 7,
+   "from": {
+    "what": "core",
+    "x": 194.85,
+    "y": -677.0,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "port": "d[0]"
+   },
+   "to": {
+    "what": "pad",
+    "x": -530.0,
+    "y": -921.7,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "terminal": "P7"
+   },
+   "ring_run_um": 724.9,
+   "same_edge": true
+  },
+  {
+   "net": "rst_n",
+   "role": "RSTN",
+   "pad": 9,
+   "from": {
+    "what": "core",
+    "x": -794.55,
+    "y": 22.9,
+    "edge": "LEFT",
+    "layer": "M1",
+    "port": "rst_n"
+   },
+   "to": {
+    "what": "pad",
+    "x": 270.0,
+    "y": -921.7,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "terminal": "P9"
+   },
+   "ring_run_um": 2136.3,
+   "same_edge": false
+  },
+  {
+   "net": "out_port[0]",
+   "role": "OUT[0]",
+   "pad": 10,
+   "from": {
+    "what": "core",
+    "x": -794.55,
+    "y": 263.7,
+    "edge": "LEFT",
+    "layer": "M1",
+    "port": "out_port[0]"
+   },
+   "to": {
+    "what": "pad",
+    "x": 620.0,
+    "y": -921.7,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "terminal": "OUT10"
+   },
+   "ring_run_um": 2727.1,
+   "same_edge": false
+  },
+  {
+   "net": "out_port[1]",
+   "role": "OUT[1]",
+   "pad": 11,
+   "from": {
+    "what": "core",
+    "x": -512.55,
+    "y": -677.0,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "port": "out_port[1]"
+   },
+   "to": {
+    "what": "pad",
+    "x": 921.7,
+    "y": -620.0,
+    "edge": "RIGHT",
+    "layer": "M2",
+    "terminal": "OUT11"
+   },
+   "ring_run_um": 1735.9,
+   "same_edge": false
+  },
+  {
+   "net": "out_port[2]",
+   "role": "OUT[2]",
+   "pad": 12,
+   "from": {
+    "what": "core",
+    "x": -609.75,
+    "y": -677.0,
+    "edge": "BOTTOM",
+    "layer": "M2",
+    "port": "out_port[2]"
+   },
+   "to": {
+    "what": "pad",
+    "x": 921.7,
+    "y": -180.0,
+    "edge": "RIGHT",
+    "layer": "M2",
+    "terminal": "OUT12"
+   },
+   "ring_run_um": 2273.1,
+   "same_edge": false
+  },
+  {
+   "net": "out_port[3]",
+   "role": "OUT[3]",
+   "pad": 13,
+   "from": {
+    "what": "core",
+    "x": -91.35,
+    "y": 677.0,
+    "edge": "TOP",
+    "layer": "M2",
+    "port": "out_port[3]"
+   },
+   "to": {
+    "what": "pad",
+    "x": 921.7,
+    "y": 180.0,
+    "edge": "RIGHT",
+    "layer": "M2",
+    "terminal": "OUT13"
+   },
+   "ring_run_um": 1754.8,
+   "same_edge": false
+  },
+  {
+   "net": "exec",
+   "role": "EXEC",
+   "pad": 14,
+   "from": {
+    "what": "core",
+    "x": -685.35,
+    "y": 677.0,
+    "edge": "TOP",
+    "layer": "M2",
+    "port": "exec"
+   },
+   "to": {
+    "what": "pad",
+    "x": 921.7,
+    "y": 530.0,
+    "edge": "RIGHT",
+    "layer": "M2",
+    "terminal": "P14"
+   },
+   "ring_run_um": 2479.8,
+   "same_edge": false
+  },
+  {
+   "net": "cflag_o",
+   "role": "CF",
+   "pad": 15,
+   "from": {
+    "what": "core",
+    "x": -534.15,
+    "y": 677.0,
+    "edge": "TOP",
+    "layer": "M2",
+    "port": "cflag_o"
+   },
+   "to": {
+    "what": "pad",
+    "x": 620.0,
+    "y": 921.7,
+    "edge": "TOP",
+    "layer": "M2",
+    "terminal": "OUT15"
+   },
+   "ring_run_um": 1154.1,
+   "same_edge": true
+  }
+ ],
+ "hiz_ties": [
+  {
+   "pad": 1,
+   "terminal": "HIZ1",
+   "tie": "VDD",
+   "x": -220.0,
+   "y": 921.7,
+   "edge": "TOP"
+  },
+  {
+   "pad": 2,
+   "terminal": "HIZ2",
+   "tie": "VDD",
+   "x": -580.0,
+   "y": 921.7,
+   "edge": "TOP"
+  },
+  {
+   "pad": 3,
+   "terminal": "HIZ3",
+   "tie": "VDD",
+   "x": -921.7,
+   "y": 580.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 4,
+   "terminal": "HIZ4",
+   "tie": "VDD",
+   "x": -921.7,
+   "y": 220.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 5,
+   "terminal": "HIZ5",
+   "tie": "VDD",
+   "x": -921.7,
+   "y": -220.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 6,
+   "terminal": "HIZ6",
+   "tie": "VDD",
+   "x": -921.7,
+   "y": -580.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 7,
+   "terminal": "HIZ7",
+   "tie": "VDD",
+   "x": -580.0,
+   "y": -921.7,
+   "edge": "BOTTOM"
+  },
+  {
+   "pad": 9,
+   "terminal": "HIZ9",
+   "tie": "VDD",
+   "x": 220.0,
+   "y": -921.7,
+   "edge": "BOTTOM"
+  },
+  {
+   "pad": 10,
+   "terminal": "HIZ10",
+   "tie": "GND",
+   "x": 580.0,
+   "y": -921.7,
+   "edge": "BOTTOM"
+  },
+  {
+   "pad": 11,
+   "terminal": "HIZ11",
+   "tie": "GND",
+   "x": 921.7,
+   "y": -580.0,
+   "edge": "RIGHT"
+  },
+  {
+   "pad": 12,
+   "terminal": "HIZ12",
+   "tie": "GND",
+   "x": 921.7,
+   "y": -220.0,
+   "edge": "RIGHT"
+  },
+  {
+   "pad": 13,
+   "terminal": "HIZ13",
+   "tie": "GND",
+   "x": 921.7,
+   "y": 220.0,
+   "edge": "RIGHT"
+  },
+  {
+   "pad": 14,
+   "terminal": "HIZ14",
+   "tie": "VDD",
+   "x": 921.7,
+   "y": 580.0,
+   "edge": "RIGHT"
+  },
+  {
+   "pad": 15,
+   "terminal": "HIZ15",
+   "tie": "GND",
+   "x": 580.0,
+   "y": 921.7,
+   "edge": "TOP"
+  }
+ ]
+}

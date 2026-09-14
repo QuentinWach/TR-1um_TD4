@@ -15,6 +15,7 @@
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import sys
 
@@ -42,11 +43,90 @@ def core_port_pins(gds, dx, dy):
     return out
 
 
+def ring_s(x, y, r):
+    """`gen_top_routing_plan.ring_s` と同じ物差し（右下角から反時計回り、0…8r）。"""
+    if abs(x) >= abs(y):
+        return (y + r) if x > 0 else (4 * r + (r - y))
+    return (2 * r + (r - x)) if y > 0 else (6 * r + (x + r))
+
+
+def ring_xy(s, r):
+    """周長座標 -> 座標。`ring_s` の逆。"""
+    s = s % (8 * r)
+    if s <= 2 * r:
+        return (r, s - r)                       # 右辺（下 -> 上）
+    if s <= 4 * r:
+        return (r - (s - 2 * r), r)             # 上辺（右 -> 左）
+    if s <= 6 * r:
+        return (-r, r - (s - 4 * r))            # 左辺（上 -> 下）
+    return (-r + (s - 6 * r), -r)               # 下辺（左 -> 右）
+
+
+def ring_path(s0, s1, r):
+    """s0 -> s1 を**近い方の回り**でたどる折れ線。途中の角を頂点にする。"""
+    per = 8 * r
+    fwd = (s1 - s0) % per
+    d = fwd if fwd <= per - fwd else -(per - fwd)
+    key = (lambda c: (c - s0) % per) if d > 0 else (lambda c: (s0 - c) % per)
+    # 角は s = 0 / 2r / 4r / 6r（r, 3r… は辺の**中点**。ここを間違えると
+    # 角を突っ切る直線になってコアを横断する）
+    cand = [0, 2 * r, 4 * r, 6 * r, 8 * r]
+    corners = sorted((c for c in cand if 0 < key(c) < abs(d)), key=key)
+    return [ring_xy(s, r) for s in [s0] + corners + [s1]]
+
+
+def stub_to_ring(x, y, r):
+    """コアピン（辺の上）からリングまでの垂線の足。"""
+    if abs(x) >= abs(y):
+        return (r if x > 0 else -r, y)
+    return (x, r if y > 0 else -r)
+
+
+def draw_connections(ax, plan_path, r):
+    """パッド <-> コアピンの対応を、リングを回り込む折れ線で描く。"""
+    if not os.path.exists(plan_path):
+        print(f"  （{os.path.relpath(plan_path, cfg.ROOT)} が無いので対応線は描かない）")
+        return 0
+    with open(plan_path, encoding="utf-8") as f:
+        plan = json.load(f)
+    sigs = plan["signals"]
+    cmap = plt.get_cmap("tab20")
+    for i, s in enumerate(sigs):
+        col = cmap(i % 20)
+        fx, fy = s["from"]["x"], s["from"]["y"]
+        tx, ty = s["to"]["x"], s["to"]["y"]
+        # リングを少しずつずらして、重なりが目で数えられるようにする
+        rr = r - 4.0 - (i % 7) * 5.4
+        sx, sy = stub_to_ring(fx, fy, rr)
+        ex, ey = stub_to_ring(tx, ty, rr)
+        pts = ring_path(ring_s(sx, sy, rr), ring_s(ex, ey, rr), rr)
+        xs = [fx, sx] + [p[0] for p in pts] + [ex, tx]
+        ys = [fy, sy] + [p[1] for p in pts] + [ey, ty]
+        ax.plot(xs, ys, color=col, lw=1.0, alpha=0.85, zorder=5)
+        ax.plot([tx], [ty], marker="s", ms=3.4, color=col, zorder=6)
+        # パッド側にロール名
+        off = 14
+        ha, va, dx_, dy_ = "center", "center", 0, 0
+        if abs(tx) > abs(ty):
+            dx_ = off if tx > 0 else -off
+            ha = "left" if tx > 0 else "right"
+        else:
+            dy_ = off if ty > 0 else -off
+            va = "bottom" if ty > 0 else "top"
+        ax.annotate(f"P{s['pad']} {s['role']}", (tx, ty), fontsize=6,
+                    color=col, xytext=(dx_, dy_), textcoords="offset points",
+                    ha=ha, va=va, zorder=6)
+    return len(sigs)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__,
                                  formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("-o", "--out", default=os.path.join(cfg.CHIP, "floorplan.png"))
     ap.add_argument("--core-gds", default=None)
+    ap.add_argument("--plan", default=os.path.join(cfg.CHIP, "signal_routing_plan.json"),
+                    help="パッド <-> コアピンの対応線を描く（既定は gen_top_routing_plan の出力）")
+    ap.add_argument("--no-connections", action="store_true")
     a = ap.parse_args()
 
     core_gds = a.core_gds or cfg.FINAL_GDS
@@ -88,6 +168,10 @@ def main():
                         xytext=(0, 6 if py > 0 else -10), textcoords="offset points",
                         ha="center")
 
+    nconn = 0
+    if not a.no_connections:
+        nconn = draw_connections(ax, a.plan, r)
+
     ax.set_xlim(-h - 60, h + 60)
     ax.set_ylim(-h - 60, h + 60)
     ax.set_aspect("equal")
@@ -95,20 +179,25 @@ def main():
         f"{cfg.CHIP_TOP_CELL}   die {die:.0f} x {die:.0f} um\n"
         f"core {cfg.TOP_CELL_NAME} @ ({dx}, {dy})  "
         f"[{x1-x0:.1f} x {y1-y0:.1f}]   "
-        f"opening {hi-lo:.0f} x {hi-lo:.0f} (measured)   "
+        f"opening {hi-lo:.0f} x {hi-lo:.0f} (measured)\n"
         f"channel T/B {geom['channel_top'][0]:.1f}  L/R {geom['channel_left'][0]:.1f} um",
-        fontsize=10, loc="left")
+        fontsize=9, loc="left")
     ax.tick_params(labelsize=7)
-    fig.text(0.5, 0.015,
-             "hatched grey = LEF OBS (coarse, corners over-declared)   "
-             "green = measured opening 1840x1840   dashed cyan = pin ring 921.7   "
-             "blue = core bbox   red = core port pins   orange = VDD/GND pins",
-             ha="center", fontsize=8, color="#555")
-    fig.tight_layout(rect=(0, 0.035, 1, 1))
+    fig.text(0.5, 0.030,
+             "hatched grey = LEF OBS (coarse)   green = measured opening 1840x1840   "
+             "dashed cyan = pin ring 921.7   blue = core bbox   "
+             "red = core port pins   orange = VDD/GND",
+             ha="center", fontsize=7.5, color="#555")
+    if nconn:
+        fig.text(0.5, 0.012,
+                 "coloured lines = pad <-> core-pin assignment, the short way round "
+                 "the ring (radius staggered for legibility; squares = pad terminals)",
+                 ha="center", fontsize=7.5, color="#555")
+    fig.tight_layout(rect=(0.01, 0.045, 0.99, 1))
     os.makedirs(os.path.dirname(a.out) or ".", exist_ok=True)
     fig.savefig(a.out, dpi=140)
     print(f"wrote {os.path.relpath(a.out, cfg.ROOT)}  "
-          f"({len(seen)} 個のピン名、{len(pins)} 個のマーカ)")
+          f"({len(seen)} 個のピン名、{len(pins)} 個のマーカ、{nconn} 本の対応線)")
     return 0
 
 
