@@ -1119,3 +1119,18 @@ OSS_FRAME_GIO.spice` は `combine_devices()` を掛けたあとのもの（ngspi
 `lvs_pnr.py` は DFFRB で KLayout が内部エラーを出すため**両側とも combine
 しない**方針なので、`scripts/mkframespice.py --no-combine` で
 `OSS_FRAME_GIO_nocombine.spice` を作って揃えた。
+
+### 抽出ネットリストの ngspice（`layout/chip/simulation/`）
+
+    klayout_extract.py  抽出（combine 済み・ネット名付き・XM 表記）
+    frame2sim.py        ngspice 用に変換（ESD は MPE/MNE、名前と表記の手当て）
+    gen_chip_tb.py      テストベンチ（Verilog TB と同じ手順をパッドに対して）
+    check_chip_sim.py   .meas を読んで判定 + 波形 PNG
+
+2026-09-14: 10 MHz で 12 サイクル、**OUT = 3, 6, 12, 8, 8, … 期待どおり**。
+4,225 素子で 3,150 ns が約 1 分 52 秒。詳細は
+`layout/chip/simulation/README.md`。
+
+**LVS 用の `_lay.spice` を ngspice に持っていかないこと。** トップに
+`.SUBCKT` のポートが無く、ネット名が番号、素子が `M...`（PDK の PMOS/NMOS は
+サブサーキットなので `XM` でないと読めない）。

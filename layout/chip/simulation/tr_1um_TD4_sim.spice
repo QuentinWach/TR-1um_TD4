@@ -1,0 +1,1663 @@
+* TR-1um tr_1um_TD4 — KLayout 抽出 (scripts/klayout_extract.py)
+* cell tr_1um_TD4
+* pin P1
+* pin P10
+* pin P11
+* pin P12
+* pin P13
+* pin P14
+* pin P15
+* pin P2
+* pin P3
+* pin P4
+* pin P5
+* pin P6
+* pin P7
+* pin P9
+* pin VDD
+* pin VSS
+.SUBCKT tr_1um_TD4 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS
+* cell instance 1 r0 *1 -796.05,-678.5
+X1 VDD n22 n16 P7 P4 P5 P6 P9 n17 n103 P2 P1 n64 P14 P3 VSS td4_soc_arr_nrow_fm
+* cell instance 2 r0 *1 0,0
+X2 VDD VDD VSS VDD VDD VDD VDD VSS VDD VDD VDD VDD VSS VSS VSS P2 P1 P15 VSS P3 P4 VSS VSS P5 P6 VSS VSS P7 VSS P9 P10 n17 n16 P11 P12 n22 n64 P13 P14 VSS n103 VSS VSS VSS OSS_FRAME_GIO
+.ENDS tr_1um_TD4
+* cell OSS_FRAME_GIO
+* pin VDD
+* pin HIZ7
+* pin HIZ13
+* pin HIZ14
+* pin HIZ3
+* pin HIZ2
+* pin HIZ1
+* pin HIZ15
+* pin HIZ5
+* pin HIZ4
+* pin HIZ6
+* pin HIZ9
+* pin HIZ10
+* pin HIZ12
+* pin HIZ11
+* pin P2
+* pin P1
+* pin P15
+* pin OUT3
+* pin P3
+* pin P4
+* pin OUT4
+* pin OUT5
+* pin P5
+* pin P6
+* pin OUT6
+* pin OUT7
+* pin P7
+* pin OUT9
+* pin P9
+* pin P10
+* pin OUT10
+* pin OUT11
+* pin P11
+* pin P12
+* pin OUT12
+* pin OUT13
+* pin P13
+* pin P14
+* pin OUT14
+* pin OUT15
+* pin OUT1
+* pin OUT2
+* pin VSS
+.SUBCKT OSS_FRAME_GIO VDD HIZ7 HIZ13 HIZ14 HIZ3 HIZ2 HIZ1 HIZ15 HIZ5 HIZ4 HIZ6 HIZ9 HIZ10 HIZ12 HIZ11 P2 P1 P15 OUT3 P3 P4 OUT4 OUT5 P5 P6 OUT6 OUT7 P7 OUT9 P9 P10 OUT10 OUT11 P11 P12 OUT12 OUT13 P13 P14 OUT14 OUT15 OUT1 OUT2 VSS
+* cell instance 4 m45 *1 -1040,-600
+X4 P6 VDD HIZ6 OUT6 VSS OSS_ESD_5V_DIO
+* cell instance 5 m45 *1 -1040,200
+X5 P4 VDD HIZ4 OUT4 VSS OSS_ESD_5V_DIO
+* cell instance 6 r270 *1 -1040,-200
+X6 P5 VDD HIZ5 OUT5 VSS OSS_ESD_5V_DIO
+* cell instance 7 r0 *1 200,-1040
+X7 P9 VDD HIZ9 OUT9 VSS OSS_ESD_5V_DIO
+* cell instance 8 r0 *1 -600,-1040
+X8 P7 VDD HIZ7 OUT7 VSS OSS_ESD_5V_DIO
+* cell instance 9 m90 *1 -200,-1040
+X9 VDD VSS OSS_ESD_5V_VSS
+* cell instance 10 m90 *1 600,-1040
+X10 P10 VDD HIZ10 OUT10 VSS OSS_ESD_5V_DIO
+* cell instance 11 m135 *1 1040,600
+X11 P14 VDD HIZ14 OUT14 VSS OSS_ESD_5V_DIO
+* cell instance 12 m135 *1 1040,-200
+X12 P12 VDD HIZ12 OUT12 VSS OSS_ESD_5V_DIO
+* cell instance 13 r90 *1 1040,-600
+X13 P11 VDD HIZ11 OUT11 VSS OSS_ESD_5V_DIO
+* cell instance 14 r90 *1 1040,200
+X14 P13 VDD HIZ13 OUT13 VSS OSS_ESD_5V_DIO
+* cell instance 15 r180 *1 -200,1040
+X15 P1 VDD HIZ1 OUT1 VSS OSS_ESD_5V_DIO
+* cell instance 16 r180 *1 600,1040
+X16 P15 VDD HIZ15 OUT15 VSS OSS_ESD_5V_DIO
+* cell instance 17 m0 *1 200,1040
+X17 VDD VSS OSS_ESD_5V_VDD
+* cell instance 18 m0 *1 -600,1040
+X18 P2 VDD HIZ2 OUT2 VSS OSS_ESD_5V_DIO
+* cell instance 22 r270 *1 -1040,600
+X22 P3 VDD HIZ3 OUT3 VSS OSS_ESD_5V_DIO
+.ENDS OSS_FRAME_GIO
+* cell td4_soc_arr_nrow_fm
+* pin VDD
+* pin out_port[2]
+* pin out_port[1]
+* pin d[0]
+* pin d[3]
+* pin d[2]
+* pin d[1]
+* pin rst_n
+* pin out_port[0]
+* pin cflag_o
+* pin wr
+* pin clk
+* pin out_port[3]
+* pin exec
+* pin nibsel
+* pin GND
+.SUBCKT td4_soc_arr_nrow_fm VDD out_port[2] out_port[1] d[0] d[3] d[2] d[1] rst_n out_port[0] cflag_o wr clk out_port[3] exec nibsel GND
+* cell instance 1 r0 *1 783,112.7
+X1 n19 n21 n55 n129 VDD n51 GND DFFRB
+* cell instance 2 r0 *1 783,424
+X2 n109 n144 n55 n295 VDD n51 GND DFFRB
+* cell instance 3 r0 *1 1198.8,424
+X3 VDD n88 n118 n117 n89 n78 n116 n131 n79 n105 n115 n122 n120 n127 n196 n113 n129 n195 n262 n295 n121 n263 GND REG8x16
+* cell instance 4 r0 *1 783,713.4
+X4 n462 n58 n598 n592 VDD GND MUX2
+* cell instance 5 r0 *1 783,962.8
+X5 n664 n592 n55 n598 VDD n51 GND DFFRB
+* cell instance 6 r0 *1 783,1212.2
+X6 n732 n750 n55 n617 VDD n51 GND DFFRB
+* cell instance 11 r0 *1 988.2,962.8
+X11 n603 n586 n142 n779 VDD GND NAND3
+* cell instance 12 r0 *1 847.8,962.8
+X12 n188 cflag_o n792 VDD GND NAND2
+* cell instance 13 r0 *1 864,962.8
+X13 n462 n654 n748 n604 VDD GND MUX2
+* cell instance 14 r0 *1 896.4,962.8
+X14 n606 n384 n586 VDD GND NAND2
+* cell instance 15 r0 *1 912.6,962.8
+X15 n748 n173 n603 VDD GND NAND2
+* cell instance 16 r0 *1 928.8,962.8
+X16 n196 n458 n519 VDD GND XOR2
+* cell instance 17 r0 *1 955.8,962.8
+X17 n596 n733 n728 VDD GND NAND2
+* cell instance 18 r0 *1 972,962.8
+X18 n559 n740 n596 VDD GND NAND2
+* cell instance 19 r0 *1 1123.2,962.8
+X19 VDD GND FILL3
+* cell instance 21 r0 *1 1009.8,962.8
+X21 n196 n519 n551 n740 VDD GND NAND3
+* cell instance 22 r0 *1 1031.4,962.8
+X22 n262 n733 n378 VDD GND XOR2
+* cell instance 23 r0 *1 1058.4,962.8
+X23 n262 n378 n778 VDD GND NAND2
+* cell instance 24 r0 *1 1074.6,962.8
+X24 VDD GND FILL3
+* cell instance 25 r0 *1 1090.8,962.8
+X25 VDD GND FILL3
+* cell instance 26 r0 *1 1107,962.8
+X26 VDD GND FILL3
+* cell instance 27 r0 *1 1080,1212.2
+X27 n263 n779 n736 VDD GND NAND2
+* cell instance 28 r0 *1 1096.2,1212.2
+X28 VDD GND FILL3
+* cell instance 29 r0 *1 1112.4,1212.2
+X29 VDD GND FILL2
+* cell instance 30 r0 *1 847.8,1212.2
+X30 n747 n727 VDD n939 GND NOR2
+* cell instance 31 r0 *1 864,1212.2
+X31 n80 n792 n198 VDD GND NAND2
+* cell instance 32 r0 *1 880.2,1212.2
+X32 n462 n458 n617 n750 VDD GND MUX2
+* cell instance 33 r0 *1 912.6,1212.2
+X33 n227 n747 VDD n932 GND NOR2
+* cell instance 35 r0 *1 928.8,1212.2
+X35 n654 n747 VDD n938 GND AND2_X1
+* cell instance 49 r0 *1 950.4,1212.2
+X49 n80 n792 VDD n747 GND AND2_X1
+* cell instance 52 r0 *1 972,1212.2
+X52 n734 n654 n741 VDD GND XOR2
+* cell instance 53 r0 *1 1123.2,1212.2
+X53 VDD GND FILL3
+* cell instance 62 r0 *1 1020.6,1212.2
+X62 n778 n728 n736 n787 VDD GND NAND3
+* cell instance 97 r0 *1 1042.2,1212.2
+X97 n778 n728 n734 VDD GND NAND2
+* cell instance 106 r0 *1 1058.4,1212.2
+X106 n779 n263 VDD n841 GND OR2
+* cell instance 107 r0 *1 999,1212.2
+X107 n736 n841 VDD n741 GND AND2_X1
+* cell instance 115 r0 *1 950.4,713.4
+X115 n88 n366 n362 n360 n247 VDD GND NAND4
+* cell instance 116 r0 *1 977.4,713.4
+X116 n361 n599 n256 n519 VDD GND NAND3
+* cell instance 117 r0 *1 999,713.4
+X117 n356 n360 n567 n348 VDD GND NAND3
+* cell instance 118 r0 *1 815.4,713.4
+X118 n78 n79 n182 n462 VDD GND NOR3
+* cell instance 119 r0 *1 1063.8,713.4
+X119 n195 n348 n559 VDD GND NAND2
+* cell instance 120 r0 *1 1080,713.4
+X120 VDD GND FILL3
+* cell instance 121 r0 *1 837,713.4
+X121 n357 n58 n551 VDD GND XNOR2
+* cell instance 122 r0 *1 1096.2,713.4
+X122 VDD GND FILL3
+* cell instance 123 r0 *1 1112.4,713.4
+X123 VDD GND FILL2
+* cell instance 124 r0 *1 1123.2,713.4
+X124 VDD GND FILL3
+* cell instance 125 r0 *1 1020.6,713.4
+X125 n196 n519 n357 VDD GND NAND2
+* cell instance 126 r0 *1 1036.8,713.4
+X126 n195 n551 n348 VDD GND XOR2
+* cell instance 129 r0 *1 864,713.4
+X129 n541 n384 n245 VDD GND NAND2
+* cell instance 130 r0 *1 880.2,713.4
+X130 n165 n384 n599 VDD GND NAND2
+* cell instance 131 r0 *1 896.4,713.4
+X131 n79 VDD n382 GND INV_X1
+* cell instance 132 r0 *1 907.2,713.4
+X132 n617 n173 n361 VDD GND NAND2
+* cell instance 133 r0 *1 923.4,713.4
+X133 n188 n598 n362 n567 n247 VDD GND NAND4
+* cell instance 197 r0 *1 388.8,713.4
+X197 VDD GND FILL3
+* cell instance 199 r0 *1 388.8,962.8
+X199 VDD GND FILL3
+* cell instance 201 r0 *1 388.8,1212.2
+X201 VDD GND FILL3
+* cell instance 202 r0 *1 680.4,962.8
+X202 n427 n606 n654 n577 VDD GND MUX2
+* cell instance 203 r0 *1 712.8,962.8
+X203 n596 n35 n733 VDD GND XOR2
+* cell instance 204 r0 *1 739.8,962.8
+X204 VDD GND FILL3
+* cell instance 205 r0 *1 405,962.8
+X205 VDD GND FILL3
+* cell instance 206 r0 *1 421.2,962.8
+X206 VDD GND FILL3
+* cell instance 207 r0 *1 437.4,962.8
+X207 VDD GND FILL3
+* cell instance 208 r0 *1 453.6,962.8
+X208 n646 n753 n55 out_port[0] VDD n51 GND DFFRB
+* cell instance 209 r0 *1 518.4,962.8
+X209 VDD clk n51 GND BUFTH
+* cell instance 210 r0 *1 550.8,962.8
+X210 n515 n577 n55 n606 VDD n51 GND DFFRB
+* cell instance 211 r0 *1 615.6,962.8
+X211 n655 n604 n55 n748 VDD n51 GND DFFRB
+* cell instance 213 r0 *1 766.8,962.8
+X213 VDD GND FILL3
+* cell instance 214 r0 *1 178.2,962.8
+X214 n634 n528 n55 n342 VDD n51 GND DFFRB
+* cell instance 215 r0 *1 59.4,962.8
+X215 n544 n542 n504 VDD GND XNOR2
+* cell instance 216 r0 *1 86.4,962.8
+X216 n32 n782 n544 n127 VDD GND MUX2
+* cell instance 217 r0 *1 118.8,962.8
+X217 n782 n727 n335 VDD GND XOR2
+* cell instance 218 r0 *1 145.8,962.8
+X218 n33 out_port[0] n458 n753 VDD GND MUX2
+* cell instance 219 r0 *1 27,962.8
+X219 VDD wr n726 GND BUFTH
+* cell instance 221 r0 *1 10.8,962.8
+X221 VDD GND FILL3
+* cell instance 222 r0 *1 340.2,962.8
+X222 VDD GND FILL2
+* cell instance 223 r0 *1 351,962.8
+X223 VDD GND FILL2
+* cell instance 224 r0 *1 361.8,962.8
+X224 VDD GND FILL3
+* cell instance 225 r0 *1 243,962.8
+X225 n511 n542 n55 n544 VDD n51 GND DFFRB
+* cell instance 226 r0 *1 307.8,962.8
+X226 VDD GND FILL3
+* cell instance 227 r0 *1 324,962.8
+X227 VDD GND FILL3
+* cell instance 228 r0 *1 766.8,1212.2
+X228 VDD GND FILL3
+* cell instance 270 r0 *1 405,1212.2
+X270 VDD GND FILL3
+* cell instance 274 r0 *1 421.2,1212.2
+X274 VDD GND FILL3
+* cell instance 275 r0 *1 437.4,1212.2
+X275 VDD GND FILL3
+* cell instance 276 r0 *1 453.6,1212.2
+X276 n182 n938 n939 n760 VDD GND NOR3
+* cell instance 277 r0 *1 475.2,1212.2
+X277 n761 n763 n800 n84 VDD GND NOR3
+* cell instance 278 r0 *1 496.8,1212.2
+X278 n729 n764 n55 n27 VDD n51 GND DFFRB
+* cell instance 279 r0 *1 561.6,1212.2
+X279 n198 n458 VDD n876 GND NOR2
+* cell instance 280 r0 *1 577.8,1212.2
+X280 n730 n872 n55 n782 VDD n51 GND DFFRB
+* cell instance 281 r0 *1 642.6,1212.2
+X281 n731 n758 n55 out_port[3] VDD n51 GND DFFRB
+* cell instance 282 r0 *1 707.4,1212.2
+X282 n33 out_port[3] n654 n758 VDD GND MUX2
+* cell instance 283 r0 *1 739.8,1212.2
+X283 VDD GND FILL3
+* cell instance 289 r0 *1 302.4,1212.2
+X289 VDD GND FILL3
+* cell instance 290 r0 *1 318.6,1212.2
+X290 VDD GND FILL3
+* cell instance 291 r0 *1 205.2,1212.2
+X291 n32 n787 n841 n870 VDD GND NAND3
+* cell instance 292 r0 *1 226.8,1212.2
+X292 n754 n760 VDD n872 GND NOR2
+* cell instance 293 r0 *1 243,1212.2
+X293 n930 n870 n554 VDD GND NAND2
+* cell instance 295 r0 *1 259.2,1212.2
+X295 cflag_o n182 n930 VDD GND NAND2
+* cell instance 297 r0 *1 334.8,1212.2
+X297 VDD GND FILL3
+* cell instance 298 r0 *1 351,1212.2
+X298 VDD GND FILL2
+* cell instance 299 r0 *1 361.8,1212.2
+X299 VDD GND FILL3
+* cell instance 300 r0 *1 59.4,1212.2
+X300 n32 n761 VDD GND BUF_X2
+* cell instance 301 r0 *1 75.6,1212.2
+X301 n32 n782 VDD n754 GND NOR2
+* cell instance 303 r0 *1 91.8,1212.2
+X303 n726 VDD n763 GND INV_X1
+* cell instance 304 r0 *1 102.6,1212.2
+X304 VDD exec n761 GND BUFTH
+* cell instance 305 r0 *1 135,1212.2
+X305 n28 n182 n726 n800 VDD GND AND3_X1
+* cell instance 314 r0 *1 10.8,1212.2
+X314 VDD GND FILL3
+* cell instance 315 r0 *1 27,1212.2
+X315 n28 n729 n27 n764 VDD GND MUX2
+* cell instance 332 r0 *1 162,1212.2
+X332 VDD nibsel n800 GND BUFTH
+* cell instance 336 r0 *1 194.4,1212.2
+X336 n761 VDD n182 GND INV_X2
+* cell instance 344 r0 *1 275.4,1212.2
+X344 n182 n876 n932 n353 VDD GND OR3
+* cell instance 378 r0 *1 10.8,713.4
+X378 VDD GND FILL3
+* cell instance 379 r0 *1 361.8,713.4
+X379 VDD GND FILL3
+* cell instance 380 r0 *1 27,713.4
+X380 n27 n29 n28 n336 VDD GND NAND3
+* cell instance 381 r0 *1 48.6,713.4
+X381 n27 n342 n28 n504 n29 VDD GND NAND4
+* cell instance 382 r0 *1 75.6,713.4
+X382 n342 n528 n336 VDD GND XNOR2
+* cell instance 383 r0 *1 102.6,713.4
+X383 n32 n332 n330 n343 VDD GND NAND3
+* cell instance 384 r0 *1 124.2,713.4
+X384 n198 n331 n330 VDD GND NAND2
+* cell instance 385 r0 *1 140.4,713.4
+X385 n198 n35 VDD n332 GND OR2
+* cell instance 386 r0 *1 162,713.4
+X386 n78 n382 n32 n427 VDD GND NAND3
+* cell instance 387 r0 *1 183.6,713.4
+X387 n427 n366 n58 n376 VDD GND MUX2
+* cell instance 388 r0 *1 216,713.4
+X388 n510 n538 n55 n541 VDD n51 GND DFFRB
+* cell instance 389 r0 *1 280.8,713.4
+X389 VDD GND FILL3
+* cell instance 390 r0 *1 297,713.4
+X390 VDD GND FILL3
+* cell instance 391 r0 *1 313.2,713.4
+X391 VDD GND FILL3
+* cell instance 392 r0 *1 329.4,713.4
+X392 VDD GND FILL3
+* cell instance 393 r0 *1 345.6,713.4
+X393 VDD GND FILL3
+* cell instance 439 r0 *1 518.4,713.4
+X439 VDD rst_n n55 GND BUFTH
+* cell instance 440 r0 *1 550.8,713.4
+X440 n78 n382 n182 n33 VDD GND OR3
+* cell instance 441 r0 *1 405,713.4
+X441 VDD GND FILL3
+* cell instance 442 r0 *1 577.8,713.4
+X442 n427 n541 n35 n538 VDD GND MUX2
+* cell instance 443 r0 *1 610.2,713.4
+X443 n333 n376 n55 n366 VDD n51 GND DFFRB
+* cell instance 444 r0 *1 675,713.4
+X444 n427 n165 n458 n34 VDD GND MUX2
+* cell instance 445 r0 *1 707.4,713.4
+X445 n462 n35 n381 n379 VDD GND MUX2
+* cell instance 446 r0 *1 739.8,713.4
+X446 VDD GND FILL3
+* cell instance 448 r0 *1 766.8,713.4
+X448 VDD GND FILL3
+* cell instance 449 r0 *1 421.2,713.4
+X449 VDD GND FILL3
+* cell instance 450 r0 *1 437.4,713.4
+X450 VDD GND FILL3
+* cell instance 451 r0 *1 453.6,713.4
+X451 n513 n554 n55 cflag_o VDD n51 GND DFFRB
+* cell instance 496 r0 *1 388.8,112.7
+X496 VDD GND FILL3
+* cell instance 498 r0 *1 388.8,424
+X498 VDD GND FILL3
+* cell instance 540 r0 *1 405,424
+X540 VDD GND FILL2
+* cell instance 541 r0 *1 415.8,424
+X541 VDD GND FILL2
+* cell instance 542 r0 *1 426.6,424
+X542 n106 n146 n55 n31 VDD n51 GND DFFRB
+* cell instance 543 r0 *1 491.4,424
+X543 n107 n347 n55 n156 VDD n51 GND DFFRB
+* cell instance 544 r0 *1 556.2,424
+X544 n227 n351 n55 n30 VDD n51 GND DFFRB
+* cell instance 545 r0 *1 621,424
+X545 n108 n379 n55 n381 VDD n51 GND DFFRB
+* cell instance 546 r0 *1 685.8,424
+X546 n381 n173 n179 VDD GND NAND2
+* cell instance 548 r0 *1 702,424
+X548 n78 n79 n362 VDD GND NAND2
+* cell instance 549 r0 *1 718.2,424
+X549 n188 n89 n80 n384 VDD GND NOR3
+* cell instance 551 r0 *1 739.8,424
+X551 VDD GND FILL3
+* cell instance 553 r0 *1 766.8,424
+X553 VDD GND FILL3
+* cell instance 570 r0 *1 183.6,424
+X570 n345 n343 n347 VDD GND NAND2
+* cell instance 571 r0 *1 199.8,424
+X571 n156 n182 n345 VDD GND NAND2
+* cell instance 628 r0 *1 135,424
+X628 n32 n156 n342 n120 VDD GND MUX2
+* cell instance 629 r0 *1 167.4,424
+X629 n30 n182 n346 VDD GND NAND2
+* cell instance 634 r0 *1 10.8,424
+X634 VDD GND FILL3
+* cell instance 635 r0 *1 27,424
+X635 n32 n141 n31 n146 VDD GND MUX2
+* cell instance 636 r0 *1 59.4,424
+X636 n30 n136 n31 VDD GND XOR2
+* cell instance 637 r0 *1 86.4,424
+X637 n30 n31 n156 n335 VDD GND NAND3
+* cell instance 638 r0 *1 108,424
+X638 n156 n331 n124 VDD GND XOR2
+* cell instance 640 r0 *1 297,424
+X640 VDD GND FILL3
+* cell instance 643 r0 *1 264.6,424
+X643 VDD GND FILL3
+* cell instance 644 r0 *1 313.2,424
+X644 VDD GND FILL3
+* cell instance 645 r0 *1 216,424
+X645 n346 n353 n351 VDD GND NAND2
+* cell instance 648 r0 *1 329.4,424
+X648 VDD GND FILL3
+* cell instance 649 r0 *1 345.6,424
+X649 VDD GND FILL3
+* cell instance 650 r0 *1 361.8,424
+X650 VDD GND FILL3
+* cell instance 651 r0 *1 280.8,424
+X651 VDD GND FILL3
+* cell instance 656 r0 *1 232.2,424
+X656 n198 n136 n58 n141 VDD GND MUX2
+* cell instance 659 r0 *1 27,112.7
+X659 n27 n28 n20 VDD GND NAND2
+* cell instance 660 r0 *1 313.2,112.7
+X660 VDD GND FILL3
+* cell instance 662 r0 *1 329.4,112.7
+X662 VDD GND FILL3
+* cell instance 663 r0 *1 345.6,112.7
+X663 VDD GND FILL3
+* cell instance 664 r0 *1 361.8,112.7
+X664 VDD GND FILL3
+* cell instance 665 r0 *1 97.2,112.7
+X665 n32 n31 n29 n122 VDD GND MUX2
+* cell instance 666 r0 *1 129.6,112.7
+X666 n32 n30 n27 n115 VDD GND MUX2
+* cell instance 667 r0 *1 43.2,112.7
+X667 n29 n22 n20 VDD GND XNOR2
+* cell instance 668 r0 *1 70.2,112.7
+X668 n28 VDD n26 GND INV_X1
+* cell instance 669 r0 *1 81,112.7
+X669 n30 n31 n124 VDD GND NAND2
+* cell instance 670 r0 *1 162,112.7
+X670 n33 out_port[2] n35 n130 VDD GND MUX2
+* cell instance 671 r0 *1 194.4,112.7
+X671 n14 n22 n55 n29 VDD n51 GND DFFRB
+* cell instance 672 r0 *1 259.2,112.7
+X672 n33 out_port[1] n58 n140 VDD GND MUX2
+* cell instance 673 r0 *1 291.6,112.7
+X673 n26 n51 VDD n105 GND OR2
+* cell instance 674 r0 *1 10.8,112.7
+X674 VDD GND FILL3
+* cell instance 777 r0 *1 437.4,112.7
+X777 VDD GND FILL2
+* cell instance 781 r0 *1 653.4,112.7
+X781 n18 n23 n55 n113 VDD n51 GND DFFRB
+* cell instance 790 r0 *1 718.2,112.7
+X790 n78 n79 VDD n80 GND AND2_X1
+* cell instance 791 r0 *1 739.8,112.7
+X791 VDD GND FILL3
+* cell instance 794 r0 *1 766.8,112.7
+X794 VDD GND FILL3
+* cell instance 802 r0 *1 405,112.7
+X802 VDD GND FILL3
+* cell instance 803 r0 *1 421.2,112.7
+X803 VDD GND FILL3
+* cell instance 804 r0 *1 588.6,112.7
+X804 n17 n34 n55 n165 VDD n51 GND DFFRB
+* cell instance 805 r0 *1 448.2,112.7
+X805 VDD GND FILL2
+* cell instance 808 r0 *1 459,112.7
+X808 n15 n140 n55 out_port[1] VDD n51 GND DFFRB
+* cell instance 810 r0 *1 523.8,112.7
+X810 n16 n130 n55 out_port[2] VDD n51 GND DFFRB
+* cell instance 827 r0 *1 966.6,424
+X827 n188 n117 n362 n356 n89 VDD GND NAND4
+* cell instance 828 r0 *1 993.6,424
+X828 n84 n116 n295 n144 VDD GND MUX2
+* cell instance 876 r0 *1 847.8,424
+X876 n110 n157 n55 n121 VDD n51 GND DFFRB
+* cell instance 877 r0 *1 912.6,424
+X877 n179 n245 n134 n378 VDD GND NAND3
+* cell instance 878 r0 *1 934.2,424
+X878 n88 n247 n80 n137 VDD GND NOR3
+* cell instance 879 r0 *1 955.8,424
+X879 n88 VDD n188 GND INV_X2
+* cell instance 896 r0 *1 1053,424
+X896 n116 n137 n134 VDD GND NAND2
+* cell instance 899 r0 *1 1069.2,424
+X899 VDD d[1] n117 GND BUFTH
+* cell instance 901 r0 *1 1036.8,424
+X901 n118 n137 n256 VDD GND NAND2
+* cell instance 902 r0 *1 1026,424
+X902 n89 VDD n247 GND INV_X1
+* cell instance 907 r0 *1 1101.6,424
+X907 VDD GND FILL2
+* cell instance 908 r0 *1 1112.4,424
+X908 VDD GND FILL2
+* cell instance 909 r0 *1 1123.2,424
+X909 VDD GND FILL3
+* cell instance 926 r0 *1 847.8,112.7
+X926 n84 n118 n113 n23 VDD GND MUX2
+* cell instance 932 r0 *1 880.2,112.7
+X932 n88 n89 n80 n173 VDD GND NOR3
+* cell instance 934 r0 *1 1080,112.7
+X934 VDD GND FILL3
+* cell instance 935 r0 *1 1096.2,112.7
+X935 VDD GND FILL3
+* cell instance 936 r0 *1 901.8,112.7
+X936 n84 n131 n121 n157 VDD GND MUX2
+* cell instance 937 r0 *1 1112.4,112.7
+X937 VDD GND FILL2
+* cell instance 939 r0 *1 934.2,112.7
+X939 n84 n117 n129 n21 VDD GND MUX2
+* cell instance 941 r0 *1 1123.2,112.7
+X941 VDD GND FILL3
+* cell instance 949 r0 *1 966.6,112.7
+X949 n131 n137 n142 VDD GND NAND2
+* cell instance 950 r0 *1 982.8,112.7
+X950 VDD d[0] n118 GND BUFTH
+* cell instance 952 r0 *1 1015.2,112.7
+X952 VDD d[3] n131 GND BUFTH
+* cell instance 953 r0 *1 1047.6,112.7
+X953 VDD d[2] n116 GND BUFTH
+.ENDS td4_soc_arr_nrow_fm
+* cell OR3
+* pin A
+* pin B
+* pin C
+* pin Y
+* pin vdd
+* pin vss
+.SUBCKT OR3 A B C Y vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 n9 A n2 vdd PMOS L=1U W=10.2U AS=28.56P AD=6.12P PS=26U PD=11.4U
+* device instance 2 r0 *1 6.2,47.8 PMOS
+XM2 n8 B n9 vdd PMOS L=1U W=10.2U AS=6.12P AD=6.12P PS=11.4U PD=11.4U
+* device instance 3 r0 *1 8.4,47.8 PMOS
+XM3 vdd C n8 vdd PMOS L=1U W=10.2U AS=6.12P AD=15.3P PS=11.4U PD=13.2U
+* device instance 4 r0 *1 12.4,47.8 PMOS
+XM4 Y n2 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 5 r0 *1 4,8.2 NMOS
+XM5 vss A n2 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 6 r0 *1 8,8.2 NMOS
+XM6 n2 B vss vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 7 r0 *1 12,8.2 NMOS
+XM7 vss C n2 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 8 r0 *1 16,8.2 NMOS
+XM8 Y n2 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS OR3
+* cell INV_X2
+* pin A
+* pin vdd
+* pin Y
+* pin vss
+.SUBCKT INV_X2 A vdd Y vss
+* device instance 1 r0 *1 4,44.8 PMOS
+XM1 Y A vdd vdd PMOS L=1U W=16.2U AS=45.36P AD=45.36P PS=38U PD=38U
+* device instance 2 r0 *1 5.4,9.8 NMOS
+XM2 Y A vss vss NMOS L=1U W=6.6U AS=18.48P AD=18.48P PS=18.8U PD=18.8U
+.ENDS INV_X2
+* cell AND3_X1
+* pin Y
+* pin A
+* pin B
+* pin C
+* pin vdd
+* pin vss
+.SUBCKT AND3_X1 Y A B C vdd vss
+* device instance 1 r0 *1 21,47.8 PMOS
+XM1 Y n2 vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=28.56P PS=26U PD=26U
+* device instance 2 r0 *1 4,47.8 PMOS
+XM2 n2 A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 3 r0 *1 8,47.8 PMOS
+XM3 vdd B n2 vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 4 r0 *1 12,47.8 PMOS
+XM4 n2 C vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 5 r0 *1 8.6,8.2 NMOS
+XM5 n4 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 6 r0 *1 10.8,8.2 NMOS
+XM6 n5 B n4 vss NMOS L=1U W=3.4U AS=2.04P AD=2.04P PS=4.6U PD=4.6U
+* device instance 7 r0 *1 13,8.2 NMOS
+XM7 n2 C n5 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+* device instance 8 r0 *1 21,8.2 NMOS
+XM8 Y n2 vss vss NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+.ENDS AND3_X1
+* cell BUF_X2
+* pin Y
+* pin A
+* pin vdd
+* pin vss
+.SUBCKT BUF_X2 Y A vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 vdd A n2 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 8,47.8 PMOS
+XM2 Y n2 vdd vdd PMOS L=1U W=20.4U AS=30.6P AD=43.86P PS=26.4U PD=39.2U
+* device instance 4 r0 *1 4,8.2 NMOS
+XM4 vss A n2 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 5 r0 *1 8,8.2 NMOS
+XM5 Y n2 vss vss NMOS L=1U W=6.8U AS=10.2P AD=14.62P PS=12.8U PD=18.8U
+.ENDS BUF_X2
+* cell BUFTH
+* pin vdd
+* pin A
+* pin Y
+* pin vss
+.SUBCKT BUFTH vdd A Y vss
+* device instance 1 r0 *1 10.8,47.85 PMOS
+XM1 n7 n5 vss vdd PMOS L=1U W=10.2U AS=21.93P AD=21.93P PS=23.9U PD=23.9U
+* device instance 3 r0 *1 26,41.7 PMOS
+XM3 Y n5 vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=28.56P PS=26U PD=26U
+* device instance 4 r0 *1 10.8,39.15 PMOS
+XM4 n7 A n5 vdd PMOS L=1U W=5.1U AS=14.28P AD=7.65P PS=15.8U PD=8.1U
+* device instance 5 r0 *1 14.8,39.15 PMOS
+XM5 vdd A n7 vdd PMOS L=1U W=5.1U AS=7.65P AD=14.28P PS=8.1U PD=15.8U
+* device instance 6 r0 *1 26,17.9 NMOS
+XM6 Y n5 vss vss NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+* device instance 7 r0 *1 10.8,17.9 NMOS
+XM7 n3 A n5 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 8 r0 *1 14.8,17.9 NMOS
+XM8 vss A n3 vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 9 r0 *1 10.8,10 NMOS
+XM9 n3 n5 vdd vss NMOS L=1U W=6.8U AS=14.62P AD=14.62P PS=18.8U PD=18.8U
+.ENDS BUFTH
+* cell INV_X1
+* pin A
+* pin vdd
+* pin Y
+* pin vss
+.SUBCKT INV_X1 A vdd Y vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 Y A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=28.56P PS=26U PD=26U
+* device instance 2 r0 *1 5.4,8.2 NMOS
+XM2 Y A vss vss NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+.ENDS INV_X1
+* cell XNOR2
+* pin A
+* pin Y
+* pin B
+* pin vdd
+* pin vss
+.SUBCKT XNOR2 A Y B vdd vss
+* device instance 1 r0 *1 16,46.8 PMOS
+XM1 vdd n3 Y vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 20,46.8 PMOS
+XM2 n9 B vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=6.12P PS=13.2U PD=11.4U
+* device instance 3 r0 *1 22.2,46.8 PMOS
+XM3 Y A n9 vdd PMOS L=1U W=10.2U AS=6.12P AD=28.56P PS=11.4U PD=26U
+* device instance 4 r0 *1 4,46.8 PMOS
+XM4 vdd A n3 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 5 r0 *1 8,46.8 PMOS
+XM5 n3 B vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 6 r0 *1 14.2,9.2 NMOS
+XM6 n5 n3 Y vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 7 r0 *1 18.2,9.2 NMOS
+XM7 vss B n5 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 8 r0 *1 22.2,9.2 NMOS
+XM8 n5 A vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 9 r0 *1 4,9.2 NMOS
+XM9 n6 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 10 r0 *1 6.2,9.2 NMOS
+XM10 n3 B n6 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+.ENDS XNOR2
+* cell NOR3
+* pin A
+* pin B
+* pin C
+* pin Y
+* pin vdd
+* pin vss
+.SUBCKT NOR3 A B C Y vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 n8 A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=6.12P PS=26U PD=11.4U
+* device instance 2 r0 *1 6.2,47.8 PMOS
+XM2 n7 B n8 vdd PMOS L=1U W=10.2U AS=6.12P AD=6.12P PS=11.4U PD=11.4U
+* device instance 3 r0 *1 8.4,47.8 PMOS
+XM3 Y C n7 vdd PMOS L=1U W=10.2U AS=6.12P AD=28.56P PS=11.4U PD=26U
+* device instance 4 r0 *1 4,8.2 NMOS
+XM4 Y A vss vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 5 r0 *1 8,8.2 NMOS
+XM5 vss B Y vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 6 r0 *1 12,8.2 NMOS
+XM6 Y C vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS NOR3
+* cell NAND4
+* pin A
+* pin C
+* pin D
+* pin Y
+* pin B
+* pin vdd
+* pin vss
+.SUBCKT NAND4 A C D Y B vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 Y A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 8,47.8 PMOS
+XM2 vdd B Y vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 3 r0 *1 12,47.8 PMOS
+XM3 Y C vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 4 r0 *1 16,47.8 PMOS
+XM4 vdd D Y vdd PMOS L=1U W=10.2U AS=15.3P AD=29.58P PS=13.2U PD=26.2U
+* device instance 5 r0 *1 8.6,8.2 NMOS
+XM5 n6 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 6 r0 *1 10.8,8.2 NMOS
+XM6 n8 B n6 vss NMOS L=1U W=3.4U AS=2.04P AD=2.04P PS=4.6U PD=4.6U
+* device instance 7 r0 *1 13,8.2 NMOS
+XM7 n7 C n8 vss NMOS L=1U W=3.4U AS=2.04P AD=2.04P PS=4.6U PD=4.6U
+* device instance 8 r0 *1 15.2,8.2 NMOS
+XM8 Y D n7 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+.ENDS NAND4
+* cell OR2
+* pin B
+* pin A
+* pin vdd
+* pin Y
+* pin vss
+.SUBCKT OR2 B A vdd Y vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 n7 A n3 vdd PMOS L=1U W=10.2U AS=28.56P AD=6.12P PS=26U PD=11.4U
+* device instance 2 r0 *1 6.2,47.8 PMOS
+XM2 vdd B n7 vdd PMOS L=1U W=10.2U AS=6.12P AD=15.3P PS=11.4U PD=13.2U
+* device instance 3 r0 *1 10.2,47.8 PMOS
+XM3 Y n3 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 4 r0 *1 4,8.2 NMOS
+XM4 n3 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 5 r0 *1 8,8.2 NMOS
+XM5 vss B n3 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 6 r0 *1 12,8.2 NMOS
+XM6 Y n3 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS OR2
+* cell AND2_X1
+* pin A
+* pin B
+* pin vdd
+* pin Y
+* pin vss
+.SUBCKT AND2_X1 A B vdd Y vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 n3 A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 8,47.8 PMOS
+XM2 vdd B n3 vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 3 r0 *1 12,47.8 PMOS
+XM3 Y n3 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 4 r0 *1 8.6,17.9 NMOS
+XM4 n7 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 5 r0 *1 10.8,17.9 NMOS
+XM5 n3 B n7 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+* device instance 6 r0 *1 16.2,9.4 NMOS
+XM6 Y n3 vss vss NMOS L=1U W=3.4U AS=35.36P AD=9.52P PS=27.6U PD=12.4U
+.ENDS AND2_X1
+* cell NOR2
+* pin A
+* pin B
+* pin vdd
+* pin Y
+* pin vss
+.SUBCKT NOR2 A B vdd Y vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 n6 A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=6.12P PS=26U PD=11.4U
+* device instance 2 r0 *1 6.2,47.8 PMOS
+XM2 Y B n6 vdd PMOS L=1U W=10.2U AS=6.12P AD=28.56P PS=11.4U PD=26U
+* device instance 3 r0 *1 4,8.2 NMOS
+XM3 Y A vss vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 4 r0 *1 8,8.2 NMOS
+XM4 vss B Y vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS NOR2
+* cell FILL2
+* pin vdd
+* pin vss
+.SUBCKT FILL2 vdd vss
+* device instance 1 r0 *1 5.4,45 PMOS
+XM1 vdd vss vdd vdd PMOS L=3.2U W=15.8U AS=44.24P AD=44.24P PS=37.2U PD=37.2U
+* device instance 2 r0 *1 5.4,13.05 NMOS
+XM2 vss vdd vss vss NMOS L=3.2U W=13.1U AS=36.68P AD=36.68P PS=31.8U PD=31.8U
+.ENDS FILL2
+* cell FILL3
+* pin vdd
+* pin vss
+.SUBCKT FILL3 vdd vss
+* device instance 1 r0 *1 8.1,45 PMOS
+XM1 vdd vss vdd vdd PMOS L=8.6U W=15.8U AS=44.24P AD=44.24P PS=37.2U PD=37.2U
+* device instance 2 r0 *1 8.1,13.05 NMOS
+XM2 vss vdd vss vss NMOS L=8.6U W=13.1U AS=36.68P AD=36.68P PS=31.8U PD=31.8U
+.ENDS FILL3
+* cell XOR2
+* pin A
+* pin Y
+* pin B
+* pin vdd
+* pin vss
+.SUBCKT XOR2 A Y B vdd vss
+* device instance 1 r0 *1 14.2,46.8 PMOS
+XM1 n8 n3 Y vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 18.2,46.8 PMOS
+XM2 vdd B n8 vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 3 r0 *1 22.2,46.8 PMOS
+XM3 n8 A vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 4 r0 *1 4,46.8 PMOS
+XM4 n9 A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=6.12P PS=26U PD=11.4U
+* device instance 5 r0 *1 6.2,46.8 PMOS
+XM5 n3 B n9 vdd PMOS L=1U W=10.2U AS=6.12P AD=28.56P PS=11.4U PD=26U
+* device instance 6 r0 *1 16,9.2 NMOS
+XM6 vss n3 Y vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 7 r0 *1 20,9.2 NMOS
+XM7 n5 B vss vss NMOS L=1U W=3.4U AS=5.1P AD=2.04P PS=6.4U PD=4.6U
+* device instance 8 r0 *1 22.2,9.2 NMOS
+XM8 Y A n5 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+* device instance 9 r0 *1 4,9.2 NMOS
+XM9 vss A n3 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 10 r0 *1 8,9.2 NMOS
+XM10 n3 B vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS XOR2
+* cell NAND2
+* pin A
+* pin B
+* pin Y
+* pin vdd
+* pin vss
+.SUBCKT NAND2 A B Y vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 Y A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 8,47.8 PMOS
+XM2 vdd B Y vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 3 r0 *1 8.6,8.2 NMOS
+XM3 n6 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 4 r0 *1 10.8,8.2 NMOS
+XM4 Y B n6 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+.ENDS NAND2
+* cell NAND3
+* pin A
+* pin B
+* pin C
+* pin Y
+* pin vdd
+* pin vss
+.SUBCKT NAND3 A B C Y vdd vss
+* device instance 1 r0 *1 4,47.8 PMOS
+XM1 Y A vdd vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 8,47.8 PMOS
+XM2 vdd B Y vdd PMOS L=1U W=10.2U AS=15.3P AD=15.3P PS=13.2U PD=13.2U
+* device instance 3 r0 *1 12,47.8 PMOS
+XM3 Y C vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 4 r0 *1 8.6,8.2 NMOS
+XM4 n8 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 5 r0 *1 10.8,8.2 NMOS
+XM5 n7 B n8 vss NMOS L=1U W=3.4U AS=2.04P AD=2.04P PS=4.6U PD=4.6U
+* device instance 6 r0 *1 13,8.2 NMOS
+XM6 Y C n7 vss NMOS L=1U W=3.4U AS=2.04P AD=9.52P PS=4.6U PD=12.4U
+.ENDS NAND3
+* cell MUX2
+* pin S
+* pin B
+* pin A
+* pin Y
+* pin vdd
+* pin vss
+.SUBCKT MUX2 S B A Y vdd vss
+* device instance 1 r0 *1 5.1,50.3 PMOS
+XM1 n3 S vdd vdd PMOS L=1U W=5.2U AS=14.56P AD=14.56P PS=16U PD=16U
+* device instance 2 r0 *1 27.3,42.2 PMOS
+XM2 Y n5 vdd vdd PMOS L=1U W=11.2U AS=31.36P AD=31.36P PS=28U PD=28U
+* device instance 3 r0 *1 5.1,39.2 PMOS
+XM3 n4 A vdd vdd PMOS L=1U W=5.2U AS=14.56P AD=7.8P PS=16U PD=8.2U
+* device instance 4 r0 *1 9.1,39.2 PMOS
+XM4 n5 S n4 vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 5 r0 *1 13.1,39.2 PMOS
+XM5 n6 n3 n5 vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 6 r0 *1 17.1,39.2 PMOS
+XM6 vdd B n6 vdd PMOS L=1U W=5.2U AS=7.8P AD=15.6P PS=8.2U PD=16.4U
+* device instance 7 r0 *1 27.3,17.9 NMOS
+XM7 Y n5 vss vss NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+* device instance 8 r0 *1 5.1,17.9 NMOS
+XM8 n4 A vss vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 9 r0 *1 9.1,17.9 NMOS
+XM9 n5 n3 n4 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 10 r0 *1 13.1,17.9 NMOS
+XM10 n6 S n5 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 11 r0 *1 17.1,17.9 NMOS
+XM11 vss B n6 vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 12 r0 *1 11.5,8.2 NMOS
+XM12 n3 S vss vss NMOS L=1U W=3.4U AS=10.2P AD=9.52P PS=12.8U PD=12.4U
+.ENDS MUX2
+* cell REG8x16
+* pin vdd
+* pin Q[4]
+* pin D[4]
+* pin D[5]
+* pin Q[5]
+* pin Q[6]
+* pin D[6]
+* pin D[7]
+* pin Q[7]
+* pin WEB
+* pin ADD[0]
+* pin ADD[1]
+* pin ADD[2]
+* pin ADD[3]
+* pin Q[0]
+* pin D[0]
+* pin D[1]
+* pin Q[1]
+* pin Q[2]
+* pin D[2]
+* pin D[3]
+* pin Q[3]
+* pin vss
+.SUBCKT REG8x16 vdd Q[4] D[4] D[5] Q[5] Q[6] D[6] D[7] Q[7] WEB ADD[0] ADD[1] ADD[2] ADD[3] Q[0] D[0] D[1] Q[1] Q[2] D[2] D[3] Q[3] vss
+* cell instance 1 r0 *1 86.4,54.6
+X1 vss nI2 nI3 nI4 nI5 nI6 nI7 nI8 nI9 nI10 nI11 nI12 nI13 nI14 nI15 nI16 nI17 nI18 nI19 nI20 nI21 nI22 nI23 nI24 nI25 nI26 nI27 nI28 nI29 nI30 nI31 nI32 nI33 nI34 nI35 nI36 nI37 nI38 nI39 nI40 nI41 nI42 nI43 nI44 nI45 nI46 nI47 nI48 nI49 nI50 nI51 nI52 nI53 nI54 nI55 nI56 nI57 nI58 nI59 nI60 nI61 nI62 nI63 nI64 nI65 nI67 nI68 nI69 nI70 nI71 nI72 nI73 nI74 nI75 nI76 nI77 nI78 nI79 nI80 nI81 nI82 vdd TLAT128
+* cell instance 2 m45 *1 0,111.6
+X2 nI83 nI84 nI85 nI86 nI87 nI88 vss nI58 nI59 nI60 nI61 nI62 nI63 nI64 nI65 nI50 nI51 nI52 nI53 nI54 nI55 nI56 nI57 nI42 nI43 nI44 nI45 nI46 nI47 nI48 nI49 nI34 nI35 nI36 nI37 nI38 nI39 nI40 nI41 nI26 nI27 nI28 nI29 nI30 nI31 nI32 nI33 nI18 nI19 nI20 nI21 nI22 nI23 nI24 nI25 nI10 nI11 nI12 nI13 nI14 nI15 nI16 nI17 nI2 nI3 nI4 nI5 nI6 nI7 nI8 nI9 nI89 nI90 nI91 vdd DEC16
+* cell instance 3 r180 *1 388.8,59.4
+X3 vss D[0] D[1] D[2] D[3] D[4] D[5] D[6] D[7] Q[0] Q[1] Q[2] Q[3] Q[4] Q[5] Q[6] Q[7] nI82 nI81 nI80 nI79 nI78 nI77 nI76 nI75 nI74 nI73 nI72 nI71 nI70 nI69 nI68 nI67 vdd REGBUF8
+* cell instance 4 r180 *1 37.8,59.4
+X4 nI84 nI87 nI83 nI90 nI88 ADD[3] nI85 ADD[2] ADD[1] nI86 nI89 nI91 vdd ADD[0] WEB vss ADDBUF
+.ENDS REG8x16
+* cell DFFRB
+* pin QB
+* pin D
+* pin RSTB
+* pin Q
+* pin vdd
+* pin CK
+* pin vss
+.SUBCKT DFFRB QB D RSTB Q vdd CK vss
+* device instance 1 r0 *1 60.3,45.8 PMOS
+XM1 Q QB vdd vdd PMOS L=1U W=10.4U AS=29.12P AD=29.12P PS=32U PD=32U
+* device instance 2 r0 *1 48.2,45.8 PMOS
+XM2 QB QS vdd vdd PMOS L=1U W=10.4U AS=27.56P AD=15.6P PS=26.2U PD=16.4U
+* device instance 3 r0 *1 52.2,45.8 PMOS
+XM3 vdd RSTB QB vdd PMOS L=1U W=10.4U AS=15.6P AD=29.12P PS=16.4U PD=32U
+* device instance 4 r0 *1 4,41.8 PMOS
+XM4 vdd CK CKB vdd PMOS L=1U W=10.4U AS=29.12P AD=15.6P PS=26.4U PD=13.4U
+* device instance 5 r0 *1 8,41.8 PMOS
+XM5 CKP CKB vdd vdd PMOS L=1U W=10.4U AS=15.6P AD=29.12P PS=13.4U PD=26.4U
+* device instance 6 r0 *1 16,39.2 PMOS
+XM6 n16 D vdd vdd PMOS L=1U W=5.2U AS=14.56P AD=3.12P PS=16U PD=6.4U
+* device instance 7 r0 *1 18.2,39.2 PMOS
+XM7 n7 CKP n16 vdd PMOS L=1U W=5.2U AS=3.12P AD=7.8P PS=6.4U PD=8.2U
+* device instance 8 r0 *1 22.2,39.2 PMOS
+XM8 n8 CKB n7 vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 9 r0 *1 26.2,39.2 PMOS
+XM9 vdd QM n8 vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 10 r0 *1 30.2,39.2 PMOS
+XM10 QM n7 vdd vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 11 r0 *1 34.2,39.2 PMOS
+XM11 QS CKB QM vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 12 r0 *1 38.2,39.2 PMOS
+XM12 n10 CKP QS vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 13 r0 *1 42.2,39.2 PMOS
+XM13 vdd QB n10 vdd PMOS L=1U W=5.2U AS=7.8P AD=13P PS=8.2U PD=10.2U
+* device instance 17 r0 *1 60.3,17.9 NMOS
+XM17 Q QB vss vss NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+* device instance 18 r0 *1 16,17.9 NMOS
+XM18 n13 D vss vss NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 19 r0 *1 18.2,17.9 NMOS
+XM19 n7 CKB n13 vss NMOS L=1U W=3.4U AS=2.04P AD=5.1P PS=4.6U PD=6.4U
+* device instance 20 r0 *1 22.2,17.9 NMOS
+XM20 n8 CKP n7 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 21 r0 *1 26.2,17.9 NMOS
+XM21 vss QM n8 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 22 r0 *1 30.2,17.9 NMOS
+XM22 QM n7 vss vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 23 r0 *1 34.2,17.9 NMOS
+XM23 QS CKP QM vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 24 r0 *1 38.2,17.9 NMOS
+XM24 n10 CKB QS vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 25 r0 *1 42.2,17.9 NMOS
+XM25 vss QB n10 vss NMOS L=1U W=3.4U AS=5.1P AD=8.5P PS=6.4U PD=8.4U
+* device instance 26 r0 *1 48.2,17.9 NMOS
+XM26 n14 QS vss vss NMOS L=1U W=3.4U AS=8.5P AD=2.21P PS=8.4U PD=4.7U
+* device instance 27 r0 *1 50.5,17.9 NMOS
+XM27 QB RSTB n14 vss NMOS L=1U W=3.4U AS=2.21P AD=9.52P PS=4.7U PD=12.4U
+* device instance 28 r0 *1 4,17.9 NMOS
+XM28 vss CK CKB vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 29 r0 *1 8,17.9 NMOS
+XM29 CKP CKB vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS DFFRB
+* cell OSS_ESD_5V_VDD
+* pin PAD,VDD
+* pin VSS
+.SUBCKT OSS_ESD_5V_VDD VDD VSS
+* cell instance 1 r90 *1 130,0
+X1 VDD VSS OSS_NCH_ESD
+* cell instance 3 r270 *1 -130,0
+X3 VSS VDD OSS_PCH_ESD
+.ENDS OSS_ESD_5V_VDD
+* cell OSS_ESD_5V_VSS
+* pin VDD
+* pin PAD,VSS
+.SUBCKT OSS_ESD_5V_VSS VDD VSS
+* cell instance 1 r270 *1 130,0
+X1 VDD VSS OSS_NCH_ESD
+* cell instance 2 r90 *1 -130,0
+X2 VSS VDD OSS_PCH_ESD
+.ENDS OSS_ESD_5V_VSS
+* cell OSS_ESD_5V_DIO
+* pin PAD
+* pin VDD
+* pin HIZ
+* pin OUT
+* pin VSS
+.SUBCKT OSS_ESD_5V_DIO PAD VDD HIZ OUT VSS
+* cell instance 1 r90 *1 130,0
+X1 PAD n9 VSS OSS_NCH_DRV
+* cell instance 2 r90 *1 -130,0
+X2 PAD VDD n8 OSS_PCH_DRV
+* cell instance 5 m0 *1 0,107.8
+X5 OUT HIZ VDD n8 n9 VSS OSS_DRV
+.ENDS OSS_ESD_5V_DIO
+* cell ADDBUF
+* pin AB3
+* pin AB2
+* pin AB1
+* pin AB0
+* pin A3
+* pin A3_PIN
+* pin A2
+* pin A2_PIN
+* pin A1_PIN
+* pin A1
+* pin A0
+* pin WEB
+* pin vdd
+* pin A0_PIN
+* pin WEB_PIN
+* pin vss
+.SUBCKT ADDBUF AB3 AB2 AB1 AB0 A3 A3_PIN A2 A2_PIN A1_PIN A1 A0 WEB vdd A0_PIN WEB_PIN vss
+* device instance 1 r0 *1 28,41.7 PMOS
+XM1 vdd n6 WEB vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 32,41.7 PMOS
+XM2 n6 WEB_PIN vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 3 r0 *1 -20,41.7 PMOS
+XM3 vdd AB3 A3 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 4 r0 *1 -16,41.7 PMOS
+XM4 AB3 A3_PIN vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 5 r0 *1 4,41.7 PMOS
+XM5 vdd A1_PIN AB1 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 6 r0 *1 8,41.7 PMOS
+XM6 A1 AB1 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 7 r0 *1 -8,41.7 PMOS
+XM7 vdd AB2 A2 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 8 r0 *1 -4,41.7 PMOS
+XM8 AB2 A2_PIN vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 9 r0 *1 16,41.7 PMOS
+XM9 vdd A0_PIN AB0 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 10 r0 *1 20,41.7 PMOS
+XM10 A0 AB0 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 11 r0 *1 28,17.9 NMOS
+XM11 vss n6 WEB vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 12 r0 *1 32,17.9 NMOS
+XM12 n6 WEB_PIN vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 13 r0 *1 16,17.9 NMOS
+XM13 vss A0_PIN AB0 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 14 r0 *1 20,17.9 NMOS
+XM14 A0 AB0 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 15 r0 *1 4,17.9 NMOS
+XM15 vss A1_PIN AB1 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 16 r0 *1 8,17.9 NMOS
+XM16 A1 AB1 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 17 r0 *1 -8,17.9 NMOS
+XM17 vss AB2 A2 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 18 r0 *1 -4,17.9 NMOS
+XM18 AB2 A2_PIN vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 19 r0 *1 -20,17.9 NMOS
+XM19 vss AB3 A3 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 20 r0 *1 -16,17.9 NMOS
+XM20 AB3 A3_PIN vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS ADDBUF
+* cell REGBUF8
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT REGBUF8 VSS nI41 nI40 nI39 nI38 nI37 nI36 nI35 nI34 nI33 nI32 nI31 nI30 nI29 nI28 nI27 nI26 nI25 nI24 nI23 nI22 nI21 nI20 nI19 nI18 nI17 nI16 nI15 nI14 nI13 nI12 nI11 nI10 nI9
+* cell instance 1 r0 *1 0,0
+X1 nI18 nI26 nI10 nI34 nI9 VSS REGBUF
+* cell instance 2 r0 *1 37.8,0
+X2 nI19 nI27 nI11 nI35 nI9 VSS REGBUF
+* cell instance 3 r0 *1 75.6,0
+X3 nI20 nI28 nI12 nI36 nI9 VSS REGBUF
+* cell instance 4 r0 *1 113.4,0
+X4 nI21 nI29 nI13 nI37 nI9 VSS REGBUF
+* cell instance 5 r0 *1 151.2,0
+X5 nI22 nI30 nI14 nI38 nI9 VSS REGBUF
+* cell instance 6 r0 *1 189,0
+X6 nI23 nI31 nI15 nI39 nI9 VSS REGBUF
+* cell instance 7 r0 *1 226.8,0
+X7 nI24 nI32 nI16 nI40 nI9 VSS REGBUF
+* cell instance 8 r0 *1 264.6,0
+X8 nI25 nI33 nI17 nI41 nI9 VSS REGBUF
+.ENDS REGBUF8
+* cell DEC16
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT DEC16 n1 n2 n3 n6 n8 n14 VSS nI155 nI154 nI153 nI152 nI151 nI150 nI149 nI148 nI147 nI146 nI145 nI144 nI143 nI142 nI141 nI140 nI139 nI138 nI137 nI136 nI135 nI134 nI133 nI132 nI131 nI130 nI129 nI128 nI127 nI126 nI125 nI124 nI123 nI122 nI121 nI120 nI119 nI118 nI117 nI116 nI115 nI114 nI113 nI112 nI111 nI110 nI109 nI108 nI107 nI106 nI105 nI104 nI103 nI102 nI101 nI100 nI99 nI98 nI97 nI96 nI95 nI94 nI93 nI92 nI28 nI21 nI14 nI7
+* cell instance 1 r0 *1 0,0
+X1 nI7 nI14 nI21 nI28 nI100 nI92 nI124 nI132 VSS nI148 nI116 nI140 nI108 n1 n3 n14 DEC2
+* cell instance 2 r0 *1 109.2,0
+X2 nI7 nI14 nI21 nI28 nI101 nI93 nI125 nI133 VSS nI149 nI117 nI141 nI109 n6 n3 n14 DEC2
+* cell instance 3 r0 *1 218.4,0
+X3 nI7 nI14 nI21 nI28 nI102 nI94 nI126 nI134 VSS nI150 nI118 nI142 nI110 n1 n8 n14 DEC2
+* cell instance 4 r0 *1 327.6,0
+X4 nI7 nI14 nI21 nI28 nI103 nI95 nI127 nI135 VSS nI151 nI119 nI143 nI111 n6 n8 n14 DEC2
+* cell instance 5 r0 *1 436.8,0
+X5 nI7 nI14 nI21 nI28 nI104 nI96 nI128 nI136 VSS nI152 nI120 nI144 nI112 n1 n3 n2 DEC2
+* cell instance 6 r0 *1 546,0
+X6 nI7 nI14 nI21 nI28 nI105 nI97 nI129 nI137 VSS nI153 nI121 nI145 nI113 n6 n3 n2 DEC2
+* cell instance 7 r0 *1 655.2,0
+X7 nI7 nI14 nI21 nI28 nI106 nI98 nI130 nI138 VSS nI154 nI122 nI146 nI114 n1 n8 n2 DEC2
+* cell instance 8 r0 *1 764.4,0
+X8 nI7 nI14 nI21 nI28 nI107 nI99 nI131 nI139 VSS nI155 nI123 nI147 nI115 n6 n8 n2 DEC2
+.ENDS DEC16
+* cell TLAT128
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT TLAT128 VSS nI183 nI182 nI181 nI180 nI179 nI178 nI177 nI176 nI175 nI174 nI173 nI172 nI171 nI170 nI169 nI168 nI167 nI166 nI165 nI164 nI163 nI162 nI161 nI160 nI159 nI158 nI157 nI156 nI155 nI154 nI153 nI152 nI151 nI150 nI149 nI148 nI147 nI146 nI145 nI144 nI143 nI142 nI141 nI140 nI139 nI138 nI137 nI136 nI135 nI134 nI133 nI132 nI131 nI130 nI129 nI128 nI127 nI126 nI125 nI124 nI123 nI122 nI121 nI120 nI119 nI112 nI105 nI98 nI91 nI84 nI77 nI70 nI63 nI56 nI49 nI42 nI35 nI28 nI21 nI14 nI7
+* cell instance 1 r0 *1 0,0
+X1 VSS nI152 nI120 nI160 nI128 nI168 nI136 nI176 nI144 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 2 r0 *1 0,109.2
+X2 VSS nI153 nI121 nI161 nI129 nI169 nI137 nI177 nI145 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 3 r0 *1 0,218.4
+X3 VSS nI154 nI122 nI162 nI130 nI170 nI138 nI178 nI146 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 4 r0 *1 0,327.6
+X4 VSS nI155 nI123 nI163 nI131 nI171 nI139 nI179 nI147 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 5 r0 *1 0,436.8
+X5 VSS nI156 nI124 nI164 nI132 nI172 nI140 nI180 nI148 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 6 r0 *1 0,546
+X6 VSS nI157 nI125 nI165 nI133 nI173 nI141 nI181 nI149 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 7 r0 *1 0,655.2
+X7 VSS nI158 nI126 nI166 nI134 nI174 nI142 nI182 nI150 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+* cell instance 8 r0 *1 0,764.4
+X8 VSS nI159 nI127 nI167 nI135 nI175 nI143 nI183 nI151 nI7 nI14 nI21 nI28 nI35 nI42 nI49 nI56 nI63 nI70 nI77 nI84 nI91 nI98 nI105 nI112 nI119 TLAT8B
+.ENDS TLAT128
+* cell OSS_PCH_ESD
+* pin PAD
+* pin VDD
+.SUBCKT OSS_PCH_ESD PAD VDD
+* device instance 1 r0 *1 -65.5,0 PMOS
+XM1 VDD VDD PAD VDD MPE L=2U W=500U AS=3523.04P AD=3523.04P PS=689.36U PD=689.36U
+.ENDS OSS_PCH_ESD
+* cell OSS_NCH_ESD
+* pin PAD
+* pin VSS
+.SUBCKT OSS_NCH_ESD PAD VSS
+* device instance 1 r0 *1 -65.5,0 NMOSE
+XM1 VSS VSS PAD VSS MNE L=2U W=500U AS=3523.04P AD=3523.04P PS=689.36U PD=689.36U
+.ENDS OSS_NCH_ESD
+* cell OSS_DRV
+* pin OUT
+* pin HIZ
+* pin vdd
+* pin 
+* pin 
+* pin GND,gnd
+.SUBCKT OSS_DRV OUT HIZ vdd n17 n18 gnd
+* cell instance 7 r0 *1 -13.2,-8.4
+X7 OUT gnd diode_n
+* cell instance 11 r0 *1 8.6,-8.4
+X11 HIZ gnd diode_n
+* device instance 1 r0 *1 47.1,13.5 PMOS
+XM1 n18 n14 vdd vdd PMOS L=1U W=19.4U AS=52.76P AD=54.32P PS=44.2U PD=50U
+* device instance 2 r0 *1 -46.4,-0.5 PMOS
+XM2 vdd OUT n10 vdd PMOS L=1U W=5.2U AS=14.56P AD=22.36P PS=16U PD=19U
+* device instance 3 r0 *1 34.6,-0.5 PMOS
+XM3 vdd HIZ n8 vdd PMOS L=1U W=5.2U AS=14.56P AD=7.8P PS=16U PD=8.2U
+* device instance 4 r0 *1 34.6,3.5 PMOS
+XM4 n14 n8 vdd vdd PMOS L=1U W=5.2U AS=7.8P AD=7.8P PS=8.2U PD=8.2U
+* device instance 5 r0 *1 34.6,7.5 PMOS
+XM5 vdd n10 n14 vdd PMOS L=1U W=5.2U AS=7.8P AD=13P PS=8.2U PD=10.2U
+* device instance 7 r0 *1 -37.2,5.3 PMOS
+XM7 n15 HIZ n13 vdd PMOS L=1U W=10.4U AS=29.12P AD=6.24P PS=26.4U PD=11.6U
+* device instance 8 r0 *1 -37.2,7.5 PMOS
+XM8 vdd n10 n15 vdd PMOS L=1U W=10.4U AS=6.24P AD=26P PS=11.6U PD=15.4U
+* device instance 9 r0 *1 -37.2,13.5 PMOS
+XM9 n17 n13 vdd vdd PMOS L=1U W=20.8U AS=55.12P AD=58.24P PS=41.8U PD=52.8U
+* device instance 11 r0 *1 13.3,5.3 NMOS
+XM11 n16 n8 n14 gnd NMOS L=1U W=3.4U AS=9.52P AD=2.04P PS=12.4U PD=4.6U
+* device instance 12 r0 *1 13.3,7.5 NMOS
+XM12 gnd n10 n16 gnd NMOS L=1U W=3.4U AS=2.04P AD=8.5P PS=4.6U PD=8.4U
+* device instance 13 r0 *1 13.3,13.5 NMOS
+XM13 n18 n14 gnd gnd NMOS L=1U W=6.8U AS=18.02P AD=19.04P PS=20.8U PD=24.8U
+* device instance 15 r0 *1 -8.5,13.5 NMOS
+XM15 n17 n13 gnd gnd NMOS L=1U W=6.8U AS=18.02P AD=19.04P PS=20.8U PD=24.8U
+* device instance 16 r0 *1 -13.3,-0.5 NMOS
+XM16 gnd OUT n10 gnd NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 17 r0 *1 -13.3,3.5 NMOS
+XM17 n13 HIZ gnd gnd NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 18 r0 *1 -13.3,7.5 NMOS
+XM18 gnd n10 n13 gnd NMOS L=1U W=3.4U AS=5.1P AD=8.5P PS=6.4U PD=8.4U
+* device instance 20 r0 *1 8.5,-0.5 NMOS
+XM20 gnd HIZ n8 gnd NMOS L=1U W=3.4U AS=9.52P AD=9.52P PS=12.4U PD=12.4U
+.ENDS OSS_DRV
+* cell OSS_PCH_DRV
+* pin PAD
+* pin VDD
+* pin 
+.SUBCKT OSS_PCH_DRV PAD VDD n3
+* device instance 1 r0 *1 -65.5,0 PMOS
+XM1 VDD VDD PAD VDD MPE L=2U W=200U AS=1573.04P AD=1300P PS=311.36U PD=252U
+* device instance 5 r0 *1 -5.5,0 PMOS
+XM5 VDD n3 PAD VDD MPE L=2U W=300U AS=1950P AD=2223.04P PS=378U PD=437.36U
+.ENDS OSS_PCH_DRV
+* cell OSS_NCH_DRV
+* pin PAD
+* pin 
+* pin VSS
+.SUBCKT OSS_NCH_DRV PAD n14 VSS
+* device instance 1 r0 *1 -65.5,0 NMOSE
+XM1 VSS VSS PAD VSS MNE L=2U W=350U AS=2648.04P AD=2175P PS=504.36U PD=437U
+* device instance 8 r0 *1 35.5,0 NMOSE
+XM8 PAD n14 VSS VSS MNE L=2U W=150U AS=875P AD=1348.04P PS=185U PD=252.36U
+.ENDS OSS_NCH_DRV
+* cell diode_n
+* pin 
+* pin VSS
+.SUBCKT diode_n n1 VSS
+* device instance 1 r0 *1 0,0 DN
+D1 VSS n1 DN area=12.96P pj=14.4U
+.ENDS diode_n
+* cell REGBUF
+* pin Q
+* pin QQ
+* pin DD
+* pin D
+* pin vdd
+* pin vss
+.SUBCKT REGBUF Q QQ DD D vdd vss
+* device instance 1 r0 *1 29.8,47.8 PMOS
+XM1 vdd n6 DD vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 2 r0 *1 33.8,47.8 PMOS
+XM2 n6 D vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 3 r0 *1 4,47.8 PMOS
+XM3 vdd Q n3 vdd PMOS L=1U W=10.2U AS=28.56P AD=15.3P PS=26U PD=13.2U
+* device instance 4 r0 *1 8,47.8 PMOS
+XM4 QQ n3 vdd vdd PMOS L=1U W=10.2U AS=15.3P AD=28.56P PS=13.2U PD=26U
+* device instance 5 r0 *1 28.4,8.2 NMOS
+XM5 vss n6 DD vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 6 r0 *1 32.4,8.2 NMOS
+XM6 n6 D vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 7 r0 *1 5.4,8.2 NMOS
+XM7 vss Q n3 vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 8 r0 *1 9.4,8.2 NMOS
+XM8 QQ n3 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS REGBUF
+* cell DEC2
+* pin 
+* pin WEB
+* pin AB0
+* pin A0
+* pin 
+* pin 
+* pin 
+* pin 
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT DEC2 n1 WEB AB0 A0 n16 n18 n22 n28 VSS nI54 nI53 nI52 nI51 nI41 nI40 nI27
+* cell instance 1 m90 *1 0,0
+X1 VSS n22 n28 WEB nI52 nI54 n1 n1 VSS DEC0
+* cell instance 2 r0 *1 0,0
+X2 VSS n18 n16 WEB nI51 nI53 n1 n1 VSS DEC0
+* device instance 1 r0 *1 -22.2,68.8 PMOS
+XM1 n27 n22 n28 n1 PMOS L=1U W=12.2U AS=34.16P AD=7.32P PS=30U PD=13.4U
+* device instance 2 r0 *1 -20,68.8 PMOS
+XM2 n1 WEB n27 n1 PMOS L=1U W=12.2U AS=7.32P AD=30.5P PS=13.4U PD=17.2U
+* device instance 3 r0 *1 -14,68.8 PMOS
+XM3 n22 AB0 n1 n1 PMOS L=1U W=12.2U AS=30.5P AD=18.3P PS=17.2U PD=15.2U
+* device instance 4 r0 *1 -10,68.8 PMOS
+XM4 n1 nI41 n22 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 5 r0 *1 -6,68.8 PMOS
+XM5 n22 nI40 n1 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 6 r0 *1 -2,68.8 PMOS
+XM6 n1 nI27 n22 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 7 r0 *1 2,68.8 PMOS
+XM7 n18 nI27 n1 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 8 r0 *1 6,68.8 PMOS
+XM8 n1 nI40 n18 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 9 r0 *1 10,68.8 PMOS
+XM9 n18 nI41 n1 n1 PMOS L=1U W=12.2U AS=18.3P AD=18.3P PS=15.2U PD=15.2U
+* device instance 10 r0 *1 14,68.8 PMOS
+XM10 n1 A0 n18 n1 PMOS L=1U W=12.2U AS=18.3P AD=30.5P PS=15.2U PD=17.2U
+* device instance 11 r0 *1 20,68.8 PMOS
+XM11 n23 WEB n1 n1 PMOS L=1U W=12.2U AS=30.5P AD=7.32P PS=17.2U PD=13.4U
+* device instance 12 r0 *1 22.2,68.8 PMOS
+XM12 n16 n18 n23 n1 PMOS L=1U W=12.2U AS=7.32P AD=34.16P PS=13.4U PD=30U
+* device instance 13 r0 *1 -9.6,12.4 NMOS
+XM13 n35 AB0 n22 VSS NMOS L=1U W=4.6U AS=12.88P AD=2.76P PS=14.8U PD=5.8U
+* device instance 14 r0 *1 -7.4,12.4 NMOS
+XM14 n34 nI41 n35 VSS NMOS L=1U W=4.6U AS=2.76P AD=2.76P PS=5.8U PD=5.8U
+* device instance 15 r0 *1 -5.2,12.4 NMOS
+XM15 n36 nI40 n34 VSS NMOS L=1U W=4.6U AS=2.76P AD=2.76P PS=5.8U PD=5.8U
+* device instance 16 r0 *1 -3,12.4 NMOS
+XM16 VSS nI27 n36 VSS NMOS L=1U W=4.6U AS=2.76P AD=11.5P PS=5.8U PD=9.6U
+* device instance 17 r0 *1 3,12.4 NMOS
+XM17 n33 nI27 VSS VSS NMOS L=1U W=4.6U AS=11.5P AD=2.76P PS=9.6U PD=5.8U
+* device instance 18 r0 *1 5.2,12.4 NMOS
+XM18 n30 nI40 n33 VSS NMOS L=1U W=4.6U AS=2.76P AD=2.76P PS=5.8U PD=5.8U
+* device instance 19 r0 *1 7.4,12.4 NMOS
+XM19 n32 nI41 n30 VSS NMOS L=1U W=4.6U AS=2.76P AD=2.76P PS=5.8U PD=5.8U
+* device instance 20 r0 *1 9.6,12.4 NMOS
+XM20 n18 A0 n32 VSS NMOS L=1U W=4.6U AS=2.76P AD=12.88P PS=5.8U PD=14.8U
+.ENDS DEC2
+* cell TLAT8B
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT TLAT8B VSS nI25 nI24 nI23 nI22 nI21 nI20 nI19 nI18 nI17 nI16 nI15 nI14 nI13 nI12 nI11 nI10 nI9 nI8 nI7 nI6 nI5 nI4 nI3 nI2 nI1
+* cell instance 1 r0 *1 0,0
+X1 VSS nI1 nI2 nI3 nI4 nI5 nI6 nI7 nI8 nI9 nI10 nI11 nI12 nI13 nI14 nI15 nI16 nI18 nI20 nI22 nI24 nI17 TLAT8
+* cell instance 2 m0 *1 0,114
+X2 VSS nI1 nI2 nI3 nI4 nI5 nI6 nI7 nI8 nI9 nI10 nI11 nI12 nI13 nI14 nI15 nI16 nI19 nI21 nI23 nI25 nI17 TLAT8
+.ENDS TLAT8B
+* cell DEC0
+* pin vss
+* pin RDB
+* pin WR
+* pin 
+* pin WRB
+* pin RD
+* pin vdd
+* pin 
+* pin vss
+.SUBCKT DEC0 vss RDB WR n6 WRB RD vdd n15 vss1
+* device instance 1 r0 *1 30.2,68.8 PMOS
+XM1 vdd WR WRB n15 PMOS L=1U W=12.2U AS=34.16P AD=18.3P PS=30U PD=15.2U
+* device instance 2 r0 *1 34.2,68.8 PMOS
+XM2 RD RDB vdd n15 PMOS L=1U W=12.2U AS=18.3P AD=34.16P PS=15.2U PD=30U
+* device instance 3 r0 *1 30.2,26.9 NMOS
+XM3 vss WR WRB vss1 NMOS L=1U W=4.6U AS=12.88P AD=6.9P PS=14.8U PD=7.6U
+* device instance 4 r0 *1 34.2,26.9 NMOS
+XM4 RD RDB vss vss1 NMOS L=1U W=4.6U AS=6.9P AD=12.88P PS=7.6U PD=14.8U
+* device instance 5 r0 *1 22.2,26.9 NMOS
+XM5 WR RDB vss vss1 NMOS L=1U W=4.6U AS=12.88P AD=12.88P PS=14.8U PD=14.8U
+* device instance 6 r0 *1 22.2,12.4 NMOS
+XM6 WR n6 vss vss1 NMOS L=1U W=4.6U AS=12.88P AD=12.88P PS=14.8U PD=14.8U
+.ENDS DEC0
+* cell TLAT8
+* pin VSS
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+* pin 
+.SUBCKT TLAT8 VSS nI53 nI52 nI51 nI50 nI49 nI48 nI47 nI46 nI45 nI44 nI43 nI42 nI41 nI40 nI39 nI38 nI37 nI30 nI23 nI16 nI8
+* cell instance 1 r0 *1 0,0
+X1 nI16 nI23 nI38 nI46 nI30 nI8 nI37 VSS TLAT
+* cell instance 2 r0 *1 37.8,0
+X2 nI16 nI23 nI39 nI47 nI30 nI8 nI37 VSS TLAT
+* cell instance 3 r0 *1 75.6,0
+X3 nI16 nI23 nI40 nI48 nI30 nI8 nI37 VSS TLAT
+* cell instance 4 r0 *1 113.4,0
+X4 nI16 nI23 nI41 nI49 nI30 nI8 nI37 VSS TLAT
+* cell instance 5 r0 *1 151.2,0
+X5 nI16 nI23 nI42 nI50 nI30 nI8 nI37 VSS TLAT
+* cell instance 6 r0 *1 189,0
+X6 nI16 nI23 nI43 nI51 nI30 nI8 nI37 VSS TLAT
+* cell instance 7 r0 *1 226.8,0
+X7 nI16 nI23 nI44 nI52 nI30 nI8 nI37 VSS TLAT
+* cell instance 8 r0 *1 264.6,0
+X8 nI16 nI23 nI45 nI53 nI30 nI8 nI37 VSS TLAT
+.ENDS TLAT8
+* cell TLAT
+* pin RD
+* pin WRB
+* pin Q
+* pin D
+* pin WR
+* pin vdd
+* pin RDB
+* pin vss
+.SUBCKT TLAT RD WRB Q D WR vdd RDB vss
+* device instance 1 r0 *1 29.5,40.2 PMOS
+XM1 n7 n6 vdd vdd PMOS L=1U W=7.2U AS=20.16P AD=10.8P PS=20U PD=10.2U
+* device instance 2 r0 *1 33.5,40.2 PMOS
+XM2 Q RDB n7 vdd PMOS L=1U W=7.2U AS=10.8P AD=20.16P PS=10.2U PD=20U
+* device instance 3 r0 *1 9.5,40.2 PMOS
+XM3 n4 WRB D vdd PMOS L=1U W=7.2U AS=20.16P AD=10.8P PS=20U PD=10.2U
+* device instance 4 r0 *1 13.5,40.2 PMOS
+XM4 n5 WR n4 vdd PMOS L=1U W=7.2U AS=10.8P AD=10.8P PS=10.2U PD=10.2U
+* device instance 5 r0 *1 17.5,40.2 PMOS
+XM5 vdd n6 n5 vdd PMOS L=1U W=7.2U AS=10.8P AD=10.8P PS=10.2U PD=10.2U
+* device instance 6 r0 *1 21.5,40.2 PMOS
+XM6 n6 n4 vdd vdd PMOS L=1U W=7.2U AS=10.8P AD=20.16P PS=10.2U PD=20U
+* device instance 7 r0 *1 29.5,17.9 NMOS
+XM7 n7 n6 vss vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 8 r0 *1 33.5,17.9 NMOS
+XM8 Q RD n7 vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+* device instance 9 r0 *1 9.5,17.9 NMOS
+XM9 n4 WR D vss NMOS L=1U W=3.4U AS=9.52P AD=5.1P PS=12.4U PD=6.4U
+* device instance 10 r0 *1 13.5,17.9 NMOS
+XM10 n5 WRB n4 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 11 r0 *1 17.5,17.9 NMOS
+XM11 vss n6 n5 vss NMOS L=1U W=3.4U AS=5.1P AD=5.1P PS=6.4U PD=6.4U
+* device instance 12 r0 *1 21.5,17.9 NMOS
+XM12 n6 n4 vss vss NMOS L=1U W=3.4U AS=5.1P AD=9.52P PS=6.4U PD=12.4U
+.ENDS TLAT

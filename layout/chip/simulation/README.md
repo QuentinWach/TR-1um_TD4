@@ -74,3 +74,65 @@ x2 … td4_soc_arr_nrow_fm
   ボンドパッドのラベルに合わせて `VSS`。
 * 入力パッドの `OUT` は浮くので `VSS` に落としてある
   （`route_chip.py` が実際に落としているのと同じ）。
+
+## ngspice（抽出ネットリストでの動作確認）
+
+```
+tr_1um_TD4_ext.spice   抽出（scripts/klayout_extract.py、combine 済み・ネット名付き）
+tr_1um_TD4_sim.spice   それを ngspice 用に直したもの（scripts/frame2sim.py）
+tb_tr_1um_TD4.spi      テストベンチ（scripts/pnr/gen_chip_tb.py）
+chip_tb.log            ngspice の出力
+chip_tb.png            波形（scripts/pnr/check_chip_sim.py）
+```
+
+### 流し方
+
+```sh
+python3 scripts/klayout_extract.py layout/chip/step3_top_pins.gds tr_1um_TD4 \
+    -o layout/chip/simulation/tr_1um_TD4_ext.spice
+python3 scripts/frame2sim.py layout/chip/simulation/tr_1um_TD4_ext.spice \
+    -o layout/chip/simulation/tr_1um_TD4_sim.spice
+python3 scripts/pnr/gen_chip_tb.py --period 100 --cycles 12
+cd layout/chip/simulation && ngspice -b tb_tr_1um_TD4.spi > chip_tb.log
+cd - && python3 scripts/pnr/check_chip_sim.py --t-exec 1800
+```
+
+**LVS 用の `tr_1um_TD4_lay.spice` は ngspice には使えない。** あれは
+`lvs_pnr.py -o` の出力で、トップに `.SUBCKT` のポートが無く、ネット名が
+番号で、素子が `M...`（PDK の PMOS/NMOS は `.model` ではなく**サブサーキット**
+なので `XM` でないといけない）。`klayout_extract.py` はそのどれもやってくれる。
+
+`frame2sim.py` が要るのは 2 つの理由:
+
+* **ESD 素子はモデルが別物。** `OSS_PCH_DRV` / `OSS_PCH_ESD` は `MPE`、
+  `OSS_NCH_DRV` / `OSS_NCH_ESD` は `MNE`（抽出では PMOS 側が ESD でも
+  `PMOS` と書かれるので、囲っているサブサーキット名で判定する）。
+* ネット名の `\$8` や `GND|gnd`、ダイオードの `A=`/`P=` 表記を直す。
+
+### テストベンチ
+
+`hdl/tb/tb_td4_soc_arr.v` と同じ手順を**ボンドパッドに対して**流す。
+
+    リセット -> Load モードで 5 命令書込 -> Exec モードで走らせる
+
+    0: 1011_0011  OUT 3
+    1: 1011_0110  OUT 6
+    2: 1011_1100  OUT 12
+    3: 1011_1000  OUT 8
+    4: 1111_0000  JMP 0
+
+1 命令 = 下位ニブル（即値）-> 上位ニブル（オペコード）の 2 回書込。値は
+negedge で置いて posedge で取り込む。出力パッドには 10 pF を付けている。
+
+### 結果（2026-09-14）
+
+クロック 100 ns（10 MHz、STA の `reg->reg` 63.09 ns = 15.85 MHz に対して余裕）、
+3,150 ns を 0.5 ns 刻み。**12 サイクルすべて期待どおり**:
+
+    OUT = 3, 6, 12, 8, 8, 3, 6, 12, 8, 8, 3, 6   CF は終始 0
+
+JMP のサイクルは OUT が動かないので 1 周 5 サイクルで `[3, 6, 12, 8, 8]`
+になる（Verilog の TB は `i%4==3` で 1 サイクル読み飛ばしていて、同じことを
+別の書き方で見ている）。実行時間は 4,225 素子で約 1 分 52 秒。
+
+`chip_tb.raw.csv`（2.5 MB）は波形の生データ。git には入れていない。

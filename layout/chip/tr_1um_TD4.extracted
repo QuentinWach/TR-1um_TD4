@@ -2,14 +2,29 @@
 *** My special header ***
 
 * cell tr_1um_TD4
+* pin P1
+* pin P10
+* pin P11
+* pin P12
+* pin P13
+* pin P14
+* pin P15
+* pin P2
+* pin P3
+* pin P4
+* pin P5
+* pin P6
+* pin P7
+* pin P9
+* pin VDD
 * pin VSS
-.SUBCKT tr_1um_TD4 VSS
+.SUBCKT tr_1um_TD4 P1 P10 P11 P12 P13 P14 P15 P2 P3 P4 P5 P6 P7 P9 VDD VSS
 * cell instance $1 r0 *1 0,0
-X$1 \$2 VSS \$2 \$2 \$2 VSS VSS \$71 VSS VSS VSS \$9 VSS \$15 VSS \$91 \$20 VSS
-+ VSS \$58 VSS \$41 VSS \$73 VSS \$2 \$30 VSS \$63 \$2 \$2 \$13 \$8 \$2 \$2
-+ \$72 \$7 \$2 VSS OSS_FRAME_GIO
-* cell instance $3 r0 *1 -796.05,-678.5
-X$3 \$2 \$20 \$13 \$9 \$7 \$8 \$41 \$30 \$15 \$91 \$63 \$73 \$58 \$72 \$71 VSS
+X$1 VDD VSS VDD VDD VDD VSS P15 VSS P3 VSS VSS VSS P7 VSS \$22 P11 VSS \$103
++ \$28 VSS VSS P12 \$66 VSS P6 VSS P2 VSS VDD P9 VSS P1 VDD VDD \$17 P5 P10 VDD
++ VDD P13 P14 P4 VDD VSS OSS_FRAME_GIO
+* cell instance $2 r0 *1 -796.05,-678.5
+X$2 VDD \$28 \$17 P7 P4 P5 P6 P9 \$22 \$103 P1 P2 \$66 P14 P3 VSS
 + td4_soc_arr_nrow_fm
 .ENDS tr_1um_TD4
 
@@ -20,6 +35,7 @@ X$3 \$2 \$20 \$13 \$9 \$7 \$8 \$41 \$30 \$15 \$91 \$63 \$73 \$58 \$72 \$71 VSS
 * pin HIZ2
 * pin HIZ4
 * pin HIZ11
+* pin P15
 * pin OUT7
 * pin P3
 * pin OUT4
@@ -28,11 +44,13 @@ X$3 \$2 \$20 \$13 \$9 \$7 \$8 \$41 \$30 \$15 \$91 \$63 \$73 \$58 \$72 \$71 VSS
 * pin P7
 * pin OUT9
 * pin OUT10
+* pin P11
 * pin HIZ10
 * pin OUT15
 * pin OUT12
 * pin OUT1
 * pin HIZ15
+* pin P12
 * pin OUT13
 * pin OUT6
 * pin P6
@@ -47,15 +65,17 @@ X$3 \$2 \$20 \$13 \$9 \$7 \$8 \$41 \$30 \$15 \$91 \$63 \$73 \$58 \$72 \$71 VSS
 * pin HIZ7
 * pin OUT11
 * pin P5
+* pin P10
 * pin HIZ1
 * pin HIZ5
+* pin P13
 * pin P14
 * pin P4
 * pin HIZ14
 * pin VSS
-.SUBCKT OSS_FRAME_GIO VDD HIZ13 HIZ3 HIZ2 HIZ4 HIZ11 OUT7 P3 OUT4 OUT5 OUT3 P7
-+ OUT9 OUT10 HIZ10 OUT15 OUT12 OUT1 HIZ15 OUT13 OUT6 P6 HIZ12 P2 OUT2 HIZ9 P9
-+ OUT14 P1 HIZ6 HIZ7 OUT11 P5 HIZ1 HIZ5 P14 P4 HIZ14 VSS
+.SUBCKT OSS_FRAME_GIO VDD HIZ13 HIZ3 HIZ2 HIZ4 HIZ11 P15 OUT7 P3 OUT4 OUT5 OUT3
++ P7 OUT9 OUT10 P11 HIZ10 OUT15 OUT12 OUT1 HIZ15 P12 OUT13 OUT6 P6 HIZ12 P2
++ OUT2 HIZ9 P9 OUT14 P1 HIZ6 HIZ7 OUT11 P5 P10 HIZ1 HIZ5 P13 P14 P4 HIZ14 VSS
 * cell instance $4 m45 *1 -1040,-600
 X$4 P6 VDD OUT6 HIZ6 VSS OSS_ESD_5V_DIO
 * cell instance $5 m135 *1 1040,-200
