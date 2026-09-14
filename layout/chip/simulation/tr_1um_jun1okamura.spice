@@ -4,7 +4,9 @@
 **   フレーム: lef/simulation/OSS_FRAME_GIO_nocombine.spice
 **   接続表  : layout/chip/gio_connections.json
 **
-** x1 = OSS_FRAME（元 OSS_FRAME_GIO）/ x2 = td4_soc_arr_nrow_fm。** どこにも繋がっていない端子で、1 本ずつ固有の名前を付けてある
+** x1 = OSS_FRAME（元 OSS_FRAME_GIO）/ x2 = td4_soc_arr_nrow_fm。
+** `NC_*` は両側とも本当にどこにも繋がっていない端子で、1 本ずつ
+** 固有の名前を付けてある
 ** （まとめると浮いた端子どうしが短絡して見える）。
 ** トップは 16 本のボンドパッドを宣言する（P1-P7, VSS, P9-P15, VDD。
 ** P8 は VSS、P16 は VDD でフレーム固定）。レイアウト側は

@@ -9,6 +9,14 @@ The program memory is a **writable 16 × 8 bit register array**, not a ROM, so
 the chip can be reprogrammed over its own pins: hold `EXEC` low and clock the
 instructions in nibble by nibble, then raise `EXEC` and it runs.
 
+![tr_1um_jun1okamura](docs/ChipImage.png)
+
+*`src/tr_1um_jun1okamura.gds`. The pad ring runs around the outside; inside it
+the five standard-cell rows fill the left, the 16 × 8 bit memory macro stands
+on the right, and the ring channel between the core and the pads carries the
+14 signals plus the VDD and GND rings. The OpenSUSI mark, bottom right, is
+646 isolated M2 dots.*
+
 | | |
 |---|---|
 | Die | 2,500 × 2,500 µm (`OSS_FRAME`, 16 bond pads) |

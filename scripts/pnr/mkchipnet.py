@@ -199,8 +199,9 @@ def main():
         f"**   フレーム: {os.path.relpath(GIO_SPICE, cfg.ROOT)}",
         f"**   接続表  : {os.path.relpath(CONN, cfg.ROOT)}",
         "**",
-        f"** x1 = {CHIP_GIO_CELL}（元 {GIO_CELL}）/ x2 = {cfg.TOP_CELL_NAME}。"
-        "** どこにも繋がっていない端子で、1 本ずつ固有の名前を付けてある",
+        f"** x1 = {CHIP_GIO_CELL}（元 {GIO_CELL}）/ x2 = {cfg.TOP_CELL_NAME}。",
+        "** `NC_*` は両側とも本当にどこにも繋がっていない端子で、1 本ずつ",
+        "** 固有の名前を付けてある",
         "** （まとめると浮いた端子どうしが短絡して見える）。",
         "** トップは 16 本のボンドパッドを宣言する（P1-P7, VSS, P9-P15, VDD。",
         "** P8 は VSS、P16 は VDD でフレーム固定）。レイアウト側は",
