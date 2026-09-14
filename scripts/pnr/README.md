@@ -1096,3 +1096,19 @@ VSS に当たる）、GND は M2 ストリップ 5 本で下辺の VSS 壁ピン
 チップ側のスクリプトは先頭で `os.environ.setdefault("TD4_MACRO_MODE",
 "portrait")` して固定してある。加えて `td4_config.CHIP_CORE_GDS` は
 step11 があればそちらを選ぶ。
+
+### チップレベル LVS（`layout/chip/simulation/`）
+
+    step3  add_top_pins.py   ボンドパッド 16 個に M2PIN + ラベル
+           mkchipnet.py      ソースネットリスト（コア + フレーム + 接続表）
+           lvs_pnr.py        比較
+
+結果は 2026-09-14 時点で **一致**（両側とも top pin 16 / device 4225 /
+net 1503）。詳しくは `layout/chip/simulation/README.md`。
+
+いちばん時間を取られたのは **フレームの combine**。`lef/simulation/
+OSS_FRAME_GIO.spice` は `combine_devices()` を掛けたあとのもの（ngspice 用）
+で、そのまま混ぜると素子数がレイアウト 4225 / ソース 3909 と 316 個ずれる。
+`lvs_pnr.py` は DFFRB で KLayout が内部エラーを出すため**両側とも combine
+しない**方針なので、`scripts/mkframespice.py --no-combine` で
+`OSS_FRAME_GIO_nocombine.spice` を作って揃えた。

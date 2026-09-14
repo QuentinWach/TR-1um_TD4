@@ -142,12 +142,17 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("gds"); ap.add_argument("top")
     ap.add_argument("-o", "--out", required=True)
+    ap.add_argument("--no-combine", action="store_true",
+                    help="combine_devices() を掛けない（チップ LVS 用）。"
+                         "lvs_pnr.py は DFFRB で KLayout が落ちるため両側とも"
+                         "掛けないので、フレーム側もこれで揃える")
     a = ap.parse_args()
 
     l2n = klayout_extract.build(a.gds, a.top)
     nl = l2n.netlist()
     nl.make_top_level_pins()
-    nl.combine_devices()
+    if not a.no_combine:
+        nl.combine_devices()
     nl.purge()
     nl.purge_nets()
     open(a.out, "w").write(emit(nl, a.top, a.gds))
