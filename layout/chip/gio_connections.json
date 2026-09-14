@@ -249,5 +249,79 @@
    "y": 921.7,
    "edge": "TOP"
   }
+ ],
+ "float_ties": [
+  {
+   "pad": 1,
+   "terminal": "OUT1",
+   "tie": "GND",
+   "x": -180.0,
+   "y": 921.7,
+   "edge": "TOP"
+  },
+  {
+   "pad": 2,
+   "terminal": "OUT2",
+   "tie": "GND",
+   "x": -620.0,
+   "y": 921.7,
+   "edge": "TOP"
+  },
+  {
+   "pad": 3,
+   "terminal": "OUT3",
+   "tie": "GND",
+   "x": -921.7,
+   "y": 620.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 4,
+   "terminal": "OUT4",
+   "tie": "GND",
+   "x": -921.7,
+   "y": 180.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 5,
+   "terminal": "OUT5",
+   "tie": "GND",
+   "x": -921.7,
+   "y": -180.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 6,
+   "terminal": "OUT6",
+   "tie": "GND",
+   "x": -921.7,
+   "y": -620.0,
+   "edge": "LEFT"
+  },
+  {
+   "pad": 7,
+   "terminal": "OUT7",
+   "tie": "GND",
+   "x": -620.0,
+   "y": -921.7,
+   "edge": "BOTTOM"
+  },
+  {
+   "pad": 9,
+   "terminal": "OUT9",
+   "tie": "GND",
+   "x": 180.0,
+   "y": -921.7,
+   "edge": "BOTTOM"
+  },
+  {
+   "pad": 14,
+   "terminal": "OUT14",
+   "tie": "GND",
+   "x": 921.7,
+   "y": 620.0,
+   "edge": "RIGHT"
+  }
  ]
 }

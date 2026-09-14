@@ -187,16 +187,26 @@ def main():
             "x": pads[f"HIZ{pad}"]["x"], "y": pads[f"HIZ{pad}"]["y"],
             "edge": pads[f"HIZ{pad}"]["edge"]} for pad in sorted(PAD_MAP)]
 
+    # 入力パッドの `OUT` は**浮いたゲート入力**。HIZ=1 でドライバは放している
+    # ので論理には効かないが、ゲートが浮いたままなのは実チップとして良くない
+    # （LVS も「どこにも繋がらない端子」を数える）。GND に落とす。
+    # 出力パッドの `P` はボンドパッドそのものなので何もしない。
+    floats = [{"pad": pad, "terminal": f"OUT{pad}", "tie": "GND",
+               "x": pads[f"OUT{pad}"]["x"], "y": pads[f"OUT{pad}"]["y"],
+               "edge": pads[f"OUT{pad}"]["edge"]}
+              for pad in sorted(PAD_MAP) if PAD_MAP[pad]["dir"] == "in"]
+
     os.makedirs(cfg.CHIP, exist_ok=True)
     json.dump({"pad_cell": "OSS_ESD_5V_DIO",
                "pad_cell_behavior": {"HIZ=1": "Hi-Z（入力専用）",
                                      "HIZ=0": "PAD = OUT（非反転）"},
                "power_pads": {"P8": "VSS", "P16": "VDD"},
-               "signals": conns, "hiz_ties": hiz},
+               "signals": conns, "hiz_ties": hiz, "float_ties": floats},
               open(a.conn, "w"), ensure_ascii=False, indent=1)
     json.dump({"core_offset": geom["core_offset"],
                "core_chip_bbox": geom["core_chip_bbox"],
-               "pin_radius": r, "signals": plan, "hiz_ties": hiz},
+               "pin_radius": r, "signals": plan, "hiz_ties": hiz,
+               "float_ties": floats},
               open(a.plan, "w"), ensure_ascii=False, indent=1)
 
     print(f"=== パッド <-> コアピン（コアのオフセット {geom['core_offset']}）")
