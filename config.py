@@ -88,10 +88,24 @@ LAYOUT = os.path.join(ROOT, "layout")
 # APR_2026 は配線の前にロゴを置くが、TD4 は
 #   assemble -> route_chip -> add_top_pins -> place_logo
 # の順。`config_base` の既定（ロゴが先）を組み替える。
+# チップ床は**コアだけ**（RING_OSC もロゴの帯も下に無い）。上下のチャネルが
+# 両方空いているので、VDD は上辺のタップから上のバスへ、GND は下辺のタップから
+# 下のバスへまっすぐ取れる（U30。APR_2026 は下が塞がっていて上辺からしか
+# 取れないので別方式）。
+CHIP_POWER = "top_bottom"
+CHIP_LANE_R0 = 810.0          # 下に帯が無いので 810 から始められる
+CHIP_VDD_BUS_Y = 690.0        # コア上端 678.5 から 6.5
+CHIP_GND_BUS_Y = -690.0
+CHIP_VDD_CROSS_Y = 916.0      # M2 の上端。壁 920 から 4.0
+
 CHIP_ROUTE_IN_GDS = os.path.join(ROOT, "layout", "chip", "step1_assembled.gds")
 CHIP_LOGO_IN_GDS = os.path.join(ROOT, "layout", "chip", "step3_top_pins.gds")
 CHIP_LOGO_OUT_GDS = os.path.join(ROOT, "layout", "chip", "step4_final.gds")
 CHIP_FINAL_GDS = CHIP_LOGO_OUT_GDS          # 提出に載せるのはロゴ入り
+# ロゴはコア右下の空き地（実測）。APR_2026 は RING_OSC の上に帯で置く。
+LOGO_BOX = (410.0, -680.0, 790.0, -470.0)
+LOGO_SCALE = 2                              # 1/2 に縮約
+LOGO_COLS = "0:64"                          # 紋章だけ（全幅は 0:316）
 
 # ---- 配置の再現（★ 提出した配置を作った値）------------------------------
 PLACE_SEED = 1
