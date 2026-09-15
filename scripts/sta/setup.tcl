@@ -1,5 +1,8 @@
 # 読み込みと制約。sta.sh が NET / TOP / PER を先頭で定義してから連結する。
-read_liberty lef/tr1um_typ_5v0_25c.lib
+# ★ この設定は 64.8 …ではなく、lef/ の写しを読む旧版。正本の Liberty は
+#   APRtools の stdcell にある。**いまは $APRTOOLS/syn/sta/sta.sh を使うこと**
+#   （config.py の SYN_LIB / STA_CLK_PORT を読む）。U31。
+read_liberty reference/submitted_v1/lef/tr1um_typ_5v0_25c.lib
 read_verilog $NET
 link_design $TOP
 

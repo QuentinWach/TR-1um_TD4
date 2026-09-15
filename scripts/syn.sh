@@ -14,7 +14,13 @@
 #   セルモデル ≡ レイアウト        scripts/char/check_comb.py ほか（ngspice）
 #   どちらも出どころは scripts/char/cellspec.py の 1 箇所。
 set -e
-LIB=lef/tr1um_typ_5v0_25c.lib
+# ★ 正本は APRtools の stdcell（決定 4）。以前は lef/ の写しを読んでいて、
+#   selfcheck が毎回「不一致」を出していた（U31）。実体の差は
+#   **`dont_use: true` の RSLATCH が 1 つ増えただけ**で、2 つの Liberty で
+#   合成した結果は**バイト単位で完全一致**することを確かめてある。
+#   写しは reference/submitted_v1/lef/ に残した。
+LIB=${LIB:-$(PYTHONPATH=${PYTHONPATH:-$APRTOOLS/apr} python3 -c "import config; print(config.SYN_LIB)" 2>/dev/null)}
+[ -n "$LIB" ] || { echo "config.SYN_LIB が読めない。PYTHONPATH=\$APRTOOLS/apr" >&2; exit 1; }
 # ABC に駆動元と負荷を教えるファイル。**これが無いと ABC はタイミングを見ない。**
 # Yosys の abc パスは -constr があるときだけ ABC のスクリプトを
 #   ... &nf {D}; &put; buffer; upsize {D}; dnsize {D}; stime -p
