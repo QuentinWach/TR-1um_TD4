@@ -114,7 +114,11 @@ CHIP_POWER = "top_bottom"
 CHIP_LANE_R0 = 810.0          # 下に帯が無いので 810 から始められる
 CHIP_VDD_BUS_Y = 690.0        # コア上端 678.5 から 6.5
 CHIP_GND_BUS_Y = -690.0
-CHIP_VDD_CROSS_Y = 916.0      # M2 の上端。壁 920 から 4.0
+# CHIP_VDD_CROSS_Y は**既定（914.5）のまま**。I2C / SCLK_SPI と同じ。
+#   以前は 916.0 にしていたが、これは幅 3.4 のライザ（via 3.4 角）を
+#   前提にした値。V10 の形（幅 10、via 6.8 角）にすると M2 の上端が
+#   916.0 + 3.4 = 919.4 になり、フレームの壁 920.0 と 0.6 µm しか
+#   空かず M2.S1（間隔 2.0）で 5 件落ちる。914.5 なら 917.9 で 2.1 空く。
 
 CHIP_ROUTE_IN_GDS = os.path.join(ROOT, "layout", "chip", "step1_assembled.gds")
 CHIP_LOGO_IN_GDS = os.path.join(ROOT, "layout", "chip", "step3_top_pins.gds")
