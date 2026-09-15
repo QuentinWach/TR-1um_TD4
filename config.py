@@ -37,6 +37,20 @@ TOP_CELL_NAME = "td4_soc_arr_nrow_fm"         # 提出済み。改名しない
 CHIP_TOP_CELL = "tr_1um_jun1okamura"
 NET_PATH = os.path.join(ROOT, "out", "td4_soc_arr_pnr.v")
 
+# ---- 合成 / STA ----------------------------------------------------------
+# ★ **`$APRTOOLS/syn/syn.sh` は TD4 には使えない**（U36）。TD4 の合成は
+#   トップが 4 つあり、`td4_mem` をブラックボックスで合成してから
+#   `mem_wrap.py` で実物の `REG8x16` に差し替える段が要る。APRtools 側は
+#   「トップ 1 つ・マクロ無し」（I2C / SCLK_SPI）しか見ていない。
+#   TD4 は `scripts/syn.sh` のまま。**そもそも再合成すると U31 で
+#   ネットリストが変わる**ので、再現には触らない。
+# STA だけは APRtools の `syn/sta/sta.sh` で回せる（ここの値を読む）:
+#   sh $APRTOOLS/syn/sta/sta.sh out/td4_soc_arr.v td4_soc_arr 100
+SYN_TOP = "td4_soc_arr"
+STA_CLK_PORT = "clk"
+STA_PERIOD_NS = 100.0
+STA_FALSE_PATH_FROM = ["rst_n"]
+
 # ---- フロアプラン --------------------------------------------------------
 N_ROWS = 5
 CORE_WIDTH_TRACKS = 296                       # x 5.4 = 1598.4
