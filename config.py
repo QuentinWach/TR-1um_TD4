@@ -1,8 +1,8 @@
 """config.py -- TR-1um_TD4 を APRtools で回すための設定（**縦置き・提出版**）。
 
-    cd ~/Dropbox/98_LSI_Design/TR-1um_TD4
-    export TR1UM_PDK=~/Dropbox/91_OpenPDK/TR-1um
-    export APRTOOLS=~/Dropbox/91_OpenPDK/TR-1um_APRtools
+    cd ~/HogeHoge/LSI_Design/TR-1um_TD4
+    export TR1UM_PDK=~/HogeHoge/OpenPDK/TR-1um
+    export APRTOOLS=~/HogeHoge/OpenPDK/TR-1um_APRtools
     export PYTHONPATH=$APRTOOLS/apr
     python3 $APRTOOLS/apr/selfcheck.py
     python3 $APRTOOLS/apr/place.py        # 引数なし
