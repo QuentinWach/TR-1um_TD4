@@ -34,7 +34,11 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 
 # ---- 設計の同定 ----------------------------------------------------------
 TOP_CELL_NAME = "td4_soc_arr_nrow_fm"         # 提出済み。改名しない
-CHIP_TOP_CELL = "tr_1um_jun1okamura"
+# ★ 命名規則は `tr_1um_<GitHub 名>_<設計の識別子>`（`info.yaml` の注記）。
+#   提出時は `tr_1um_jun1okamura` で識別子が無く、同じ人の別設計と
+#   区別が付かなかった。2026-09-15 に直した（提出時のものは
+#   `reference/submitted_v1/` に残してある）。
+CHIP_TOP_CELL = "tr_1um_jun1okamura_td4"
 NET_PATH = os.path.join(ROOT, "out", "td4_soc_arr_pnr.v")
 
 # ---- 合成 / STA ----------------------------------------------------------

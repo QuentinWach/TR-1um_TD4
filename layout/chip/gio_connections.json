@@ -8,139 +8,127 @@
   "P8": "VSS",
   "P16": "VDD"
  },
+ "unbonded": [],
  "signals": [
   {
    "pad": 1,
    "role": "CLK",
    "dir": "in",
-   "net": "clk",
-   "terminal": "P1",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "clk",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 2,
    "role": "WR",
    "dir": "in",
-   "net": "wr",
-   "terminal": "P2",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "wr",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 3,
    "role": "NIBSEL",
    "dir": "in",
-   "net": "nibsel",
-   "terminal": "P3",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "nibsel",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 4,
    "role": "D[3]",
    "dir": "in",
-   "net": "d[3]",
-   "terminal": "P4",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "d[3]",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 5,
    "role": "D[2]",
    "dir": "in",
-   "net": "d[2]",
-   "terminal": "P5",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "d[2]",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 6,
    "role": "D[1]",
    "dir": "in",
-   "net": "d[1]",
-   "terminal": "P6",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "d[1]",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 7,
    "role": "D[0]",
    "dir": "in",
-   "net": "d[0]",
-   "terminal": "P7",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "d[0]",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 9,
    "role": "RSTN",
    "dir": "in",
-   "net": "rst_n",
-   "terminal": "P9",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "rst_n",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 10,
    "role": "OUT[0]",
    "dir": "out",
-   "net": "out_port[0]",
-   "terminal": "OUT10",
-   "hiz": "GND",
-   "note": "コアが OUT を駆動（HIZ=0 でドライバ ON）"
+   "P": null,
+   "OUT": "out_port[0]",
+   "HIZ": "GND"
   },
   {
    "pad": 11,
    "role": "OUT[1]",
    "dir": "out",
-   "net": "out_port[1]",
-   "terminal": "OUT11",
-   "hiz": "GND",
-   "note": "コアが OUT を駆動（HIZ=0 でドライバ ON）"
+   "P": null,
+   "OUT": "out_port[1]",
+   "HIZ": "GND"
   },
   {
    "pad": 12,
    "role": "OUT[2]",
    "dir": "out",
-   "net": "out_port[2]",
-   "terminal": "OUT12",
-   "hiz": "GND",
-   "note": "コアが OUT を駆動（HIZ=0 でドライバ ON）"
+   "P": null,
+   "OUT": "out_port[2]",
+   "HIZ": "GND"
   },
   {
    "pad": 13,
    "role": "OUT[3]",
    "dir": "out",
-   "net": "out_port[3]",
-   "terminal": "OUT13",
-   "hiz": "GND",
-   "note": "コアが OUT を駆動（HIZ=0 でドライバ ON）"
+   "P": null,
+   "OUT": "out_port[3]",
+   "HIZ": "GND"
   },
   {
    "pad": 14,
    "role": "EXEC",
    "dir": "in",
-   "net": "exec",
-   "terminal": "P14",
-   "hiz": "VDD",
-   "note": "パッドはコアの入力を受ける（HIZ=1 で Hi-Z）"
+   "P": "exec",
+   "OUT": null,
+   "HIZ": "VDD"
   },
   {
    "pad": 15,
    "role": "CF",
    "dir": "out",
-   "net": "cflag_o",
-   "terminal": "OUT15",
-   "hiz": "GND",
-   "note": "コアが OUT を駆動（HIZ=0 でドライバ ON）"
+   "P": null,
+   "OUT": "cflag_o",
+   "HIZ": "GND"
   }
  ],
- "hiz_ties": [
+ "ties": [
   {
    "pad": 1,
    "terminal": "HIZ1",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -220.0,
    "y": 921.7,
    "edge": "TOP"
@@ -149,6 +137,7 @@
    "pad": 2,
    "terminal": "HIZ2",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -580.0,
    "y": 921.7,
    "edge": "TOP"
@@ -157,6 +146,7 @@
    "pad": 3,
    "terminal": "HIZ3",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": 580.0,
    "edge": "LEFT"
@@ -165,6 +155,7 @@
    "pad": 4,
    "terminal": "HIZ4",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": 220.0,
    "edge": "LEFT"
@@ -173,6 +164,7 @@
    "pad": 5,
    "terminal": "HIZ5",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": -220.0,
    "edge": "LEFT"
@@ -181,6 +173,7 @@
    "pad": 6,
    "terminal": "HIZ6",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": -580.0,
    "edge": "LEFT"
@@ -189,6 +182,7 @@
    "pad": 7,
    "terminal": "HIZ7",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -580.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -197,6 +191,7 @@
    "pad": 9,
    "terminal": "HIZ9",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": 220.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -205,6 +200,7 @@
    "pad": 10,
    "terminal": "HIZ10",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 580.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -213,6 +209,7 @@
    "pad": 11,
    "terminal": "HIZ11",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": -580.0,
    "edge": "RIGHT"
@@ -221,6 +218,7 @@
    "pad": 12,
    "terminal": "HIZ12",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": -220.0,
    "edge": "RIGHT"
@@ -229,6 +227,7 @@
    "pad": 13,
    "terminal": "HIZ13",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": 220.0,
    "edge": "RIGHT"
@@ -237,6 +236,7 @@
    "pad": 14,
    "terminal": "HIZ14",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": 921.7,
    "y": 580.0,
    "edge": "RIGHT"
@@ -245,16 +245,16 @@
    "pad": 15,
    "terminal": "HIZ15",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 580.0,
    "y": 921.7,
    "edge": "TOP"
-  }
- ],
- "float_ties": [
+  },
   {
    "pad": 1,
    "terminal": "OUT1",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -180.0,
    "y": 921.7,
    "edge": "TOP"
@@ -263,6 +263,7 @@
    "pad": 2,
    "terminal": "OUT2",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -620.0,
    "y": 921.7,
    "edge": "TOP"
@@ -271,6 +272,7 @@
    "pad": 3,
    "terminal": "OUT3",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": 620.0,
    "edge": "LEFT"
@@ -279,6 +281,7 @@
    "pad": 4,
    "terminal": "OUT4",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": 180.0,
    "edge": "LEFT"
@@ -287,6 +290,7 @@
    "pad": 5,
    "terminal": "OUT5",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": -180.0,
    "edge": "LEFT"
@@ -295,6 +299,7 @@
    "pad": 6,
    "terminal": "OUT6",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": -620.0,
    "edge": "LEFT"
@@ -303,6 +308,7 @@
    "pad": 7,
    "terminal": "OUT7",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -620.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -311,6 +317,7 @@
    "pad": 9,
    "terminal": "OUT9",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": 180.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -319,6 +326,7 @@
    "pad": 14,
    "terminal": "OUT14",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": 921.7,
    "y": 620.0,
    "edge": "RIGHT"

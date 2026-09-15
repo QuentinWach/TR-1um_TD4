@@ -20,7 +20,7 @@ gds:
   # Top cell name MUST:
   # - start with "tr_1um_"
   # - include your GitHub username (for uniqueness)
-  top_cell: "tr_1um_jun1okamura"
+  top_cell: "tr_1um_jun1okamura_td4"
 
   # File extension of layout
   extension: "gds"

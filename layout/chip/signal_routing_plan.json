@@ -9,12 +9,14 @@
   802.35,
   678.5
  ],
+ "ring_osc_origin": null,
  "pin_radius": 921.7,
  "signals": [
   {
    "net": "clk",
    "role": "CLK",
    "pad": 1,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -794.55,
@@ -38,6 +40,7 @@
    "net": "wr",
    "role": "WR",
    "pad": 2,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -794.55,
@@ -61,6 +64,7 @@
    "net": "nibsel",
    "role": "NIBSEL",
    "pad": 3,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -625.95,
@@ -84,6 +88,7 @@
    "net": "d[3]",
    "role": "D[3]",
    "pad": 4,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": 227.25,
@@ -107,6 +112,7 @@
    "net": "d[2]",
    "role": "D[2]",
    "pad": 5,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": 259.65,
@@ -130,6 +136,7 @@
    "net": "d[1]",
    "role": "D[1]",
    "pad": 6,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -794.55,
@@ -153,6 +160,7 @@
    "net": "d[0]",
    "role": "D[0]",
    "pad": 7,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": 194.85,
@@ -176,6 +184,7 @@
    "net": "rst_n",
    "role": "RSTN",
    "pad": 9,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -794.55,
@@ -199,6 +208,7 @@
    "net": "out_port[0]",
    "role": "OUT[0]",
    "pad": 10,
+   "kind": "OUT",
    "from": {
     "what": "core",
     "x": -794.55,
@@ -222,6 +232,7 @@
    "net": "out_port[1]",
    "role": "OUT[1]",
    "pad": 11,
+   "kind": "OUT",
    "from": {
     "what": "core",
     "x": -512.55,
@@ -245,6 +256,7 @@
    "net": "out_port[2]",
    "role": "OUT[2]",
    "pad": 12,
+   "kind": "OUT",
    "from": {
     "what": "core",
     "x": -609.75,
@@ -268,6 +280,7 @@
    "net": "out_port[3]",
    "role": "OUT[3]",
    "pad": 13,
+   "kind": "OUT",
    "from": {
     "what": "core",
     "x": -91.35,
@@ -291,6 +304,7 @@
    "net": "exec",
    "role": "EXEC",
    "pad": 14,
+   "kind": "P",
    "from": {
     "what": "core",
     "x": -685.35,
@@ -314,6 +328,7 @@
    "net": "cflag_o",
    "role": "CF",
    "pad": 15,
+   "kind": "OUT",
    "from": {
     "what": "core",
     "x": -534.15,
@@ -334,11 +349,12 @@
    "same_edge": true
   }
  ],
- "hiz_ties": [
+ "ties": [
   {
    "pad": 1,
    "terminal": "HIZ1",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -220.0,
    "y": 921.7,
    "edge": "TOP"
@@ -347,6 +363,7 @@
    "pad": 2,
    "terminal": "HIZ2",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -580.0,
    "y": 921.7,
    "edge": "TOP"
@@ -355,6 +372,7 @@
    "pad": 3,
    "terminal": "HIZ3",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": 580.0,
    "edge": "LEFT"
@@ -363,6 +381,7 @@
    "pad": 4,
    "terminal": "HIZ4",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": 220.0,
    "edge": "LEFT"
@@ -371,6 +390,7 @@
    "pad": 5,
    "terminal": "HIZ5",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": -220.0,
    "edge": "LEFT"
@@ -379,6 +399,7 @@
    "pad": 6,
    "terminal": "HIZ6",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -921.7,
    "y": -580.0,
    "edge": "LEFT"
@@ -387,6 +408,7 @@
    "pad": 7,
    "terminal": "HIZ7",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": -580.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -395,6 +417,7 @@
    "pad": 9,
    "terminal": "HIZ9",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": 220.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -403,6 +426,7 @@
    "pad": 10,
    "terminal": "HIZ10",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 580.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -411,6 +435,7 @@
    "pad": 11,
    "terminal": "HIZ11",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": -580.0,
    "edge": "RIGHT"
@@ -419,6 +444,7 @@
    "pad": 12,
    "terminal": "HIZ12",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": -220.0,
    "edge": "RIGHT"
@@ -427,6 +453,7 @@
    "pad": 13,
    "terminal": "HIZ13",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 921.7,
    "y": 220.0,
    "edge": "RIGHT"
@@ -435,6 +462,7 @@
    "pad": 14,
    "terminal": "HIZ14",
    "tie": "VDD",
+   "why": "常時 Hi-Z（入力専用）",
    "x": 921.7,
    "y": 580.0,
    "edge": "RIGHT"
@@ -443,16 +471,16 @@
    "pad": 15,
    "terminal": "HIZ15",
    "tie": "GND",
+   "why": "常時ドライブ（出力専用）",
    "x": 580.0,
    "y": 921.7,
    "edge": "TOP"
-  }
- ],
- "float_ties": [
+  },
   {
    "pad": 1,
    "terminal": "OUT1",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -180.0,
    "y": 921.7,
    "edge": "TOP"
@@ -461,6 +489,7 @@
    "pad": 2,
    "terminal": "OUT2",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -620.0,
    "y": 921.7,
    "edge": "TOP"
@@ -469,6 +498,7 @@
    "pad": 3,
    "terminal": "OUT3",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": 620.0,
    "edge": "LEFT"
@@ -477,6 +507,7 @@
    "pad": 4,
    "terminal": "OUT4",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": 180.0,
    "edge": "LEFT"
@@ -485,6 +516,7 @@
    "pad": 5,
    "terminal": "OUT5",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": -180.0,
    "edge": "LEFT"
@@ -493,6 +525,7 @@
    "pad": 6,
    "terminal": "OUT6",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -921.7,
    "y": -620.0,
    "edge": "LEFT"
@@ -501,6 +534,7 @@
    "pad": 7,
    "terminal": "OUT7",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": -620.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -509,6 +543,7 @@
    "pad": 9,
    "terminal": "OUT9",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": 180.0,
    "y": -921.7,
    "edge": "BOTTOM"
@@ -517,6 +552,7 @@
    "pad": 14,
    "terminal": "OUT14",
    "tie": "GND",
+   "why": "入力専用パッドの浮いたドライバ入力",
    "x": 921.7,
    "y": 620.0,
    "edge": "RIGHT"
