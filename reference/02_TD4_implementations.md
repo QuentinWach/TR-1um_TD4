@@ -9,7 +9,7 @@
 - 動作モードを `ui_in[7:6]` で切替: **Load（プログラム書込） / Read（読出確認） / Exec（実行）**
 - Security Camp 2025 全国大会 開発コース L2 ゼミの成果
 - リポジトリ: https://github.com/jinnosukeKato/tt-td4
-  （手元にクローン済: `~/Dropbox/98_LSI_Design/tt-td4`）
+  （手元にクローン済: `~/HogeHoge/LSI_Design/tt-td4`）
 - ページ: https://www.tinytapeout.com/chips/ttsky25a/tt_um_td4
 
 > **C4004 の参考にした ttsky25a #39 "MCS-4 4004 CPU"（丸山宗智）と同じシャトル。**
