@@ -48,8 +48,20 @@ NET_PATH = os.path.join(ROOT, "out", "td4_soc_arr_pnr.v")
 #   「トップ 1 つ・マクロ無し」（I2C / SCLK_SPI）しか見ていない。
 #   TD4 は `scripts/syn.sh` のまま。**そもそも再合成すると U31 で
 #   ネットリストが変わる**ので、再現には触らない。
-# STA だけは APRtools の `syn/sta/sta.sh` で回せる（ここの値を読む）:
-#   sh $APRTOOLS/syn/sta/sta.sh out/td4_soc_arr.v td4_soc_arr 100
+#
+# STA は APRtools の `syn/sta/sta.sh` で回せる（ここの値を読む）:
+#
+#   PYTHONPATH=$APRTOOLS/apr sh $APRTOOLS/syn/sta/sta.sh \
+#       out/td4_soc_arr_pnr.v td4_soc_arr 100
+#
+# ★ **当てるのは `out/td4_soc_arr_pnr.v`（= NET_PATH）**。`out/` には 4 つ
+#   あって、間違えても落ちずに**別の回路の数字**が出る:
+#     td4_soc_arr.v      メモリが **DFF 128 個 + MUX2 249 個**に展開された版
+#     td4_soc_arr_bb.v   `td4_mem` がブラックボックスのまま（Liberty に無い）
+#     td4_soc_arr_mw.v   `REG8x16` に差し替え済み・BUFTH 前
+#     td4_soc_arr_pnr.v  **最後の版**（BUFTH 9 本入り。提出したのはこれ）
+#   2026-09-16 から `sta.sh` が当てる前に下見をして、モジュール数と
+#   「Liberty に無いセル」で気づけるようにしてある。
 SYN_TOP = "td4_soc_arr"
 
 # ★ RTL の一覧は**ここに置く**（U26 / 決定 14）。2026-09-16 まで
@@ -65,6 +77,13 @@ SYN_CELLS_V = os.path.join(ROOT, "hdl", "rtl", "tr1um_cells.v")
 STA_CLK_PORT = "clk"
 STA_PERIOD_NS = 100.0
 STA_FALSE_PATH_FROM = ["rst_n"]
+# マクロの制約（`hold_rising` など）を STA が**実際に見ているか**まで報告する。
+# ★ TD4 の `WEB` は `OR2(clk_buf, ~wr_hi)` で作られている（`scripts/mem_wrap.py`）
+#   ので、**`clk` のクロックネットワークがそのまま `WEB` まで伝播する**はず。
+#   U73 では `WEB` を外部ポートにした最小ネットリストで確かめたので
+#   「クロック宣言が要る」と出たが、この設計では要らない可能性が高い。
+#   それをこの報告で確かめる（`$APRTOOLS/syn/sta/report_macro.tcl`）。
+STA_MACRO_INSTS = ["u_mem"]
 
 # ---- フロアプラン --------------------------------------------------------
 N_ROWS = 5
