@@ -40,8 +40,12 @@
 
       python3 $APRTOOLS/apr/gen_chip_sim_ready.py
       python3 scripts/gen_chip_tb.py
-      cd layout/chip/simulation && ngspice -b tb_*.spi > chip_tb.log 2>&1
-      cd - && python3 scripts/check_chip_sim.py layout/chip/simulation/chip_tb.log
+      ( cd layout/chip/simulation && ngspice -b tb_*.spi > chip_tb.log 2>&1 )
+      python3 scripts/check_chip_sim.py layout/chip/simulation/chip_tb.log
+
+  ★ **`cd -` を使わない。** 括弧で囲めば `cd` はサブシェルの中だけで終わるので、
+    呼んだ側のカレントは動かない。`cd -` は「直前のディレクトリとの往復」なので、
+    2 回続けて打つと戻ってしまう（実際に踏んだ）。
 """
 from __future__ import annotations
 

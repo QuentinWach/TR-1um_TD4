@@ -94,8 +94,8 @@ python3 scripts/klayout_extract.py layout/chip/step4_final.gds tr_1um_jun1okamur
 python3 scripts/frame2sim.py layout/chip/simulation/tr_1um_jun1okamura_ext.spice \
     -o layout/chip/simulation/tr_1um_jun1okamura_sim.spice
 python3 scripts/pnr/gen_chip_tb.py --period 100 --cycles 12
-cd layout/chip/simulation && ngspice -b tb_tr_1um_jun1okamura.spi > chip_tb.log
-cd - && python3 scripts/pnr/check_chip_sim.py --t-exec 1800
+( cd layout/chip/simulation && ngspice -b tb_*.spi > chip_tb.log 2>&1 )
+python3 scripts/check_chip_sim.py --t-exec 1800   # ← 設計ルートで
 ```
 
 **LVS 用の `tr_1um_jun1okamura_lay.spice` は ngspice には使えない。** あれは
