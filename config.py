@@ -84,6 +84,19 @@ STA_FALSE_PATH_FROM = ["rst_n"]
 #   「クロック宣言が要る」と出たが、この設計では要らない可能性が高い。
 #   それをこの報告で確かめる（`$APRTOOLS/syn/sta/report_macro.tcl`）。
 STA_MACRO_INSTS = ["u_mem"]
+# ★ **書込み中に `Q` が追従する経路（`WEB -> Q`）は、この設計では
+#   捕まえる FF が 1 つも無い。** RTL の 2 行が根拠（`hdl/rtl/`）:
+#
+#     td4_soc_arr.v : wire wr_hi = ~exec & wr & nibsel;   // 書込みは exec=0 のときだけ
+#     td4_core.v    : end else if (en) begin ... pc <= ...   // en = exec。exec=0 では
+#                                                            // pc も reg_a/b/out も cflag も止まる
+#
+#   さらに exec=1 では `wr_hi=0` なので `WEB = clk | 1` で**動かない**。
+#   → `WEB` が動く条件とコアが動く条件は排他。構造としては
+#     `WEB -> Q -> 命令デコード -> pc` が繋がっているので STA は見てしまい、
+#     周期 100 ns で `in->reg` が **-15.031 ns** 違反と出た（2026-09-16、U36）。
+#   ★ **読出し `ADD -> Q` は外していない**（実行中の本物のパス）。
+STA_FALSE_PATH_THROUGH = ["u_mem/WEB"]
 
 # ---- フロアプラン --------------------------------------------------------
 N_ROWS = 5
