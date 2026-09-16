@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """check_chip_sim.py -- チップの ngspice 結果を判定して波形も描く。
 
-  usage: python3 scripts/pnr/check_chip_sim.py [LOG] [--csv CSV] [--png PNG]
+  usage: python3 scripts/check_chip_sim.py [LOG] [--csv CSV] [--png PNG]
 
 `gen_chip_tb.py` が仕込んだ `.meas` の値（`o0_<i>` … `o3_<i>` と `cf_<i>`）を
 ログから拾い、VDD/2 で 0/1 に落として `out_port` の並びを復元する。

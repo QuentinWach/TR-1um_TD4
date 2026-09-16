@@ -1,0 +1,34 @@
+* NOR2 B 入力容量 -- char_comb.py 生成
+.include /Users/okamura/Dropbox/98_LSI_Design/TR-1um_TD4/scripts/char/models/ip62_models
+
+* Created by KLayout
+*** My special header ***
+
+* cell NOR2
+* pin A
+* pin B
+* pin Y
+* pin gnd
+* pin vdd
+.SUBCKT NOR2 A B Y gnd vdd
+* device instance $1 r0 *1 4,47.8 PMOS
+XM1 vdd A n6 vdd PMOS L=1u W=10.2u AS=28.56p AD=6.12p PS=26u PD=11.4u
+* device instance $2 r0 *1 6.2,47.8 PMOS
+XM2 n6 B Y vdd PMOS L=1u W=10.2u AS=6.12p AD=28.56p PS=11.4u PD=26u
+* device instance $3 r0 *1 4,8.2 NMOS
+XM3 gnd A Y gnd NMOS L=1u W=3.4u AS=9.52p AD=5.1p PS=12.4u PD=6.4u
+* device instance $4 r0 *1 8,8.2 NMOS
+XM4 Y B gnd gnd NMOS L=1u W=3.4u AS=5.1p AD=9.52p PS=6.4u PD=12.4u
+.ENDS NOR2
+
+.temp 25
+Vvdd vdd 0 5.0
+Vin B_src 0 PWL(0 0 100n 0 103.333n 5)
+Rin B_src B 0.001
+V_A A 0 0
+XU A B Y gnd vdd NOR2
+CL_Y Y 0 50f
+.tran 0.02n 153.333n
+.meas tran q INTEG i(Vin) FROM=100n TO=103.333n
+
+.end

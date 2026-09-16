@@ -1128,8 +1128,10 @@ OSS_FRAME_GIO.spice` は `combine_devices()` を掛けたあとのもの（ngspi
 
     klayout_extract.py  抽出（combine 済み・ネット名付き・XM 表記）
     frame2sim.py        ngspice 用に変換（ESD は MPE/MNE、名前と表記の手当て）
-    gen_chip_tb.py      テストベンチ（Verilog TB と同じ手順をパッドに対して）
-    check_chip_sim.py   .meas を読んで判定 + 波形 PNG
+    ※ TB の 2 本（gen_chip_tb.py / check_chip_sim.py）は **`scripts/` へ移した**
+      （U25。設計固有の期待値が入っているので共通側にも pnr/ にも置かない）。
+      ここにあった古い版は 2026-09-16 に消した — `.include` に機械の絶対パスを
+      書く版で、`layout/chip/simulation/README.md` の手順はそちらを指していた。
 
 2026-09-14: 10 MHz で 12 サイクル、**OUT = 3, 6, 12, 8, 8, … 期待どおり**。
 4,225 素子で 3,150 ns が約 1 分 52 秒。詳細は

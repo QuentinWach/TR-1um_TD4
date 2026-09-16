@@ -30,7 +30,7 @@
 
 入力パッドは `HIZ=1` で Hi-Z、コア側は `BUFTH`（シュミット）で受けるので、
 外から電圧源で叩いてよい。出力パッドには実装を想定して 10 pF を付ける
-（`scripts/char/char_pad.py` の測定条件と同じ）。
+（`<APRtools>/char/char_pad.py` の測定条件と同じ）。
 
   usage: python3 scripts/gen_chip_tb.py [--period 100] [--cycles 12]
 
@@ -147,7 +147,7 @@ def main():
     ev, samples, t_stop, t_exec = build(a.period, a.cycles)
 
     L = [f"* {os.path.basename(a.out)} -- 抽出したチップの動作確認（ngspice）",
-         "* scripts/pnr/gen_chip_tb.py が生成。手で編集しないこと。",
+         "* scripts/gen_chip_tb.py が生成。手で編集しないこと。",
          f"* プログラム: " + " ".join(f"{i:02X}" for i in PROGRAM)
          + f"  期待する OUT: {EXPECT} の繰り返し",
          f"* クロック {a.period:g} ns（{1000/a.period:.1f} MHz）"

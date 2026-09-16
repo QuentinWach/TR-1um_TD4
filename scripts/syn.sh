@@ -11,8 +11,8 @@
 #
 # 検証の鎖:
 #   RTL  ≡ マップ後ネットリスト   段 3（形式等価）と段 4（ゲートレベル TB）
-#   セルモデル ≡ レイアウト        scripts/char/check_comb.py ほか（ngspice）
-#   どちらも出どころは scripts/char/cellspec.py の 1 箇所。
+#   セルモデル ≡ レイアウト        <APRtools>/char/check_comb.py ほか（ngspice）
+#   どちらも出どころは <APRtools>/char/cellspec.py の 1 箇所。
 set -e
 # ★ 正本は APRtools の stdcell（決定 4）。以前は lef/ の写しを読んでいて、
 #   selfcheck が毎回「不一致」を出していた（U31）。実体の差は
@@ -46,7 +46,7 @@ if [ -z "${SYN_TEE:-}" ]; then
   exit 0
 fi
 
-[ -f "$LIB" ] || { echo "$LIB が無い。scripts/char/RUN.md の手順で作ってください" >&2; exit 1; }
+[ -f "$LIB" ] || { echo "$LIB が無い。APRtools の char/RUN.md の手順で作ってください" >&2; exit 1; }
 [ -f "$CONSTR" ] || { echo "$CONSTR が無い" >&2; exit 1; }
 
 # --- Yosys を探す -----------------------------------------------------------
@@ -85,7 +85,12 @@ echo "ABC 制約: $(tr '\n' ' ' < $CONSTR)"
 echo
 echo "##################### 0. セルの Verilog モデルを生成"
 # cellspec.py（ngspice で実レイアウトと突き合わせ済み）から起こす。
-python3 scripts/char/mkcellverilog.py -o $CELLS
+# ★ 実行する行なので山括弧の見本ではなく変数で。APRTOOLS が未設定なら
+#   リポジトリの隣を見る。
+: "${APRTOOLS:=$(cd "$(dirname "$0")/../.." && pwd)/TR-1um_APRtools}"
+[ -f "$APRTOOLS/char/mkcellverilog.py" ] || {
+  echo "** APRTOOLS が違う: $APRTOOLS（export APRTOOLS=... してください）" >&2; exit 1; }
+python3 "$APRTOOLS/char/mkcellverilog.py" -o $CELLS
 
 echo
 echo "##################### 1. RTL の機能検証"

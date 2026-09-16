@@ -8,11 +8,8 @@ __pycache__/
 Claude outputs/
 
 # 特性化デッキの展開先。14,179 デッキ / 127MB あり、
-# scripts/char/genjobs.py + runjobs.sh でいつでも作り直せる
-scripts/char/pack/
+# <APRtools>/char/genjobs.py + runjobs.sh でいつでも作り直せる
 # 特性化のデッキとログ（生成物。char_mem.py / char_pad.py が作り直す）
-scripts/char/decks/
-scripts/char/logs/
 
 # P&R の受け渡し用 tarball（cloud <-> Mac）。中身は展開済み
 .pnr_stage/

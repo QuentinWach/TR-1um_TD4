@@ -1,0 +1,28 @@
+* INV_X2 A 入力容量 -- char_comb.py 生成
+.include /Users/okamura/Dropbox/98_LSI_Design/TR-1um_TD4/scripts/char/models/ip62_models
+
+* Created by KLayout
+*** My special header ***
+
+* cell INV_X2
+* pin A
+* pin Y
+* pin gnd
+* pin vdd
+.SUBCKT INV_X2 A Y gnd vdd
+* device instance $1 r0 *1 4,44.8 PMOS
+XM1 vdd A Y vdd PMOS L=1u W=16.2u AS=45.36p AD=45.36p PS=38u PD=38u
+* device instance $2 r0 *1 5.4,9.8 NMOS
+XM2 gnd A Y gnd NMOS L=1u W=6.6u AS=18.48p AD=18.48p PS=18.8u PD=18.8u
+.ENDS INV_X2
+
+.temp 25
+Vvdd vdd 0 5.0
+Vin A_src 0 PWL(0 0 100n 0 103.333n 5)
+Rin A_src A 0.001
+XU A Y gnd vdd INV_X2
+CL_Y Y 0 50f
+.tran 0.02n 153.333n
+.meas tran q INTEG i(Vin) FROM=100n TO=103.333n
+
+.end
