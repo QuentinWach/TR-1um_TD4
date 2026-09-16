@@ -102,18 +102,31 @@ def main():
               + " ".join(f"{m[(f'o{b}', i)]:5.2f}" for b in (3, 2, 1, 0))
               + ("" if ok else "   <-- NG"))
 
-    if not a.no_plot and os.path.exists(a.csv):
-        plot(a.csv, a.png, a.t_exec)
-
+    # ★ **合否を先に出す。** 作図はおまけなので、そこで落ちても判定は返す。
+    #   2026-09-16: `matplotlib` が入っていない環境で、**全 12 サイクル
+    #   期待どおりなのに作図の ImportError で落ちて、判定が 1 行も出ず
+    #   終了コードも 1** になった。**任意の依存を、必須の判定より前に
+    #   置かない。**
     print()
     if bad:
         for i, val, exp, cf in bad:
             print(f"PROBLEM: cycle {i}: OUT={val} 期待 {exp} / CF={cf}")
-        return 1
-    print(f"{n} サイクルすべて期待どおり（OUT = "
-          + ", ".join(str(LOOP[i % len(LOOP)]) for i in range(min(n, 10)))
-          + (" …" if n > 10 else "") + "、CF は終始 0）")
-    return 0
+        rc = 1
+    else:
+        print(f"{n} サイクルすべて期待どおり（OUT = "
+              + ", ".join(str(LOOP[i % len(LOOP)]) for i in range(min(n, 10)))
+              + (" …" if n > 10 else "") + "、CF は終始 0）")
+        rc = 0
+
+    if not a.no_plot and os.path.exists(a.csv):
+        try:
+            plot(a.csv, a.png, a.t_exec)
+        except ImportError as e:
+            print(f"  （波形の図は描かない: {e}。"
+                  "pip install matplotlib で描けるようになる）")
+        except Exception as e:                      # 図で判定を落とさない
+            print(f"  （波形の図を描けなかった: {type(e).__name__} {e}）")
+    return rc
 
 
 if __name__ == "__main__":

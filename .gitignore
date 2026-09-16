@@ -25,3 +25,4 @@ layout/chip/simulation/*.raw.csv
 layout/chip/simulation/*_sim.spice
 layout/chip/simulation/tb_*.spi
 layout/chip/simulation/models.spice
+layout/chip/simulation/*_extracted.spice
