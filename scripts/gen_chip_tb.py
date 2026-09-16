@@ -32,7 +32,16 @@
 外から電圧源で叩いてよい。出力パッドには実装を想定して 10 pF を付ける
 （`scripts/char/char_pad.py` の測定条件と同じ）。
 
-  usage: python3 scripts/pnr/gen_chip_tb.py [--period 100] [--cycles 12]
+  usage: python3 scripts/gen_chip_tb.py [--period 100] [--cycles 12]
+
+★ **回すときは simulation ディレクトリに cd する。** TB の `.include` と
+  `wrdata` は**名前だけ**にしてある（機械のパスを焼き付けないため。U24）が、
+  ngspice が相対パスを解くのは **TB の場所ではなく実行時のカレント**なので:
+
+      python3 $APRTOOLS/apr/gen_chip_sim_ready.py
+      python3 scripts/gen_chip_tb.py
+      cd layout/chip/simulation && ngspice -b tb_*.spi > chip_tb.log 2>&1
+      cd - && python3 scripts/check_chip_sim.py layout/chip/simulation/chip_tb.log
 """
 from __future__ import annotations
 
@@ -140,8 +149,12 @@ def main():
          f"* クロック {a.period:g} ns（{1000/a.period:.1f} MHz）"
          f"  Exec 開始 {t_exec:g} ns  終了 {t_stop:g} ns",
          "",
-         f'.include "{MODELS}"',
-         f'.include "{os.path.abspath(a.netlist)}"',
+         # ★ **PDK と抽出物の絶対パスを TB に埋めない**（U24）。ngspice の
+         #   `.include` は環境変数を展開しないので、素直に書くと回した機械の
+         #   パスが焼き付いてコミットできなくなる。モデルは隣に 1 行の
+         #   `models.spice` を起こし、抽出物は**同じディレクトリなので名前だけ**。
+         f".include '{tb.write_models_shim(cfg, SIM)}'",
+         f".include '{os.path.basename(a.netlist)}'",
          "",
          f"Vvdd VDD 0 DC {VDD}",
          "Vvss VSS 0 DC 0",
@@ -174,7 +187,9 @@ def main():
         L.append(f'meas tran o2_{i} FIND v(P12) AT={t:g}n')
         L.append(f'meas tran o3_{i} FIND v(P13) AT={t:g}n')
         L.append(f'meas tran cf_{i} FIND v(P15) AT={t:g}n')
-    L += [f'wrdata {os.path.join(SIM, "chip_tb.raw.csv")} '
+    # ★ 出力先も**名前だけ**（TB と同じディレクトリに落ちる）。絶対パスに
+    #   すると回した機械が TB に焼き付く（U24 と同じ理由）。
+    L += ['wrdata chip_tb.raw.csv '
           'v(P10) v(P11) v(P12) v(P13) v(P15) v(P1) v(P2) v(P14)',
           ".endc",
           ".end", ""]
