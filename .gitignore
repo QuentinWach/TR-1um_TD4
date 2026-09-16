@@ -19,3 +19,9 @@ scripts/char/logs/
 
 # チップ ngspice の波形生データ（2.5MB。check_chip_sim.py が PNG にする）
 layout/chip/simulation/*.raw.csv
+
+# ngspice の生成物（scripts/gen_chip_tb.py / gen_chip_sim_ready.py が作る）
+# ★ models.spice は PDK の絶対パスを 1 行だけ持つ（U24）。機械依存なので追跡しない。
+layout/chip/simulation/*_sim.spice
+layout/chip/simulation/tb_*.spi
+layout/chip/simulation/models.spice
