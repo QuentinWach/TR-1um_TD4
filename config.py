@@ -51,6 +51,17 @@ NET_PATH = os.path.join(ROOT, "out", "td4_soc_arr_pnr.v")
 # STA だけは APRtools の `syn/sta/sta.sh` で回せる（ここの値を読む）:
 #   sh $APRTOOLS/syn/sta/sta.sh out/td4_soc_arr.v td4_soc_arr 100
 SYN_TOP = "td4_soc_arr"
+
+# ★ RTL の一覧は**ここに置く**（U26 / 決定 14）。2026-09-16 まで
+#   `$APRTOOLS/apr/syn_equiv.py` の `--rtl` の既定に直書きされていて、
+#   **TD4 の RTL 一覧が APRtools 側にしかない**状態だった（U36 の
+#   `syn.sh` と同じ形）。合成は `scripts/syn.sh` のままだが、
+#   形式等価（`syn_equiv.py`）はここを読む。
+SYN_RTL = [os.path.join(ROOT, "hdl", "rtl", f) for f in (
+    "td4_core.v", "td4_mem.v", "td4_soc_rom.v", "td4_soc_ff.v", "td4_soc_arr.v")]
+# セルの振る舞い（`char/mkcellverilog.py` の生成物）。
+SYN_CELLS_V = os.path.join(ROOT, "hdl", "rtl", "tr1um_cells.v")
+
 STA_CLK_PORT = "clk"
 STA_PERIOD_NS = 100.0
 STA_FALSE_PATH_FROM = ["rst_n"]
