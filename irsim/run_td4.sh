@@ -44,6 +44,25 @@ fi
 # .cmd が触るノードが .sim にあるか（無いと「走ったが何も駆動していない」になる）
 python3 scripts/gen_irsim_td4.py --check-sim "$SIM"
 
+# --- 否定対照: BUFTH だけを叩く ------------------------------------------
+# 入力は全部 BUFTH（シュミットトリガ）で受けている。**IRSIM はこれを解けない**
+# ので、本体では BUFTH の出口（*_buf）も直接駆動している。その根拠をここで
+# 毎回とる — Y が X のままなら「IRSIM が解けない」、解けていたら本体の
+# 迂回はもう要らない（そのときはこの注記ごと見直すこと）。
+PSIM=irsim/probe_bufth.sim
+PCMD=irsim/probe_bufth.cmd
+PLOG=irsim/probe_bufth_run.log
+if [ ! -f "$PSIM" ] || [ "$SPI2SIM" -nt "$PSIM" ]; then
+  python3 "$SPI2SIM" "$APRTOOLS/stdcell/v59_4/simulation/BUFTH.spice" BUFTH \
+    | sed -e "s#$APRTOOLS#\$APRTOOLS#g" > "$PSIM"
+fi
+irsim "$PRM" "$PSIM" > "$PLOG" 2>&1 << EOT
+@ $PCMD
+EOT
+echo "--- BUFTH 単体（否定対照）: A を 0 / 1 / 0 と振ったときの Y ---"
+grep -E "\bA=" "$PLOG" || echo "  ** d の出力が無い。$PLOG を見ること"
+echo
+
 echo "irsim $PRM $SIM  ($CMD -> $LOG)" >&2
 # NOTE: "-@ cmdfile" の CLI フラグは環境によって効かないので、
 #       参照プロジェクト（TR-1um_Async_I2C）と同じく stdin の heredoc で渡す。

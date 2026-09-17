@@ -39,6 +39,23 @@ THALF = 100
 
 IN_VAL = 0b1010          # Exec 中ずっと `d` に置く入力ポートの値（= 10）
 
+# ★ **入力の BUFTH（シュミットトリガ）を飛ばして駆動する。**
+#   このライブラリは外部入力を全部 `BUFTH` で受ける（`insert_bufth.py`。
+#   立上り 3.71 V / 立下り 1.20 V、ヒステリシス 2.51 V — docs/10_pdk_facts.md §2）。
+#   **IRSIM はシュミットを解けない。** ヒステリシスの帰還 MOS が自分の出力
+#   ノードでゲートされているので、初期値 X から抜けられない:
+#       n2=X -> 帰還 MP0/MP1 が「導通するかも」-> n3 が vdd と vss の両方に
+#       引かれて X -> n2=X …
+#   しかも帰還の方が太い（5.1x2 対 5.1 の直列 2 段）ので、強さでも決まらない。
+#   実際に踏んだ（2026-09-17）: 9 本の入力が全部 X になり、コアが丸ごと X。
+#   → **バッファの出口も同じ値で駆動する**（`irsim/probe_bufth.cmd` が否定対照）。
+#   こうすると BUFTH 9 個（90 Tr）は検査の外に出るが、残り 3,507 Tr —
+#   コアとメモリアレイ全部 — は実物の接続で走る。
+#   BUFTH 自体の閾値は ngspice で測ってある（docs/10_pdk_facts.md）。
+BUF = {"clk": "clk_buf", "rst_n": "rst_n_buf", "exec": "exec_buf",
+       "wr": "wr_buf", "nibsel": "nibsel_buf"}
+BUF_BUS = {"d": "d_buf"}
+
 # --- プログラム -------------------------------------------------------------
 # (命令, 覚え書き)。**PC が進む順**に並んでいる。
 P1 = [
@@ -124,15 +141,23 @@ class Cmd:
     def raw(self, s):
         self.o.append(s)
 
-    def set(self, node, v):
+    def _one(self, node, v):
         """値が変わるときだけ書く（.cmd が短くなり、差分も読みやすい）。"""
         if self.lvl.get(node) != v:
             self.raw(f"{'h' if v else 'l'} {node}")
             self.lvl[node] = v
 
+    def set(self, node, v):
+        """ピンと、その BUFTH の出口を同じ値で駆動する（BUF の注記を参照）。"""
+        self._one(node, v)
+        if node in BUF:
+            self._one(BUF[node], v)
+
     def bus(self, prefix, val, nbit=4):
         for i in range(nbit):
-            self.set(f"{prefix}{i}", (val >> i) & 1)
+            self._one(f"{prefix}{i}", (val >> i) & 1)
+            if prefix in BUF_BUS:
+                self._one(f"{BUF_BUS[prefix]}{i}", (val >> i) & 1)
 
     def lo(self):                      # クロック立下り側（入力を動かす所）
         self.set("clk", 0)
@@ -155,6 +180,10 @@ def gen_cmd() -> str:
     g.c("集計だけをログのオフライン突合せで行う。")
     g.c()
     g.c(f"stepsize 1 -> 1ns。半周期 {THALF} ns（reg->reg の実測 60.3 ns に対し 3 倍以上）")
+    g.c()
+    g.c("★ 入力ピンと**その BUFTH の出口**（*_buf）を同じ値で駆動している。")
+    g.c("  BUFTH はシュミットトリガで、IRSIM は帰還が解けず X から抜けない")
+    g.c("  （否定対照: irsim/probe_bufth.cmd）。BUFTH 9 個 90 Tr は検査の外。")
     g.raw("stepsize 1")
     g.raw("settle 10")
     g.c()
