@@ -15,6 +15,7 @@ hdl/
 | `rtl/td4_soc_arr.v` | **★本命**。コア + `td4_mem`。実装時に `td4_mem` をカスタム RFCELL アレイへ差し替える |
 | `tb/tb_td4_core.v` | 全12命令 + キャリー + JNC 分岐 + PC ラップの 19項目チェック |
 | `tb/tb_td4_soc_arr.v` | Load モードで5命令書込 → Exec モードで OUT 列を確認 |
+| `tb/tb_td4_soc_arr_isa.v` | **全12命令の実行トレース**（21 サイクル）。`scripts/gen_irsim_td4.py` が生成 — `irsim/td4_soc_arr.cmd` と同じプログラム・同じ期待値（U14）。手で編集しない |
 
 `td4_soc_ff` と `td4_soc_arr` の違い（詳細は `../reference/07_memory_array.md` §3）:
 `td4_soc_arr` は **下位ニブルをステージングして 8bit 一括ライト**するので
@@ -38,6 +39,10 @@ iverilog -g2012 -o tb.vvp hdl/tb/tb_td4_core.v hdl/rtl/td4_core.v && vvp tb.vvp
 iverilog -g2012 -o tb2.vvp hdl/tb/tb_td4_soc_arr.v \
          hdl/rtl/td4_soc_arr.v hdl/rtl/td4_mem.v hdl/rtl/td4_core.v && vvp tb2.vvp
 # → === td4_soc_arr LOAD+EXEC TEST PASSED ===
+iverilog -g2012 -o tb3.vvp hdl/tb/tb_td4_soc_arr_isa.v \
+         hdl/rtl/td4_soc_arr.v hdl/rtl/td4_mem.v hdl/rtl/td4_core.v && vvp tb3.vvp
+# → === TD4 ISA TRACE PASSED (21 cycles) ===
+# 同じベクタのスイッチレベル版は sh irsim/run_td4.sh
 
 # 機能検証 + 面積見積り 一括
 sh scripts/syn.sh

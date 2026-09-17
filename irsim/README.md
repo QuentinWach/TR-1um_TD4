@@ -98,35 +98,60 @@ IRSIM をビルドし直せば消える。
 
 ---
 
-## TD4 コア（これから）
-
-```
-irsim/
-├── *.sim   ext2sim / 抽出結果から生成した .sim ネットリスト
-├── *.prm   パラメータファイル（TR-1um 5V 用）
-└── *.cmd   IRSIM コマンドスクリプト（ベクタ）
-```
-
-### 手順（Magic 系フロー）
+## TD4 コア — 全 12 命令トレース（U14）
 
 ```sh
-magic -dnull -noconsole <<'EOT'
-load td4_soc_rom
-extract all
-ext2sim labels on
-ext2sim
-quit
-EOT
-irsim TR-1um.prm td4_soc_rom.sim < td4_soc_rom.cmd
+export APRTOOLS=<PDK と道具を置いた場所>/TR-1um_APRtools
+sh irsim/run_td4.sh        # 実行 -> 合否まで一発
+sh irsim/run_td4.sh -v     # 全サイクルを 1 行ずつ
 ```
 
-> REG4x16 は LVS ソースから `scripts/spi2sim.py` で直接 `.sim` を作った。
-> レイアウトの寄生を入れたい場合は Magic の `ext2sim` 経由にする。
+| ファイル | 内容 |
+|---|---|
+| `td4_soc_arr.sim` | `$APRTOOLS/apr/spi2sim.py` が `layout/chip/simulation/td4_soc_arr_nrow_fm.spice`（LVS ソース）から生成。**3,597 Tr / 1,386 ノード** |
+| `td4_soc_arr.cmd` | `scripts/gen_irsim_td4.py` が生成 |
+| `TR-1um.prm` | REG4x16 と共通 |
+| `run_td4.sh` | `.sim` / `.cmd` の作り直し → 実行 → 判定 |
 
-### 用途
+### 何を流すか
 
-- 全12命令の実行トレース（`hdl/tb/tb_td4_core.v` と同じベクタをそのまま移植する）
+`hdl/tb/tb_td4_core.v` は `rom_data` を**直接叩いて** 12 命令を出すので、
+**そのままでは実装に持ち込めない** — `td4_soc_arr_nrow_fm` に `rom_data` の
+ピンは無く、命令は Load モードで書いたメモリから出てくる。そこで
+「PC が進む順に並んだプログラム」に書き直した。
+
+- **P1**（16 命令 / 16 サイクル）— 12 命令のうち 11 種、キャリー発生、
+  JNC の**飛ぶ/飛ばない両方**、PC の 15 → 0 ラップ。
+  14 番地に `OUT Im 15` を置いてあり、**通ってはいけない**（通れば OUT=15 で落ちる）
+- **P2**（4 命令 / 5 サイクル）— `JMP` と飛び先の確認、自己ループで停止
+
+期待値は手計算ではなく `gen_irsim_td4.py` の参照モデル（`Sim`）が解く。
+**同じ表から Verilog TB `hdl/tb/tb_td4_soc_arr_isa.v` も生成する**ので、
+論理（Verilog）とスイッチレベル（IRSIM）が食い違うことがない。
+
+### 見える信号
+
+`out_port[3:0]` と `cflag_o` はトップピン。**`u_core_reg_a[3:0]` と
+`u_core_reg_b[3:0]` は内部だが LVS ソースに名前が残っている**ので
+IRSIM から直接見られる（角括弧は `spi2sim.py` が潰すので `u_core_reg_a0`）。
+`pc` と `ld_addr[3:1]` は合成で番号に化けていて見えないが、
+どの命令が実行されたかは OUT / A / B の並びで決まるので足りる。
+
+### 時間分解能
+
+半周期 100 ns（5 MHz）。`syn/sta` の実測 `reg->reg` 60.307 ns に対し 3 倍以上。
+`.sim` は配線容量を持たないので IRSIM は実物より速く出る — **速度の根拠には
+使わない**（速度は STA と ngspice で見る）。
+
+### 合否の出し方
+
+1 サイクルごとに `print TD4CHECK tag=... expA=... expB=... expO=... expC=...` を
+刻み、`assert` でその場で判定し、`d AV BV OV CV` で実際の値を残す。
+`scripts/check_irsim_td4_log.py` が集計し、**12 命令ぜんぶ通ったか**も数える
+（通っていなければ「PASS だが検査していない」なので落とす）。
+
+### 残っているもの
+
 - 命令メモリ（RFCELL アレイ版）の読み書きマージン確認
-- CPI=1 なので **1クロック内で「セレクタ→加算器→レジスタ」が閉じているか**の確認が主眼。
-  C4004 と違って2相クロックのレース検証は不要。
-- SPICE より桁違いに速いので、16命令のプログラムを丸ごと流せる。
+- レイアウトの寄生を入れるなら Magic の `extract` → `ext2sim` 経由にする
+  （いまの `.sim` は LVS ソースからで、**配線容量が入らない**）
