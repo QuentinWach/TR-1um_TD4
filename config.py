@@ -84,19 +84,12 @@ STA_FALSE_PATH_FROM = ["rst_n"]
 #   「クロック宣言が要る」と出たが、この設計では要らない可能性が高い。
 #   それをこの報告で確かめる（`$APRTOOLS/syn/sta/report_macro.tcl`）。
 STA_MACRO_INSTS = ["u_mem"]
-# ★ **書込み中に `Q` が追従する経路（`WEB -> Q`）は、この設計では
-#   捕まえる FF が 1 つも無い。** RTL の 2 行が根拠（`hdl/rtl/`）:
-#
-#     td4_soc_arr.v : wire wr_hi = ~exec & wr & nibsel;   // 書込みは exec=0 のときだけ
-#     td4_core.v    : end else if (en) begin ... pc <= ...   // en = exec。exec=0 では
-#                                                            // pc も reg_a/b/out も cflag も止まる
-#
-#   さらに exec=1 では `wr_hi=0` なので `WEB = clk | 1` で**動かない**。
-#   → `WEB` が動く条件とコアが動く条件は排他。構造としては
-#     `WEB -> Q -> 命令デコード -> pc` が繋がっているので STA は見てしまい、
-#     周期 100 ns で `in->reg` が **-15.031 ns** 違反と出た（2026-09-16、U36）。
-#   ★ **読出し `ADD -> Q` は外していない**（実行中の本物のパス）。
-STA_FALSE_PATH_THROUGH = ["u_mem/WEB"]
+# 設計固有の STA 制約（false path 2 本と、その根拠）。
+# ★ 根拠が長いので config の 1 行ではなく**ファイル**にしてある。
+#   中身: (1) `WEB -> Q`（書込み中の追従。exec=0 でしか動かず、そのときコアは
+#   止まっている） (2) `nib_lo -> u_mem/D`（`nibsel` が逆の極性で排他に選ぶ）。
+#   どちらも「論理的に成立しない」ことをネットリストで確かめてある（U36 / U76）。
+STA_EXTRA_TCL = os.path.join(ROOT, "scripts", "sta_constraints.tcl")
 
 # ---- フロアプラン --------------------------------------------------------
 N_ROWS = 5
