@@ -171,7 +171,7 @@
  },
  "MEMPORT": {
   "cls": "BLOCK",
-  "height_um": 550.8,
+  "height_um": 502.2,
   "origin": [
    0.0,
    0.0
