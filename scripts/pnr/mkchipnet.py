@@ -18,19 +18,19 @@
 マッチに入らない（移植元は 2 本落として、他の全ピンが将棋倒しに不一致に
 なるのを見ている。下のサブサーキット 27 個は全部合っていたのに）。
 
-## どの網がどこから来るか
+## どのネットがどこから来るか
 
 両方のインスタンスのポート順は、**それぞれの `.subckt` 行から読む**。
-決め打ちしない。網は接続表から引く:
+決め打ちしない。ネットは接続表から引く:
 
-    P<n>      ボンドパッドの網。そのままトップのポート
+    P<n>      ボンドパッドのネット。そのままトップのポート
     HIZ<n>    レール直結（TD4 は 14 本とも固定方向。入力は VDD / 出力は GND）
-    OUT<n>    出力パッドならコアが駆動する網。入力パッドは浮くので GND
+    OUT<n>    出力パッドならコアが駆動するネット。入力パッドは浮くので GND
               （`route_chip.py` が実際に落としているのと同じ）
-    コアのポート  そのパッドの網
+    コアのポート  そのパッドのネット
 
 どちらの側にも表に出てこないポートがあったら、**それぞれ固有の `NC_*`**
-にする。まとめて 1 本にすると、浮いている端子どうしが短絡した網として
+にする。まとめて 1 本にすると、浮いている端子どうしが短絡したネットとして
 LVS に見えてしまう。
 
   usage: python3 scripts/pnr/mkchipnet.py [-o OUT]
@@ -123,7 +123,7 @@ def build():
         elif kind == "HIZ":
             gio_net[p] = RAIL[hiz[n]]
         elif sig[n]["dir"] == "out":
-            gio_net[p] = sig[n]["net"]        # コアが駆動する網そのもの
+            gio_net[p] = sig[n]["net"]        # コアが駆動するネットそのもの
         elif n in floats:
             gio_net[p] = RAIL["GND"]          # 入力パッドの浮いた OUT を落とす
         else:
@@ -223,15 +223,15 @@ def main():
     print(f"\n{GIO_CELL}: {len(gio_ports)} ポート")
     print(f"{cfg.TOP_CELL_NAME}: {len(core_ports)} ポート")
     print(f"トップ: {len(TOP_PIN_ORDER)} 本のボンドパッド")
-    print("\nコアのポート -> チップの網")
+    print("\nコアのポート -> チップのネット")
     for p in core_ports:
         print(f"  {p:<14} {core_net[p]}")
-    print("\nフレームのピン -> チップの網（パッド以外）")
+    print("\nフレームのピン -> チップのネット（パッド以外）")
     for p in gio_ports:
         if not re.match(r"^P\d+$", p) and p not in RAIL:
             print(f"  {p:<8} {gio_net[p]}")
     if nc:
-        print(f"\n浮いた網 {len(nc)} 本: {nc}")
+        print(f"\n浮いたネット {len(nc)} 本: {nc}")
     if problems:
         print()
         for p in problems:

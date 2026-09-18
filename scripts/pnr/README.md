@@ -931,7 +931,7 @@ M2 だけ**（LEF の `PIN vdd` / `PIN vss`）。行の電源レールは x ≤ 
      $3.vdd  端子 1476 本
 ```
 
-`vss` が GND と同じ網に見えていたのは**基板（bulk）経由**であって金属ではない
+`vss` が GND と同じネットに見えていたのは**基板（bulk）経由**であって金属ではない
 （抽出器は NMOS のバックゲートを 1 つのグローバルノードに繋ぐ）。なので
 **両レールとも**繋ぐ。
 
@@ -997,7 +997,7 @@ KLayout の LVS は「セル名と同じ名前の .spice」を探す流儀で、
 ユーザ側でリネームが要った（2026-09-13）。`mklvsnet.py` は `-o` 省略で
 `layout/<mode>/simulation/<トップセル名>.spice` に出す。
 
-ユーザ側の KLayout LVS が出す抽出網 `layout/portrait/<トップセル名>.extracted` は
+ユーザ側の KLayout LVS が出す抽出ネット `layout/portrait/<トップセル名>.extracted` は
 `XM<name> … <MODEL> L=… W=… AS=… PS=…` 形式（`NetlistSpiceWriter` + デバイス委譲）。
 **素の `NetlistSpiceReader` で読むとデバイスではなく subckt 呼び出しに見える**
 （実測: circuit 94 / device 0）。読み戻して比較するならデリゲートが要る。

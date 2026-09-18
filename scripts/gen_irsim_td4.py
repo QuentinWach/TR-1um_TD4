@@ -14,7 +14,7 @@
   Verilog TB と IRSIM の .cmd を同じ表・同じ期待値から出すので、
   二つが食い違うことがない（`gen_irsim_cmd.py` と同じ流儀）。
 
-観測できるもの（`layout/chip/simulation/td4_soc_arr_nrow_fm.spice` の網名）:
+観測できるもの（`layout/chip/simulation/td4_soc_arr_nrow_fm.spice` のネット名）:
   `out_port[3:0]` / `cflag_o` はトップピン。
   **`u_core_reg_a[3:0]` と `u_core_reg_b[3:0]` は内部だが名前が残っている**ので
   IRSIM から直接見られる（`pc` と `ld_addr[3:1]` は合成で番号に化けていて見えない）。
@@ -353,7 +353,7 @@ def check_sim(cmd_text, sim_path):
     if missing:
         raise SystemExit(
             f"** .cmd が触るノードが {sim_path} に無い: {', '.join(missing)}\n"
-            f"   .sim を作り直すか、網の名前を確かめてください。")
+            f"   .sim を作り直すか、ネットの名前を確かめてください。")
     print(f"  ノードの突き合わせ ok（{len(used)} 個すべて {sim_path} にある）")
 
 

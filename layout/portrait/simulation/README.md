@@ -19,7 +19,7 @@
 === LVS: **一致**
 ```
 
-デバイス 3597 個・網 1386 本・トップピン 16 本がすべて一致。
+デバイス 3597 個・ネット 1386 本・トップピン 16 本がすべて一致。
 `--tie-floating-power` のような仮の細工は要らない。
 
 ## 作り直し方
@@ -96,7 +96,7 @@ KLayout の LVS は「セル名と同じ名前の .spice」を探す流儀で、
 `lef/simulation/*.spice` も `REG8x16.spice` のようにセル名そのもの。
 `mklvsnet.py` は `-o` 省略でこの名前に出す。
 
-ユーザ側の KLayout LVS が出す抽出網は `layout/portrait/<トップセル名>.extracted`。
+ユーザ側の KLayout LVS が出す抽出ネットは `layout/portrait/<トップセル名>.extracted`。
 これは `XM<name> … <MODEL> L=… W=… AS=… PS=…` 形式（KLayout の
 `NetlistSpiceWriter` + デバイス委譲）なので、**素の `NetlistSpiceReader` で
 読むとデバイスではなく subckt 呼び出しに見える**（実測: circuit 94 / device 0）。
@@ -115,4 +115,4 @@ KLayout の LVS は「セル名と同じ名前の .spice」を探す流儀で、
   `TAP2` × 20 はデバイスを持たないので出していない。
 * トップピン名はレイアウトのラベルに合わせてある（`out_port[3]` … / `VDD` / `GND`）。
   Yosys の `assign out_port = \u_core.reg_out ;` のようなバス別名を解かないと
-  出力がどこにも繋がらない網になるので、`mklvsnet.py` は独自の別名解決を持つ。
+  出力がどこにも繋がらないネットになるので、`mklvsnet.py` は独自の別名解決を持つ。

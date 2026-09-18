@@ -39,7 +39,7 @@ x2 … td4_soc_arr_nrow_fm
 
 * コア `layout/portrait/simulation/td4_soc_arr_nrow_fm.spice`（単体で LVS 済み）
 * フレーム `lef/simulation/OSS_FRAME_GIO_nocombine.spice`
-* 網の張り方 `layout/chip/gio_connections.json`
+* ネットの張り方 `layout/chip/gio_connections.json`
 
 両インスタンスのポート順は**それぞれの `.subckt` 行から読む**。決め打ちしない。
 
@@ -66,7 +66,7 @@ x2 … td4_soc_arr_nrow_fm
 
   P10/P11/P12/P13/P15 -- **出力パッド 5 本ちょうど**。入力パッドは `P<n>`
   端子までコアから配線が来ているので触れているが、出力パッドはコアが
-  `OUT<n>` を駆動するだけで、ボンドパッドの網にはトップから何も触れて
+  `OUT<n>` を駆動するだけで、ボンドパッドのネットにはトップから何も触れて
   いなかった。`scripts/klayout_extract.py` はラベル層を M2 に繋ぐので
   44 ピン全部見えていて、こちらの LVS では気づけなかった。
   `add_top_pins.py` が**同じ 3 µm 角を M2 (20,0) にも置く**ようにして解決
