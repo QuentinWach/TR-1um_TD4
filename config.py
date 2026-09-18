@@ -98,6 +98,12 @@ STA_FALSE_PATH_FROM = ["rst_n"]
 #   「クロック宣言が要る」と出たが、この設計では要らない可能性が高い。
 #   それをこの報告で確かめる（`$APRTOOLS/syn/sta/report_macro.tcl`）。
 STA_MACRO_INSTS = ["u_mem"]
+# マクロの `min_pulse_width`（`WEB` の最小低幅）を**報告に出すため**の指定。
+# ★ **値は書かない。** `.lib` の `REG8x16` の `WEB` の拘束から引く（U99）。
+#   以前は `report_macro.tcl` に `11 ns` と直書きしてあり、U96 で実測が
+#   10.0 ns になったときに**写した側だけが古いまま**になった。
+#   OpenSTA はこの拘束を見ない（U73）ので、担保は ngspice 側。
+STA_MPW_CELL, STA_MPW_PIN = "REG8x16", "WEB"
 # 設計固有の STA 制約（false path 2 本と、その根拠）。
 # ★ 根拠が長いので config の 1 行ではなく**ファイル**にしてある。
 #   中身: (1) `WEB -> Q`（書込み中の追従。exec=0 でしか動かず、そのときコアは

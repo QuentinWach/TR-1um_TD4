@@ -1,0 +1,101 @@
+  （false path: WEB -> Q（書込み中の追従。exec=0 でしか動かず、そのときコアは止まっている） — 経由 1 個）
+  （false path: nib_lo -> u_mem/D（nibsel が排他に選ぶので、書込みを終える縁では動かない） — 経由 4 個 -> 行き先 8 個）
+######## td4_soc_arr   out/td4_soc_arr_pnr.v   period = 100 ns
+  reg->reg    slack    38.024 ns   _237_/Q -> _240_/D
+  in->reg     slack    17.140 ns   exec -> _240_/D
+  reg->out    slack    72.408 ns   _232_/Q -> cflag_o
+  hold r->r   slack     7.097 ns   _249_/QB -> _249_/D
+  => reg->reg が要求する最小周期 61.976 ns  (16.14 MHz)
+     周期係数 a = 1.00 -> 全周期パス（同じ縁どうし）。経路の実遅延は 61.976 ns
+
+######## マクロ u_mem
+
+  -- セルの種類
+     REG8x16
+
+  -- 定義されているクロック（WEB がここに出れば伝播している）
+     clk        period 100
+
+  -- マクロへ向かう hold の一覧（`library hold time` が出れば hold_rising が効いている）
+Startpoint                           Endpoint                                Slack
+---------------------------------------------------------------------------------
+_252_/Q (REG8x16)                    u_mem/ADD[3] (REG8x16)                  4.041
+_252_/Q (REG8x16)                    u_mem/ADD[3] (REG8x16)                  4.385
+_251_/Q (REG8x16)                    u_mem/ADD[2] (REG8x16)                  4.734
+_240_/Q (REG8x16)                    u_mem/ADD[3] (REG8x16)                  4.744
+_249_/Q (REG8x16)                    u_mem/ADD[0] (REG8x16)                  5.060
+_240_/Q (REG8x16)                    u_mem/ADD[3] (REG8x16)                  5.235
+_251_/Q (REG8x16)                    u_mem/ADD[2] (REG8x16)                  5.303
+_250_/Q (REG8x16)                    u_mem/ADD[1] (REG8x16)                  5.421
+_239_/Q (REG8x16)                    u_mem/ADD[2] (REG8x16)                  5.487
+_249_/Q (REG8x16)                    u_mem/ADD[0] (REG8x16)                  5.734
+_238_/Q (REG8x16)                    u_mem/ADD[1] (REG8x16)                  5.909
+_237_/Q (REG8x16)                    u_mem/ADD[0] (REG8x16)                  6.180
+_250_/Q (REG8x16)                    u_mem/ADD[1] (REG8x16)                  6.214
+_239_/Q (REG8x16)                    u_mem/ADD[2] (REG8x16)                  6.224
+_238_/Q (REG8x16)                    u_mem/ADD[1] (REG8x16)                  6.786
+_237_/Q (REG8x16)                    u_mem/ADD[0] (REG8x16)                  7.148
+d[1] (input)                         u_mem/D[5] (REG8x16)                   18.618
+d[0] (input)                         u_mem/D[4] (REG8x16)                   18.622
+d[2] (input)                         u_mem/D[6] (REG8x16)                   18.622
+d[3] (input)                         u_mem/D[7] (REG8x16)                   18.622
+d[1] (input)                         u_mem/D[5] (REG8x16)                   21.083
+d[0] (input)                         u_mem/D[4] (REG8x16)                   21.090
+d[2] (input)                         u_mem/D[6] (REG8x16)                   21.090
+d[3] (input)                         u_mem/D[7] (REG8x16)                   21.090
+
+
+  -- hold が破れているものだけ（詳細）
+No paths found.
+
+  -- マクロを通る最長パス（読出し ADD -> Q が critical に乗っているか）
+Startpoint: exec (input port clocked by clk)
+Endpoint: _240_ (rising edge-triggered flip-flop clocked by clk)
+Path Group: clk
+Path Type: max
+
+   Delay     Time   Description
+-----------------------------------------------------------
+   0.000    0.000   clock clk (rise edge)
+   0.000    0.000   clock network delay (ideal)
+  20.000   20.000 v input external delay
+   0.187   20.187 v exec (in)
+   6.179   26.365 v u_bufth_exec/Y (BUFTH)
+   3.157   29.523 v _128_/Y (BUF_X2)
+   3.474   32.996 v _132_/Y (MUX2)
+  22.877   55.874 ^ u_mem/Q[6] (REG8x16)
+   2.367   58.241 v _147_/Y (NAND2)
+   1.015   59.256 ^ _148_/Y (NAND4)
+   3.861   63.117 v _151_/Y (NAND3)
+   3.754   66.871 v _157_/Y (XOR2)
+   0.927   67.799 ^ _158_/Y (NAND3)
+   2.631   70.429 v _159_/Y (NAND2)
+   1.242   71.671 ^ _161_/Y (NAND2)
+   2.034   73.705 v _171_/Y (NAND2)
+   3.101   76.805 v _173_/Y (XOR2)
+   1.786   78.591 v _183_/Y (AND2_X1)
+   1.795   80.387 ^ _187_/Y (NOR3)
+   1.048   81.435 v _188_/Y (NOR2)
+   0.000   81.435 v _240_/D (DFFRB)
+           81.435   data arrival time
+
+ 100.000  100.000   clock clk (rise edge)
+   0.000  100.000   clock network delay (ideal)
+   0.000  100.000   clock reconvergence pessimism
+          100.000 ^ _240_/CK (DFFRB)
+  -1.425   98.575   library setup time
+           98.575   data required time
+-----------------------------------------------------------
+           98.575   data required time
+          -81.435   data arrival time
+-----------------------------------------------------------
+           17.140   slack (MET)
+
+
+
+  -- マクロへ向かう最長パス（書込み側 ADD / D / WEB の setup）
+No paths found.
+
+  -- 最小パルス幅（U73 より **何も出ないのが既知の正**）
+     ★ ここが空なのは違反が無いからではなく、**OpenSTA が見ていない**から。
+        `WEB` の最小低パルス幅 11 ns（配線容量なし）は ngspice 側で担保する。
