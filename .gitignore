@@ -63,3 +63,6 @@ layout/chip/simulation/*_extracted.spice
 # ───────────────────────────────────────────────────────────────
 # scripts/gen_chip_tb.py / gen_chip_sim_ready.py が作る ngspice 入力
 layout/chip/simulation/tb_*.spi
+
+# syn.sh が .lib から起こす ABC 制約（U99）。写さないので追跡しない
+out/abc.constr
