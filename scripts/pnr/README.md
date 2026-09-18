@@ -1,5 +1,10 @@
 # scripts/pnr/ — 配置配線
 
+> ★ **ここに挙がっている道具のうち、APRtools へ移したものは設計側から消した**（2026-09-18、U94）。正本は `$APRTOOLS/apr/` にある 1 本だけ。
+> 下の例の `$APRTOOLS/apr/…` がそれで、`scripts/…` のままの行は設計固有の道具。
+> **写しを残すと、いつか古い方を呼ぶ**（U89 / U14 で 2 度踏んだ）。
+
+
 `TR-1um_SCLK_SPI/scripts/`（さらにその元は `TR-1um_Async_I2C/script/`）の
 フローを TD4 に移したもの。**アルゴリズムは触らない**方針も同じで、
 設計固有の値は `td4_config.py` 1 本に集めてある。
@@ -37,15 +42,15 @@ Mac で動くのは GDS を読まないもの（`td4_config.py` の整合チェ�
 
 ```sh
 python3 scripts/insert_bufth.py out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
-python3 scripts/pnr/mkcellinfo.py        # セル寸法表
+python3 $APRTOOLS/apr/mkcellinfo.py        # セル寸法表
 python3 scripts/pnr/place.py             # step1..step4
-python3 scripts/pnr/verify_placement.py  # 配置の検証
-python3 scripts/pnr/plot_placement.py    # layout/placement_steps.png
+python3 $APRTOOLS/apr/verify_placement.py  # 配置の検証
+python3 $APRTOOLS/apr/plot_placement.py    # layout/placement_steps.png
 
 export TR1UM_PDK=<PDK>/libs.tech/klayout/tech   # via_1 PCell（必須）
 python3 scripts/pnr/route.py             # step5..step10 + DRC/接続性
 python3 scripts/pnr/route.py --from 6 --to 6    # 配線だけやり直す
-python3 scripts/pnr/plot_layout.py layout/step10/route_step_6_squeezed.gds \
+python3 $APRTOOLS/apr/plot_layout.py layout/step10/route_step_6_squeezed.gds \
         -o layout/routed.png
 ```
 
@@ -338,7 +343,7 @@ M2: 3.4 + 2.0 (M2 最小間隔) = 5.4   ← こちらが効く
 配置も配線もビット単位で同じものが出て、帯の**下**だけが縮む。
 
 ```sh
-python3 scripts/pnr/mkmemport.py --pads-from-lef lef/TR-1um_PNR.lef
+python3 $APRTOOLS/apr/mkmemport.py --pads-from-lef lef/TR-1um_PNR.lef
 ```
 
 `--order-from`（負荷の重心順に並べ替え）を使うと逆に配置がやり直しになり、
@@ -771,7 +776,7 @@ P&R から見ると 9 セル 291.6 µm が増えるだけで、扱いは普通�
 | `verify_placement.py` | 配置の検証（被覆・アバット・グリッド・TAP 位置・マクロ・GDS 実体） |
 | `plot_placement.py` | 4 STEP の PNG（目視確認用、フロー外） |
 | `../insert_bufth.py` | 外部入力を `BUFTH` で受ける（合成側。`syn.sh` 6.5 から呼ぶ） |
-| `../normalize_prboundary.py` | セルの prBoundary 左下を原点に合わせる |
+| `$APRTOOLS/apr/normalize_prboundary.py` | セルの prBoundary 左下を原点に合わせる |
 | `netlist_util.py` | Yosys ネットリストの最小パーサ。SCLK_SPI から無改変 |
 | `lef_parser.py` / `netlist_parser.py` | 同上（`spi_config` 経由でパスを取る） |
 
@@ -779,7 +784,7 @@ P&R から見ると 9 セル 291.6 µm が増えるだけで、扱いは普通�
 
 セル原点と prBoundary の左下は**一致している**。`REG4x16` / `REG8x16` は
 元は (-86.4, -54.6) から始まっていて、「(x, y) に置けば prBoundary が
-(x, y) に来る」が成り立たなかったので、`scripts/normalize_prboundary.py` で
+(x, y) に来る」が成り立たなかったので、`$APRTOOLS/apr/normalize_prboundary.py` で
 中身ごと平行移動して揃えた。`place.py` はそれでも決め打ちせず
 `cell_info.json` の `origin` を見る（`verify_placement.py` が GDS 上の実位置で
 毎回確認する）。
