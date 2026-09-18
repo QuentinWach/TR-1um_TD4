@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+# copy: ok TD4 の合成の流れ（scripts/syn.sh）専用。決定 17 で TD4 は再合成しないので、
+#          この報告も当時のまま凍結する。コア寸法 1840.0 も TD4 の値を直書きしている。
 """マッピング後のネットリストから面積と所要コア面積を出す。
 
   usage: python3 scripts/syn_report.py <top> [-n out/<top>.v] [-s out/<top>.stat]
