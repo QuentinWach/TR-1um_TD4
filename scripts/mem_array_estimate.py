@@ -7,7 +7,7 @@ FF 実装側は Yosys 合成の実測差分:
 どちらも `sh scripts/syn.sh` が .lib で実セルにマッピングして作る。
 
 アレイ側は **実在するセルの GDS 実測寸法**で積み上げる（推定値ではない）。
-セル寸法は `scripts/cell_area.json`（scripts/cellinfo.py --areas が GDS から生成）
+セル寸法は `scripts/cell_area.json`（$APRTOOLS/apr/cellinfo.py --areas が GDS から生成）
 から読むので、ライブラリを直せば自動で追従する。
 
 **2026-09-11**: REG8x16 が実際に出来て DRC/LVS クリーンになったので、
@@ -21,7 +21,7 @@ AREAS = os.path.join(HERE, "cell_area.json")
 
 if not os.path.exists(AREAS):
     sys.exit(f"{AREAS} が無い。先に\n"
-             f"  python3 scripts/cellinfo.py lef/TR-1um_STDCELL.gds "
+             f"  python3 $APRTOOLS/apr/cellinfo.py lef/TR-1um_STDCELL.gds "
              f"--genlib scripts/tr1um.genlib --areas scripts/cell_area.json")
 _doc = json.load(open(AREAS))
 C = _doc["cells"]

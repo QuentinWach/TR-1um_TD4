@@ -80,7 +80,7 @@ x2 … td4_soc_arr_nrow_fm
 
 ```
 tr_1um_jun1okamura_ext.spice   抽出（scripts/klayout_extract.py、combine 済み・ネット名付き）
-tr_1um_jun1okamura_sim.spice   それを ngspice 用に直したもの（scripts/frame2sim.py）
+tr_1um_jun1okamura_sim.spice   それを ngspice 用に直したもの（$APRTOOLS/apr/frame2sim.py）
 tb_tr_1um_jun1okamura.spi      テストベンチ（scripts/gen_chip_tb.py）
 chip_tb.log            ngspice の出力
 chip_tb.png            波形（scripts/check_chip_sim.py）
@@ -91,7 +91,7 @@ chip_tb.png            波形（scripts/check_chip_sim.py）
 ```sh
 python3 scripts/klayout_extract.py layout/chip/step4_final.gds tr_1um_jun1okamura \
     -o layout/chip/simulation/tr_1um_jun1okamura_ext.spice
-python3 scripts/frame2sim.py layout/chip/simulation/tr_1um_jun1okamura_ext.spice \
+python3 $APRTOOLS/apr/frame2sim.py layout/chip/simulation/tr_1um_jun1okamura_ext.spice \
     -o layout/chip/simulation/tr_1um_jun1okamura_sim.spice
 python3 scripts/gen_chip_tb.py --period 100 --cycles 12
 ( cd layout/chip/simulation && ngspice -b tb_*.spi > chip_tb.log 2>&1 )

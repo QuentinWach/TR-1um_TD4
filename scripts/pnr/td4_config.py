@@ -20,7 +20,7 @@ CHIP_TOP_CELL = "tr_1um_jun1okamura"         # info.yaml の gds.top_cell
 #   決めている（シャトル上で名前がぶつからないように）。
 
 # ---- 入力 ----------------------------------------------------------------
-# ライブラリ本体（`scripts/mklef.py` が作る。P&R は直接読まない）
+# ライブラリ本体（`$APRTOOLS/apr/mklef.py` が作る。P&R は直接読まない）
 LIB_LEF = os.path.join(ROOT, "lef", "TR-1um_cells.lef")
 LIB_GDS = os.path.join(ROOT, "lef", "TR-1um_STDCELL.gds")
 # P&R が読むもの = ライブラリ + `MEMPORT`。`scripts/pnr/mkmemport.py` が作る。

@@ -15,8 +15,9 @@ cd "$(dirname "$0")/.."
 VERBOSE="${1:-}"
 
 # ★ `.sim` の変換器は **APRtools の正本**を使う（決定 25）。
-#   `scripts/spi2sim.py` は移行前の写しで、内部ノードの角括弧を潰さない
-#   古い版のまま残っている（U94）。写しを掴むと `.cmd` の `vector` に
+#   設計側にあった `scripts/spi2sim.py` は移行前の写しで、内部ノードの角括弧を
+#   潰さない古い版だった（**2026-09-18 に消した**。U94）。写しを掴むと
+#   `.cmd` の `vector` に
 #   `u_core_reg_a[0]` と書くはめになり、IRSIM がノードを見つけられない。
 #   **黙って写しに落ちないよう、無ければここで止める。**
 : "${APRTOOLS:?APRTOOLS を export してください（docs/30_verify_drc_lvs.md §0）}"
