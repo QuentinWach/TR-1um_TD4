@@ -4,7 +4,7 @@
   usage: python3 scripts/klayout_extract.py <gds> <top> -o out.spice [--flat]
 
 なぜこれが要るか:
-  `scripts/gds_extract.py` は標準セル向けの簡易抽出で、フレームのパッドセル
+  `$APRTOOLS/apr/gds_extract.py` は標準セル向けの簡易抽出で、フレームのパッドセル
   （`OSS_ESD_5V_DIO` など）には通用しない。実際に踏んだ不具合:
 
     - poly が横向きに走るので W と L が入れ替わる（W=500µm の出力段が W=2µm に）

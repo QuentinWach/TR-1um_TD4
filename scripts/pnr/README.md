@@ -41,7 +41,7 @@ Mac で動くのは GDS を読まないもの（`td4_config.py` の整合チェ�
 | step10 | チャネル圧縮 | `layout/step10/route_step_6_squeezed.gds` |
 
 ```sh
-python3 scripts/insert_bufth.py out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
+python3 $APRTOOLS/apr/insert_bufth.py out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
 python3 $APRTOOLS/apr/mkcellinfo.py        # セル寸法表
 python3 scripts/pnr/place.py             # step1..step4
 python3 $APRTOOLS/apr/verify_placement.py  # 配置の検証
@@ -759,7 +759,7 @@ TAP の左右に置いた優先コリドー（`PRI_MODE="both"`、6 本/行）�
 
 ### 入力は `BUFTH` で受ける
 
-`scripts/insert_bufth.py` が合成の最後（`syn.sh` 6.5）で、トップの入力
+`$APRTOOLS/apr/insert_bufth.py` が合成の最後（`syn.sh` 6.5）で、トップの入力
 9 本（`clk` `rst_n` `exec` `wr` `nibsel` `d[3:0]`）に `BUFTH` を 1 段ずつ挿す。
 `OSS_ESD_5V_DIO` に入力バッファが無く、`PAD` の 4.8 pF を外部ドライバが
 直接振るため。`BUFTH` はシュミット（立上り 3.43 V / 立下り 1.44 V）。
@@ -775,7 +775,7 @@ P&R から見ると 9 セル 291.6 µm が増えるだけで、扱いは普通�
 | `place.py` | 配置本体。step1〜step4 |
 | `verify_placement.py` | 配置の検証（被覆・アバット・グリッド・TAP 位置・マクロ・GDS 実体） |
 | `plot_placement.py` | 4 STEP の PNG（目視確認用、フロー外） |
-| `../insert_bufth.py` | 外部入力を `BUFTH` で受ける（合成側。`syn.sh` 6.5 から呼ぶ） |
+| `$APRTOOLS/apr/insert_bufth.py` | 外部入力を `BUFTH` で受ける（合成側。`syn.sh` 6.5 から呼ぶ）。**2026-09-18 に設計側の写しを消した**（U94） |
 | `$APRTOOLS/apr/normalize_prboundary.py` | セルの prBoundary 左下を原点に合わせる |
 | `netlist_util.py` | Yosys ネットリストの最小パーサ。SCLK_SPI から無改変 |
 | `lef_parser.py` / `netlist_parser.py` | 同上（`spi_config` 経由でパスを取る） |

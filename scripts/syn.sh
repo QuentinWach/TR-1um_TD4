@@ -14,6 +14,15 @@
 #   セルモデル ≡ レイアウト        <APRtools>/char/check_comb.py ほか（ngspice）
 #   どちらも出どころは <APRtools>/char/cellspec.py の 1 箇所。
 set -e
+# ★ 道具の正本は APRtools（U94 / 決定 4）。実行する行なので山括弧の見本では
+#   なく変数で。APRTOOLS が未設定ならリポジトリの隣を見る。
+# ★ **ここで決める。** 以前は 0 段の直前（80 行目あたり）で決めていたが、
+#   すぐ下の `LIB=` が先に `$APRTOOLS` を使っていて、未設定だと
+#   `PYTHONPATH=/apr` で config を読みに行っていた（空振りしても
+#   `2>/dev/null` なので気づけない）。**使う前に決める。**
+: "${APRTOOLS:=$(cd "$(dirname "$0")/../.." && pwd)/TR-1um_APRtools}"
+[ -f "$APRTOOLS/char/mkcellverilog.py" ] || {
+  echo "** APRTOOLS が違う: $APRTOOLS（export APRTOOLS=... してください）" >&2; exit 1; }
 # ★ 正本は APRtools の stdcell（決定 4）。以前は lef/ の写しを読んでいて、
 #   selfcheck が毎回「不一致」を出していた（U31）。実体の差は
 #   **`dont_use: true` の RSLATCH が 1 つ増えただけ**で、2 つの Liberty で
@@ -85,11 +94,6 @@ echo "ABC 制約: $(tr '\n' ' ' < $CONSTR)"
 echo
 echo "##################### 0. セルの Verilog モデルを生成"
 # cellspec.py（ngspice で実レイアウトと突き合わせ済み）から起こす。
-# ★ 実行する行なので山括弧の見本ではなく変数で。APRTOOLS が未設定なら
-#   リポジトリの隣を見る。
-: "${APRTOOLS:=$(cd "$(dirname "$0")/../.." && pwd)/TR-1um_APRtools}"
-[ -f "$APRTOOLS/char/mkcellverilog.py" ] || {
-  echo "** APRTOOLS が違う: $APRTOOLS（export APRTOOLS=... してください）" >&2; exit 1; }
 python3 "$APRTOOLS/char/mkcellverilog.py" -o $CELLS
 
 echo
@@ -166,7 +170,7 @@ python3 scripts/mem_wrap.py out/td4_soc_arr_bb.v -o out/td4_soc_arr_mw.v
 # 入っておらず、PAD の 4.8 pF を外部ドライバが直接振る。鈍った波形をそのまま
 # 各段に配ると貫通電流が増え、CLK/RSTN にチャタリングが乗れば誤動作する。
 # BUFTH は立上り 3.71V / 立下り 1.20V（ヒステリシス 2.51V）。
-python3 scripts/insert_bufth.py out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
+python3 "$APRTOOLS/apr/insert_bufth.py" out/td4_soc_arr_mw.v out/td4_soc_arr_pnr.v
 python3 scripts/syn_report.py td4_soc_arr -n out/td4_soc_arr_pnr.v --brief
 if command -v iverilog >/dev/null 2>&1; then
   iverilog -g2012 -o /tmp/g_pnr.vvp hdl/tb/tb_td4_soc_arr.v out/td4_soc_arr_pnr.v \
