@@ -28,7 +28,9 @@ set -e
 #   **`dont_use: true` の RSLATCH が 1 つ増えただけ**で、2 つの Liberty で
 #   合成した結果は**バイト単位で完全一致**することを確かめてある。
 #   写しは reference/submitted_v1/lef/ に残した。
-LIB=${LIB:-$(PYTHONPATH=${PYTHONPATH:-$APRTOOLS/apr} python3 -c "import config; print(config.SYN_LIB)" 2>/dev/null)}
+# ★ `apr_path` を先に通す。`config` は仮想環境の pip パッケージにもある名前で、
+#   素の `import config` は別物を掴むことがある（U94、2026-09-18）。
+LIB=${LIB:-$(PYTHONPATH=${PYTHONPATH:-$APRTOOLS/apr} python3 -c "import apr_path, config; print(config.SYN_LIB)" 2>/dev/null)}
 [ -n "$LIB" ] || { echo "config.SYN_LIB が読めない。PYTHONPATH=\$APRTOOLS/apr" >&2; exit 1; }
 # ABC に駆動元と負荷を教えるファイル。**これが無いと ABC はタイミングを見ない。**
 # Yosys の abc パスは -constr があるときだけ ABC のスクリプトを
