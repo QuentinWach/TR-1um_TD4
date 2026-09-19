@@ -26,6 +26,29 @@ on the right, and the ring channel between the core and the pads carries the
 | Clock | verified at 10 MHz; STA `reg→reg` 63.09 ns (15.85 MHz) |
 | Status | **DRC clean / LVS match / ngspice PASS** |
 
+> ### The tools now live in `TR-1um_APRtools`
+>
+> The place-and-route, chip-assembly, DRC/LVS and characterisation scripts are
+> no longer copied into each design. They are maintained in one place:
+> [`jun1okamura/TR-1um_APRtools`](https://github.com/jun1okamura/TR-1um_APRtools) (`apr/`, with `apr/README.md` as the
+> map). **If you want to build something new on TR-1um, start there.**
+>
+> What remains in `scripts/` here is design-specific (`config.py`, testbench
+> stimulus, pad assignment), called directly by CI (`scripts/pre_check.py`,
+> `scripts/read_info.py`), or kept as a record of the flow at submission time
+> (APRtools also ships a read-only copy under `legacy/`).
+> **Where a file name appears in both, only the APRtools one is maintained.**
+>
+> APRtools scripts are run with the design directory as the cwd; they take no
+> arguments:
+>
+> ```sh
+> export TR1UM_PDK=<where the PDK is>/TR-1um
+> export APRTOOLS=<where the tools are>/TR-1um_APRtools
+> export PYTHONPATH=$APRTOOLS/apr
+> python3 $APRTOOLS/apr/selfcheck.py
+> ```
+
 ---
 
 ## What is on the chip
